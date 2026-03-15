@@ -1,0 +1,103 @@
+openapi: 3.0.3
+info:
+  title: ClassDuck API
+  version: 1.0.0
+  description: Initial API contract for frontend-backend separation.
+servers:
+  - url: https://api.classduck.local
+paths:
+  /v1/config/schools:
+    get:
+      summary: Get school import configurations
+      operationId: getSchoolConfigs
+      responses:
+        '200':
+          description: school config list
+          content:
+            application/json:
+              schema:
+                $ref: ../schemas/school-config-list.schema.json
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: ../schemas/error-response.schema.json
+  /v1/config/adapters:
+    get:
+      summary: Get parser adapter rules
+      operationId: getAdapterRules
+      responses:
+        '200':
+          description: adapter rule list
+          content:
+            application/json:
+              schema:
+                $ref: ../schemas/adapter-rule-list.schema.json
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: ../schemas/error-response.schema.json
+  /v1/import/logs:
+    post:
+      summary: Upload import failure log
+      operationId: postImportLog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: ../schemas/import-log-request.schema.json
+      responses:
+        '202':
+          description: accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted:
+                    type: boolean
+                  traceId:
+                    type: string
+                required:
+                  - accepted
+                  - traceId
+        '400':
+          description: invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: ../schemas/error-response.schema.json
+  /v1/release/check:
+    get:
+      summary: Check latest app release
+      operationId: checkRelease
+      parameters:
+        - name: currentVersion
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: platform
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [android, ios]
+      responses:
+        '200':
+          description: release check result
+          content:
+            application/json:
+              schema:
+                $ref: ../schemas/release-check-response.schema.json
+        '500':
+          description: server error
+          content:
+            application/json:
+              schema:
+                $ref: ../schemas/error-response.schema.json
+components: {}

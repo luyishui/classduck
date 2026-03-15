@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "import-log-request.schema.json",
+  "title": "ImportLogRequest",
+  "type": "object",
+  "properties": {
+    "traceId": { "type": "string" },
+    "schoolId": { "type": "string" },
+    "errorCode": { "type": "string" },
+    "message": { "type": "string" },
+    "appVersion": { "type": "string" },
+    "platform": { "type": "string", "enum": ["android", "ios", "ohos"] },
+    "occurredAt": { "type": "string", "format": "date-time" }
+  },
+  "required": [
+    "traceId",
+    "schoolId",
+    "errorCode",
+    "message",
+    "appVersion",
+    "platform",
+    "occurredAt"
+  ],
+  "additionalProperties": true
+}

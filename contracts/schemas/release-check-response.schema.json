@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "release-check-response.schema.json",
+  "title": "ReleaseCheckResponse",
+  "type": "object",
+  "properties": {
+    "traceId": { "type": "string" },
+    "data": {
+      "type": "object",
+      "properties": {
+        "hasNewVersion": { "type": "boolean" },
+        "latestVersion": { "type": "string" },
+        "currentVersion": { "type": "string" },
+        "updateUrl": { "type": "string" },
+        "releaseNotes": { "type": "string" }
+      },
+      "required": [
+        "hasNewVersion",
+        "latestVersion",
+        "currentVersion",
+        "updateUrl",
+        "releaseNotes"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": ["traceId", "data"],
+  "additionalProperties": false
+}

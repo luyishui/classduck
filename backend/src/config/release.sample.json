@@ -1,0 +1,11 @@
+{
+  "latestVersion": "1.1.0",
+  "androidStoreUrl": "https://example.com/classduck/android",
+  "iosStoreUrl": "https://example.com/classduck/ios",
+  "releaseNotes": [
+    "新增：课程提醒可自定义提前时间",
+    "优化：导入课表稳定性与速度",
+    "修复：部分机型弹窗错位问题",
+    "细节：多处文案与交互动效调整"
+  ]
+}

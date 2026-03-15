@@ -1,0 +1,2 @@
+{"message":"sample","schoolId":"nju-undergraduate-jw","traceId":"manual-check","occurredAt":"2026-03-14T12:20:00Z","appVersion":"0.1.0","platform":"android","errorCode":"PARSE_FAILED"}
+{"message":"manual flow","schoolId":"nju-undergraduate-jw","traceId":"manual-check-2","occurredAt":"2026-03-14T12:35:00Z","appVersion":"0.1.0","platform":"android","errorCode":"PARSER_EXECUTION_FAILED"}
