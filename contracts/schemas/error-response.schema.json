@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "error-response.schema.json",
+  "title": "ErrorResponse",
+  "type": "object",
+  "properties": {
+    "traceId": { "type": "string" },
+    "errorCode": { "type": "string" },
+    "message": { "type": "string" }
+  },
+  "required": ["traceId", "errorCode", "message"],
+  "additionalProperties": false
+}

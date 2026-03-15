@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "adapter-rule-list.schema.json",
+  "title": "AdapterRuleListResponse",
+  "type": "object",
+  "properties": {
+    "version": { "type": "string" },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "adapterId": { "type": "string" },
+          "name": { "type": "string" },
+          "match": {
+            "type": "object",
+            "properties": {
+              "hostIncludes": { "type": "array", "items": { "type": "string" } },
+              "pathIncludes": { "type": "array", "items": { "type": "string" } }
+            },
+            "required": ["hostIncludes", "pathIncludes"],
+            "additionalProperties": false
+          },
+          "extract": {
+            "type": "object",
+            "properties": {
+              "scriptUrl": { "type": "string" },
+              "delaySeconds": { "type": "integer", "minimum": 0 },
+              "needsLogin": { "type": "boolean" }
+            },
+            "required": ["scriptUrl", "delaySeconds", "needsLogin"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["adapterId", "name", "match", "extract"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["version", "rules"],
+  "additionalProperties": false
+}

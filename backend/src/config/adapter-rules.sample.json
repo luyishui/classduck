@@ -1,0 +1,31 @@
+{
+  "version": "2026-03-15",
+  "rules": [
+    {
+      "adapterId": "generic-urp",
+      "name": "通用URP教务适配器",
+      "match": {
+        "hostIncludes": ["jw", "urp", "edu.cn", "ehall"],
+        "pathIncludes": ["/jw", "/course", "/xskcb", "/jwapp", "/wdkb"]
+      },
+      "extract": {
+        "scriptUrl": "local://parsers/common-urp.js",
+        "delaySeconds": 3,
+        "needsLogin": true
+      }
+    },
+    {
+      "adapterId": "treew-new",
+      "name": "树维新版适配器",
+      "match": {
+        "hostIncludes": ["treew", "jiaowu"],
+        "pathIncludes": ["/student", "/schedule"]
+      },
+      "extract": {
+        "scriptUrl": "local://parsers/treew-new.js",
+        "delaySeconds": 2,
+        "needsLogin": true
+      }
+    }
+  ]
+}

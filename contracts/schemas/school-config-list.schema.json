@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "school-config-list.schema.json",
+  "title": "SchoolConfigListResponse",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "level": {
+            "type": "string",
+            "enum": ["junior", "undergraduate", "master", "general"]
+          },
+          "title": { "type": "string" },
+          "initialUrl": { "type": "string" },
+          "targetUrl": { "type": "string" },
+          "extractScriptUrl": { "type": "string" },
+          "delaySeconds": { "type": "integer", "minimum": 0 }
+        },
+        "required": [
+          "id",
+          "level",
+          "title",
+          "initialUrl",
+          "targetUrl",
+          "extractScriptUrl",
+          "delaySeconds"
+        ],
+        "additionalProperties": true
+      }
+    }
+  },
+  "required": ["version", "data"],
+  "additionalProperties": false
+}
