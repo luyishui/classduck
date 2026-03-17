@@ -1,3 +1,8 @@
+/// 导入学校配置的前端领域模型。
+///
+/// 当前结构兼容两类来源：
+/// 1. Python 后端 `/v1/config/schools` 返回的数据。
+/// 2. 本地 `schools.builtin.json` 的静态兜底数据。
 class SchoolConfig {
   SchoolConfig({
     required this.id,
@@ -17,6 +22,7 @@ class SchoolConfig {
   final String extractScriptUrl;
   final int delaySeconds;
 
+  /// 从后端/本地配置对象解析为统一模型。
   factory SchoolConfig.fromMap(Map<String, dynamic> map) {
     return SchoolConfig(
       id: map['id'] as String? ?? '',
@@ -34,6 +40,7 @@ class SchoolConfig {
     );
   }
 
+  /// 对学校层级做兼容归一化，避免旧配置缺字段时前端分栏失效。
   static String _normalizeLevel({
     required String? rawLevel,
     required String id,

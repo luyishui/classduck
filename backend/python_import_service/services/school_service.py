@@ -33,6 +33,7 @@ class SchoolService:
         self._load_all()
 
     def _load_all(self) -> None:
+        """从磁盘加载全部学校配置到内存缓存。"""
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         for file_path in CONFIG_DIR.glob("*.json"):
             with file_path.open("r", encoding="utf-8") as fp:
@@ -41,10 +42,12 @@ class SchoolService:
             self._cache[config.id] = config
 
     def reload(self) -> None:
+        """热重载配置文件，用于开发阶段调试新增学校配置。"""
         self._cache.clear()
         self._load_all()
 
     def list_all(self) -> list[SchoolConfig]:
+        """返回按学校名称排序后的全部配置。"""
         return sorted(self._cache.values(), key=lambda item: item.name)
 
     def list_summary(self) -> dict[str, Any]:
@@ -67,9 +70,11 @@ class SchoolService:
         }
 
     def get_config(self, school_id: str) -> SchoolConfig | None:
+        """按 school_id 获取单个学校配置。"""
         return self._cache.get(school_id)
 
     def get_script(self, school_id: str, script_type: str = "provider") -> str | None:
+        """读取学校对应的脚本文件内容。"""
         script_path = SCRIPT_DIR / f"{school_id}_{script_type}.js"
         if not script_path.exists():
             return None

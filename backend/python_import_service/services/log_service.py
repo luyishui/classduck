@@ -13,6 +13,7 @@ class LogService:
         self._init_db()
 
     def _init_db(self) -> None:
+        """初始化日志表，保持最小可用结构，避免迁移复杂度。"""
         with sqlite3.connect(str(DB_PATH)) as conn:
             conn.execute(
                 """
@@ -36,6 +37,7 @@ class LogService:
             )
 
     def save(self, log: ImportLog) -> None:
+        """持久化一条导入日志。原始数据样本会被截断，避免库无限膨胀。"""
         with sqlite3.connect(str(DB_PATH)) as conn:
             conn.execute(
                 """
@@ -63,6 +65,7 @@ class LogService:
             )
 
     def query_recent(self, limit: int = 100) -> list[dict[str, str]]:
+        """读取最近日志，主要用于本地排障或后续后台查看页面。"""
         with sqlite3.connect(str(DB_PATH)) as conn:
             cursor = conn.execute(
                 "SELECT * FROM import_logs ORDER BY id DESC LIMIT ?",

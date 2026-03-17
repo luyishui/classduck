@@ -9,8 +9,37 @@ import '../../schedule/data/schedule_repository.dart';
 import '../../../shared/theme/app_tokens.dart';
 import '../application/import_engine.dart';
 import '../data/import_api_service.dart';
-import '../data/import_log_repository.dart';
 import '../domain/school_config.dart';
+
+String normalizeImportUrl(String url) {
+  final String trimmed = url.trim();
+  if (trimmed.isEmpty) {
+    return '';
+  }
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+  return 'https://$trimmed';
+}
+
+Map<String, String> inferImportTermTokens(
+  Map<String, dynamic> termMapping, {
+  DateTime? now,
+}) {
+  final DateTime current = now ?? DateTime.now();
+  final bool firstSemester = current.month >= 8 || current.month == 1;
+  final String schoolYear = current.month >= 8
+      ? current.year.toString()
+      : (current.year - 1).toString();
+  final String term = firstSemester
+      ? (termMapping['first'] as String? ?? '1')
+      : (termMapping['second'] as String? ?? '2');
+
+  return <String, String>{
+    'year': schoolYear,
+    'term': term,
+  };
+}
 
 /// 教务导入页面 —— 一体化 WebView 设计
 ///
@@ -42,9 +71,78 @@ class ImportExecutionPage extends StatefulWidget {
   State<ImportExecutionPage> createState() => _ImportExecutionPageState();
 }
 
+class ImportWebFallbackPanel extends StatelessWidget {
+  const ImportWebFallbackPanel({
+    super.key,
+    required this.onOpen,
+  });
+
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(Icons.web_asset_off, size: 64, color: Colors.grey.shade400),
+            const SizedBox(height: 16),
+            const Text(
+              'Web 端不支持内嵌教务网页',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '课表导入需要在 WebView 中登录教务系统并抓取页面数据，\n'
+              '该功能仅在 Windows / Android / iOS 客户端可用。\n\n'
+              '你可以点击下方按钮在浏览器新标签页中打开教务网站。',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey.shade600, height: 1.5),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: onOpen,
+              icon: const Icon(Icons.open_in_new),
+              label: const Text('在浏览器中打开教务网站'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTokens.duckYellow,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class ImportConflictDialog extends StatelessWidget {
+  const ImportConflictDialog({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('导入冲突处理'),
+      content: const Text('检测到当前已有课表，选择导入方式：'),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(ImportConflictMode.createNew),
+          child: const Text('新建课表导入'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(ImportConflictMode.overwriteExisting),
+          child: const Text('覆盖当前课表'),
+        ),
+      ],
+    );
+  }
+}
+
 class _ImportExecutionPageState extends State<ImportExecutionPage> {
   final ImportEngine _importEngine = ImportEngine();
-  final ImportLogRepository _logRepository = ImportLogRepository();
   final ImportApiService _apiService = ImportApiService();
   final ScheduleRepository _scheduleRepository = ScheduleRepository();
 
@@ -84,7 +182,10 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
   /// Web 端不支持 WebView，跳过初始化；原生端使用系统 WebView。
   void _initWebView() {
     // Web 平台不支持 webview_flutter，跳过初始化
-    if (kIsWeb) return;
+    if (kIsWeb) {
+      _webViewLoading = false;
+      return;
+    }
 
     final WebViewController controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -275,48 +376,21 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
 
   /// Web 端替代 UI：提示用户使用桌面/移动客户端，并提供浏览器打开链接
   Widget _buildWebFallback() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Icon(Icons.web_asset_off, size: 64, color: Colors.grey.shade400),
-            const SizedBox(height: 16),
-            const Text(
-              'Web 端不支持内嵌教务网页',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              '课表导入需要在 WebView 中登录教务系统并抓取页面数据，\n'
-              '该功能仅在 Windows / Android / iOS 客户端可用。\n\n'
-              '你可以点击下方按钮在浏览器新标签页中打开教务网站。',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade600, height: 1.5),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () => _openInBrowser(_currentUrl),
-              icon: const Icon(Icons.open_in_new),
-              label: const Text('在浏览器中打开教务网站'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTokens.duckYellow,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    return ImportWebFallbackPanel(onOpen: () => _openInBrowser(_currentUrl));
   }
 
   /// 在外部浏览器中打开 URL
   Future<void> _openInBrowser(String url) async {
-    final Uri uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    try {
+      final Uri uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('当前网址无效，请检查后重试。')),
+      );
     }
   }
 
@@ -326,13 +400,8 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
 
   /// 导航到用户输入的 URL
   void _navigateToUrl(String url) {
-    final String trimmed = url.trim();
-    if (trimmed.isEmpty) return;
-
-    String finalUrl = trimmed;
-    if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
-      finalUrl = 'https://$finalUrl';
-    }
+    final String finalUrl = normalizeImportUrl(url);
+    if (finalUrl.isEmpty) return;
 
     if (kIsWeb) {
       // Web 端：在浏览器新标签页打开
@@ -445,8 +514,6 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
   /// 4. 否则走旧 HTML 解析通路
   /// 5. 成功后上报日志并返回上一页
   Future<void> _captureAndImport() async {
-    if (_webController == null) return;
-
     // Web 端 iframe 无法跨域执行 JS，提示降级
     if (kIsWeb) {
       if (!mounted) return;
@@ -459,11 +526,16 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
       return;
     }
 
+    if (_webController == null) return;
+
     setState(() {
       _importing = true;
     });
 
     try {
+      _rawJsonFromJs = null;
+      await _tryCaptureRawJsonFromProviderScript();
+
       // 先抓取当前 HTML
       final Object rawHtml = await _webController!.runJavaScriptReturningResult(
         'document.documentElement.outerHTML',
@@ -519,20 +591,7 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
       if (!mounted) return;
       final ImportConflictMode? selected = await showDialog<ImportConflictMode>(
         context: context,
-        builder: (BuildContext context) => AlertDialog(
-          title: const Text('导入冲突处理'),
-          content: const Text('检测到当前已有课表，选择导入方式：'),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(ImportConflictMode.createNew),
-              child: const Text('新建课表导入'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(ImportConflictMode.overwriteExisting),
-              child: const Text('覆盖当前课表'),
-            ),
-          ],
-        ),
+        builder: (BuildContext context) => const ImportConflictDialog(),
       );
 
       if (selected == null) {
@@ -572,12 +631,10 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
       );
       Navigator.of(context).pop(true);
     } catch (error) {
-      await _logRepository.reportImportFailure(
+      await _apiService.reportLog(
         schoolId: widget.config.id,
-        errorCode: 'IMPORT_ENGINE_FAILED',
-        message: _sanitizeForLog(error.toString()),
-        appVersion: '0.1.0',
-        platform: 'android',
+        status: 'failed',
+        errorMessage: _sanitizeForLog(error.toString()),
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -619,6 +676,67 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
     if (masked.length > 240) masked = '${masked.substring(0, 240)}...';
     return masked;
   }
+
+  Future<void> _tryCaptureRawJsonFromProviderScript() async {
+    if (_webController == null) {
+      return;
+    }
+
+    try {
+      final Map<String, dynamic> schoolConfig = await _apiService.getSchoolConfig(widget.config.id);
+      final Map<String, String> tokens = inferImportTermTokens(
+        (schoolConfig['term_mapping'] as Map<String, dynamic>?) ?? <String, dynamic>{},
+      );
+      String script = await _apiService.getProviderScript(widget.config.id);
+      if (script.trim().isEmpty) {
+        return;
+      }
+
+      script = script
+          .replaceAll('{{YEAR}}', tokens['year'] ?? '')
+          .replaceAll('{{TERM}}', tokens['term'] ?? '')
+          .replaceFirst('(async function()', 'await (async function()');
+
+      final Object rawResult = await _webController!.runJavaScriptReturningResult(
+        '''
+        (async function() {
+          let __classduckResult = null;
+          window.flutter_inappwebview = {
+            callHandler: function(_name, payload) {
+              __classduckResult = payload;
+              return Promise.resolve(payload);
+            }
+          };
+          $script
+          return __classduckResult;
+        })()
+        ''',
+      );
+
+      final String normalized = _normalizeJsResult(rawResult).trim();
+      if (normalized.isEmpty || normalized == 'null') {
+        return;
+      }
+
+      final dynamic decoded = jsonDecode(normalized);
+      if (decoded is! Map<String, dynamic>) {
+        return;
+      }
+      if (decoded['success'] != true) {
+        return;
+      }
+
+      final dynamic data = decoded['data'];
+      if (data == null) {
+        return;
+      }
+
+      _rawJsonFromJs = jsonEncode(data);
+    } catch (_) {
+      // JS 注入失败时静默回退到 HTML 抓取路径，不阻塞旧链路。
+    }
+  }
+
 }
 
 /// 右下角圆形浮动按钮

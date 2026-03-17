@@ -11,6 +11,7 @@ log_service = LogService()
 
 @router.post("/v1/import/logs")
 async def report_import_failure_v1(request: Request) -> JSONResponse:
+    """兼容旧版 Flutter 的失败日志上报格式。"""
     payload = await request.json()
     trace_id = str(payload.get("traceId", ""))
     log = ImportLog(
@@ -31,5 +32,6 @@ async def report_import_failure_v1(request: Request) -> JSONResponse:
 
 @router.post("/api/import/log")
 async def report_log(log: ImportLog) -> dict:
+    """新版日志上报接口，直接接收结构化 ImportLog。"""
     log_service.save(log)
     return {"received": True}
