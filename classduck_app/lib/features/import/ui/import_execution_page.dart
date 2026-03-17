@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../schedule/data/schedule_repository.dart';
 import '../../../shared/theme/app_tokens.dart';
 import '../application/import_engine.dart';
+import '../data/import_api_service.dart';
 import '../data/import_log_repository.dart';
 import '../domain/school_config.dart';
 import 'import_webview_capture_page.dart';
@@ -20,6 +21,7 @@ class ImportExecutionPage extends StatefulWidget {
 class _ImportExecutionPageState extends State<ImportExecutionPage> {
   final ImportEngine _importEngine = ImportEngine();
   final ImportLogRepository _logRepository = ImportLogRepository();
+  final ImportApiService _apiService = ImportApiService();
   final ScheduleRepository _scheduleRepository = ScheduleRepository();
   late final TextEditingController _loginUrlController;
 
@@ -29,6 +31,10 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
   String? _capturedHtml;
   String? _capturedUrl;
   DateTime? _capturedAt;
+
+  // JS 注入路径数据：当 WebView 中 JS 脚本通过 callHandler 回传原始课表 JSON 时，
+  // 存入此字段。_runImport() 会优先检查此字段，有值走后端校验通路，否则走旧 HTML 解析。
+  String? _rawJsonFromJs;
 
   @override
   void initState() {
@@ -183,6 +189,7 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
       _capturedHtml = result.html;
       _capturedUrl = result.pageUrl;
       _capturedAt = DateTime.now();
+      _rawJsonFromJs = null;
       _error = null;
     });
   }
@@ -199,8 +206,21 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
     );
   }
 
+  /// 执行导入的核心方法——支持双通路自动选择。
+  ///
+  /// 【实现思路】
+  /// 1. 检查是否有抓取数据（HTML 或 rawJson），无则提示用户先抓取。
+  /// 2. 若已有课表，弹出冲突决策对话框（新建 or 覆盖）。
+  /// 3. 根据 _rawJsonFromJs 是否有值选择通路：
+  ///    - 有 rawJson → ImportEngine.importFromRawJson() → 后端校验
+  ///    - 无 rawJson → ImportEngine.importFromCapturedHtml() → Dart 本地解析
+  /// 4. 成功后通过 ImportApiService.reportLog() 上报成功日志。
+  /// 5. 失败时通过旧 ImportLogRepository 上报错误日志（保留兼容）。
   Future<void> _runImport() async {
-    if ((_capturedHtml ?? '').trim().isEmpty) {
+    final bool hasHtml = (_capturedHtml ?? '').trim().isNotEmpty;
+    final bool hasRawJson = (_rawJsonFromJs ?? '').trim().isNotEmpty;
+
+    if (!hasHtml && !hasRawJson) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('请先完成内嵌登录抓取，再执行导入。')),
       );
@@ -247,16 +267,35 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
     });
 
     try {
-      final ImportExecutionResult result = await _importEngine.importFromCapturedHtml(
-        widget.config,
-        html: _capturedHtml!,
-        pageUrl: _capturedUrl ?? widget.config.initialUrl,
-        mode: mode,
-      );
+      ImportExecutionResult result;
+
+      if (hasRawJson) {
+        // 新通路：JS 拿到的 raw JSON → 后端校验 → 存入本地
+        result = await _importEngine.importFromRawJson(
+          widget.config,
+          rawJson: _rawJsonFromJs!,
+          mode: mode,
+        );
+      } else {
+        // 旧通路：HTML 抓取 → Dart 本地解析 → 存入本地
+        result = await _importEngine.importFromCapturedHtml(
+          widget.config,
+          html: _capturedHtml!,
+          pageUrl: _capturedUrl ?? widget.config.initialUrl,
+          mode: mode,
+        );
+      }
+
       setState(() {
         _result =
-            'Imported ${result.importedCount} courses into table #${result.courseTableId} (${result.tableName})';
+            '导入成功！共 ${result.importedCount} 门课程，课表: ${result.tableName}';
       });
+
+      await _apiService.reportLog(
+        schoolId: widget.config.id,
+        status: 'success',
+        courseCount: result.importedCount,
+      );
 
       if (!mounted) {
         return;

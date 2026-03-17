@@ -4,6 +4,8 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'app/app.dart';
 
+import 'shared/notification_service.dart';
+
 void main() {
   // 统一数据库初始化：
   // - Web 端暂不启用 sqflite_ffi_web（缺少 worker 资源会导致初始化失败）
@@ -17,5 +19,8 @@ void main() {
     databaseFactory = databaseFactoryFfi;
   }
 
+  // 初始化本地通知服务
+  WidgetsFlutterBinding.ensureInitialized();
+  NotificationService.initialize();
   runApp(const ClassDuckApp());
 }

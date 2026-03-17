@@ -1,10 +1,16 @@
 openapi: 3.0.3
 info:
   title: ClassDuck API
-  version: 1.0.0
-  description: Initial API contract for frontend-backend separation.
+  version: 1.1.0
+  description: |
+    上课鸭前后端接口契约。
+    - /v1 路径为 Flutter 兼容接口（对接 Python 或 Node 后端均可）。
+    - /api 路径为 Python 导入后端新增接口。
 servers:
+  - url: http://localhost:8000
+    description: Python import service (dev)
   - url: https://api.classduck.local
+    description: Production
 paths:
   /v1/config/schools:
     get:
@@ -100,4 +106,201 @@ paths:
             application/json:
               schema:
                 $ref: ../schemas/error-response.schema.json
+
+  /api/schools:
+    get:
+      summary: List all schools (new API)
+      operationId: listSchools
+      tags: [import-service]
+      responses:
+        '200':
+          description: school summary list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+                    system_type:
+                      type: string
+
+  /api/schools/{schoolId}/config:
+    get:
+      summary: Get full school configuration
+      operationId: getSchoolConfig
+      tags: [import-service]
+      parameters:
+        - name: schoolId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: full school config (field_mapping, timer_config, etc.)
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: school not found
+
+  /api/schools/{schoolId}/script:
+    get:
+      summary: Download JS provider script for a school
+      operationId: getSchoolScript
+      tags: [import-service]
+      parameters:
+        - name: schoolId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: script_type
+          in: query
+          schema:
+            type: string
+            default: provider
+      responses:
+        '200':
+          description: JS script content
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  school_id:
+                    type: string
+                  script_type:
+                    type: string
+                  script:
+                    type: string
+        '404':
+          description: script not found
+
+  /api/import/validate:
+    post:
+      summary: Validate and parse raw schedule JSON
+      operationId: validateImport
+      tags: [import-service]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [school_id, raw_data]
+              properties:
+                school_id:
+                  type: string
+                raw_data:
+                  type: string
+                  description: JSON string of raw course data array
+                year:
+                  type: string
+                term:
+                  type: string
+      responses:
+        '200':
+          description: standardized import result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      semester_name:
+                        type: string
+                      school_id:
+                        type: string
+                      courses:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                            position:
+                              type: string
+                            teacher:
+                              type: string
+                            weeks:
+                              type: array
+                              items:
+                                type: integer
+                            day:
+                              type: integer
+                            start_section:
+                              type: integer
+                            duration:
+                              type: integer
+                      total_count:
+                        type: integer
+                      valid_count:
+                        type: integer
+                      invalid_count:
+                        type: integer
+                      warnings:
+                        type: array
+                        items:
+                          type: string
+
+  /api/import/log:
+    post:
+      summary: Report import log (new API)
+      operationId: reportImportLog
+      tags: [import-service]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [school_id, status]
+              properties:
+                school_id:
+                  type: string
+                status:
+                  type: string
+                  enum: [success, fail]
+                error_message:
+                  type: string
+                course_count:
+                  type: integer
+      responses:
+        '200':
+          description: log accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted:
+                    type: boolean
+
+  /health:
+    get:
+      summary: Health check
+      operationId: healthCheck
+      tags: [system]
+      responses:
+        '200':
+          description: service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+
 components: {}

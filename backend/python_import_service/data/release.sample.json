@@ -1,0 +1,10 @@
+{
+  "latestVersion": "1.1.0",
+  "androidStoreUrl": "https://example.com/classduck/android",
+  "iosStoreUrl": "https://example.com/classduck/ios",
+  "releaseNotes": [
+    "新增：Python 导入服务支持脚本下发与导入校验",
+    "优化：日志落库改为 SQLite，便于排障",
+    "细节：兼容 Flutter 现有 /v1 合同"
+  ]
+}

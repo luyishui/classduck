@@ -339,21 +339,21 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
   }
 
   List<SchoolConfig> _filteredConfigs() {
-    // 真实分栏过滤：先按层级筛选，再叠加关键词筛选。
-    final String activeLevel = _schoolLevelKeys[_activeLevelIndex];
-    final List<SchoolConfig> byLevel = _allConfigs
-        .where((SchoolConfig config) => config.level == activeLevel)
-        .toList(growable: false);
-
+    // 搜索行为：有关键字时跨所有分栏搜索（模糊匹配校名和 id）；
+    // 无关键字时按当前分栏层级过滤。
     final String keyword = _keyword.trim().toLowerCase();
-    if (keyword.isEmpty) {
-      return byLevel;
+
+    if (keyword.isNotEmpty) {
+      return _allConfigs.where((SchoolConfig config) {
+        return config.title.toLowerCase().contains(keyword) ||
+            config.id.toLowerCase().contains(keyword);
+      }).toList(growable: false);
     }
 
-    return byLevel.where((SchoolConfig config) {
-      return config.title.toLowerCase().contains(keyword) ||
-          config.id.toLowerCase().contains(keyword);
-    }).toList(growable: false);
+    final String activeLevel = _schoolLevelKeys[_activeLevelIndex];
+    return _allConfigs
+        .where((SchoolConfig config) => config.level == activeLevel)
+        .toList(growable: false);
   }
 
   Map<String, List<SchoolConfig>> _groupByLetter(List<SchoolConfig> configs) {
