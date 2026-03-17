@@ -5,11 +5,17 @@ import 'package:http/http.dart' as http;
 import '../../app/config/app_env.dart';
 import 'api_exception.dart';
 
+/// 统一的 JSON HTTP 客户端。
+///
+/// 当前项目的前后端契约较简单，绝大部分接口都返回 JSON object。
+/// 这里集中处理 baseUrl 拼接、状态码校验和 JSON object 反序列化，
+/// 避免每个 repository/service 重复写样板代码。
 class HttpJsonClient {
   HttpJsonClient({http.Client? client}) : _client = client ?? http.Client();
 
   final http.Client _client;
 
+  /// 发起 GET 请求，并约束响应必须是 JSON object。
   Future<Map<String, dynamic>> getJsonMap(String path) async {
     final Uri uri = Uri.parse('${AppEnv.apiBaseUrl}$path');
     final http.Response response = await _client.get(uri);
@@ -26,6 +32,7 @@ class HttpJsonClient {
     return data;
   }
 
+  /// 发起 JSON POST 请求，并约束响应必须是 JSON object。
   Future<Map<String, dynamic>> postJsonMap(
     String path, {
     required Map<String, Object?> body,

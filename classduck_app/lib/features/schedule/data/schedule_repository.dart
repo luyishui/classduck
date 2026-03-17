@@ -7,6 +7,15 @@ import '../../../data/local/db_helper.dart';
 import '../domain/course.dart';
 import '../domain/course_table.dart';
 
+/// 课程表数据仓库。
+///
+/// 设计上分成两条存储路径：
+/// 1. 原生端：使用 sqflite / sqflite_common_ffi 落到 SQLite。
+/// 2. Web 端：由于当前导入链路本身就是降级态，且 Web 端的数据库初始化
+///    和 worker 资源管理更复杂，因此先用内存集合模拟最小可用数据层。
+///
+/// 这样可以保证课程表、待办、我的页面在 Web 调试下至少能启动，
+/// 同时不影响 Windows/Android/iOS 的真实落库行为。
 class ScheduleRepository {
   ScheduleRepository({DbHelper? dbHelper}) : _dbHelper = dbHelper ?? DbHelper();
 
@@ -16,6 +25,7 @@ class ScheduleRepository {
   static final List<CourseTableEntity> _webTables = <CourseTableEntity>[];
   static final List<CourseEntity> _webCourses = <CourseEntity>[];
 
+  /// 创建课表。Web 端写入内存，原生端写入 SQLite。
   Future<CourseTableEntity> createCourseTable({
     required String name,
     String? semesterStartMonday,
@@ -62,6 +72,7 @@ class ScheduleRepository {
     );
   }
 
+  /// 获取全部课表。Web 端为空时会自动补一张默认课表，避免页面空引用。
   Future<List<CourseTableEntity>> getCourseTables() async {
     if (kIsWeb) {
       if (_webTables.isEmpty) {
@@ -88,6 +99,7 @@ class ScheduleRepository {
     return rows.map(CourseTableEntity.fromMap).toList(growable: false);
   }
 
+  /// 批量写入课程。
   Future<void> addCourses({
     required int tableId,
     required List<CourseEntity> courses,
@@ -177,6 +189,7 @@ class ScheduleRepository {
     );
   }
 
+  /// 清空全部课表及其课程。
   Future<void> clearAllCourseTables() async {
     if (kIsWeb) {
       _webTables.clear();
