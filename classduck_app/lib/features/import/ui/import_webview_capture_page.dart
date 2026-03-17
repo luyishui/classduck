@@ -4,6 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+/// 旧版导入抓取页。
+///
+/// 该页面保留给旧链路使用：用户在独立 WebView 页面登录教务后，点击“完成登录”
+/// 抓取当前 HTML 并返回给上层解析。Web 平台无法满足抓取要求，因此直接展示降级说明。
 class ImportWebviewCaptureResult {
   ImportWebviewCaptureResult({
     required this.html,
@@ -29,7 +33,7 @@ class ImportWebviewCapturePage extends StatefulWidget {
 }
 
 class _ImportWebviewCapturePageState extends State<ImportWebviewCapturePage> {
-  late final WebViewController _controller;
+  WebViewController? _controller;
   bool _loading = true;
   bool _capturing = false;
   String _currentUrl = '';
@@ -38,11 +42,14 @@ class _ImportWebviewCapturePageState extends State<ImportWebviewCapturePage> {
   void initState() {
     super.initState();
     _currentUrl = widget.initialUrl;
-    _controller = WebViewController();
-    if (!kIsWeb) {
-      _controller.setJavaScriptMode(JavaScriptMode.unrestricted);
+    if (kIsWeb) {
+      _loading = false;
+      return;
     }
-    _controller
+
+    final WebViewController controller = WebViewController();
+    controller.setJavaScriptMode(JavaScriptMode.unrestricted);
+    controller
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (String url) {
@@ -66,6 +73,7 @@ class _ImportWebviewCapturePageState extends State<ImportWebviewCapturePage> {
         ),
       )
       ..loadRequest(Uri.parse(widget.initialUrl));
+      _controller = controller;
   }
 
   @override
@@ -76,7 +84,7 @@ class _ImportWebviewCapturePageState extends State<ImportWebviewCapturePage> {
         actions: <Widget>[
           IconButton(
             tooltip: '刷新',
-            onPressed: _loading ? null : () => _controller.reload(),
+            onPressed: _loading || _controller == null ? null : () => _controller!.reload(),
             icon: const Icon(Icons.refresh),
           ),
           TextButton(
@@ -90,7 +98,10 @@ class _ImportWebviewCapturePageState extends State<ImportWebviewCapturePage> {
       ),
       body: Stack(
         children: <Widget>[
-          WebViewWidget(controller: _controller),
+          if (kIsWeb)
+            _buildWebFallback()
+          else if (_controller != null)
+            WebViewWidget(controller: _controller!),
           if (_loading)
             const Positioned(
               top: 0,
@@ -104,15 +115,25 @@ class _ImportWebviewCapturePageState extends State<ImportWebviewCapturePage> {
   }
 
   Future<void> _captureCurrentHtml() async {
+    if (kIsWeb || _controller == null) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Web 端不支持内嵌抓取，请改用桌面端或移动端。')),
+      );
+      return;
+    }
+
     setState(() {
       _capturing = true;
     });
 
     try {
-      final Object rawHtml = await _controller.runJavaScriptReturningResult(
+      final Object rawHtml = await _controller!.runJavaScriptReturningResult(
         'document.documentElement.outerHTML',
       );
-      final Object rawUrl = await _controller.runJavaScriptReturningResult(
+      final Object rawUrl = await _controller!.runJavaScriptReturningResult(
         'window.location.href',
       );
 
@@ -163,5 +184,18 @@ class _ImportWebviewCapturePageState extends State<ImportWebviewCapturePage> {
       // Some platforms already return plain string.
     }
     return raw;
+  }
+
+  Widget _buildWebFallback() {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(24),
+        child: Text(
+          'Web 端无法在跨域教务页面中执行脚本注入和 HTML 抓取。\n'
+          '请使用 Windows、Android 或 iOS 客户端完成导入。',
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
   }
 }
