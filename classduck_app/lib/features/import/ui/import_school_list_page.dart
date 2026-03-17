@@ -482,6 +482,15 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
   }
 
   Future<void> _openExecutionPage(SchoolConfig config) async {
+    // 保护：未适配学校（example.com 占位 URL）给出友好提示
+    if (config.initialUrl.contains('example.com') || config.initialUrl.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${config.title} 暂未适配教务系统，敬请期待')),
+      );
+      return;
+    }
+
     final bool? imported = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
         builder: (BuildContext context) => ImportExecutionPage(config: config),
