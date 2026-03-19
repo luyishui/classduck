@@ -64,11 +64,11 @@ class _ProfilePageState extends State<ProfilePage> {
     _refreshStatsIfNeeded();
     return SafeArea(
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(28, 28, 28, 120),
+        padding: const EdgeInsets.fromLTRB(5, 5, 5, 120),
         children: <Widget>[
           Row(
             children: <Widget>[
-              const SizedBox(width: 40),
+              const SizedBox(width: 40, height: 40),
               Expanded(
                 child: Column(
                   children: <Widget>[
@@ -83,6 +83,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     const SizedBox(height: 2),
                     Text(
                       '上课鸭',
+                      textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: AppTokens.textMuted,
                           ),
@@ -135,26 +136,34 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
           const SizedBox(height: 18),
-          Text(
-            '设置',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: const Color(0xFFB2A592),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 15),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  '设置',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: const Color(0xFFB2A592),
+                      ),
                 ),
-          ),
-          const SizedBox(height: 8),
-          _SettingCard(
-            title: '外观与主题',
-            onTap: () => _openPage(const AppearancePage()),
-          ),
-          const SizedBox(height: 8),
-          _SettingCard(
-            title: '提醒与通知',
-            onTap: () => _openPage(const NotificationsPage()),
-          ),
-          const SizedBox(height: 8),
-          _SettingCard(
-            title: '关于上课鸭',
-            onTap: () => _openPage(const AboutPage()),
+                const SizedBox(height: 8),
+                _SettingCard(
+                  title: '外观与主题',
+                  onTap: () => _openPage(const AppearancePage()),
+                ),
+                const SizedBox(height: 8),
+                _SettingCard(
+                  title: '提醒与通知',
+                  onTap: () => _openPage(const NotificationsPage()),
+                ),
+                const SizedBox(height: 8),
+                _SettingCard(
+                  title: '关于上课鸭',
+                  onTap: () => _openPage(const AboutPage()),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -494,10 +503,10 @@ class _TopActionButton extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF5D6),
+          color: const Color(0xFFFFF0C9),
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Icon(icon, color: const Color(0xFF40352A), size: 20),
+        child: Icon(icon, color: AppTokens.textMain, size: 20),
       ),
     );
   }

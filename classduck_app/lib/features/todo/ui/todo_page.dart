@@ -27,6 +27,7 @@ class _TodoPageState extends State<TodoPage>
   String? _error;
   List<TodoItem> _pending = const <TodoItem>[];
   List<TodoItem> _completed = const <TodoItem>[];
+  Map<String, Color> _courseThemeByName = const <String, Color>{};
 
   final Map<String, bool> _pendingExpanded = <String, bool>{
     'assignment': false,
@@ -74,10 +75,12 @@ class _TodoPageState extends State<TodoPage>
     try {
       final List<TodoItem> pending = await _repository.getTodos(completed: false);
       final List<TodoItem> completed = await _repository.getTodos(completed: true);
+      final Map<String, Color> courseThemeByName = await _loadCourseThemeMap();
 
       setState(() {
         _pending = pending;
         _completed = completed;
+        _courseThemeByName = courseThemeByName;
       });
     } catch (error) {
       setState(() {
@@ -92,27 +95,40 @@ class _TodoPageState extends State<TodoPage>
 
   @override
   Widget build(BuildContext context) {
+    const double horizontalPadding = 5;
     return SafeArea(
       child: Stack(
         children: <Widget>[
           Column(
             children: <Widget>[
               Padding(
-                padding: const EdgeInsets.fromLTRB(28, 28, 28, 8),
+                padding: const EdgeInsets.fromLTRB(horizontalPadding, 5, horizontalPadding, 8),
                 child: Column(
                   children: <Widget>[
                     Row(
                       children: <Widget>[
                         _TopActionButton(icon: Icons.menu, onTap: _openSidebarPlaceholder),
-                        const Expanded(
-                          child: Text(
-                            '待办',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w700,
-                              color: AppTokens.textMain,
-                            ),
+                        Expanded(
+                          child: Column(
+                            children: <Widget>[
+                              const Text(
+                                '待办',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTokens.textMain,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '今天也要把作业和考试安排得明明白白',
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppTokens.textMuted,
+                                    ),
+                              ),
+                            ],
                           ),
                         ),
                         _TopActionButton(
@@ -121,15 +137,7 @@ class _TodoPageState extends State<TodoPage>
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '今天也要把作业和考试安排得明明白白',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTokens.textMuted,
-                          ),
-                    ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     Container(
                       height: 44,
                       padding: const EdgeInsets.all(4),
@@ -176,12 +184,10 @@ class _TodoPageState extends State<TodoPage>
           ),
           Positioned(
             right: 20,
-            bottom: 108,
-            child: FloatingActionButton(
-              heroTag: 'todo-fab',
-              onPressed: _openNewTodo,
-              backgroundColor: AppTokens.duckYellow,
-              child: const Icon(Icons.add, color: Colors.white),
+            bottom: 94,
+            child: _RoundAddButton(
+              onTap: _openNewTodo,
+              child: const Icon(Icons.add, color: Colors.white, size: 26),
             ),
           ),
         ],
@@ -309,11 +315,52 @@ class _TodoPageState extends State<TodoPage>
               child: _TodoCard(
                 item: item,
                 completed: completed,
+                courseThemeByName: _courseThemeByName,
                 onToggle: (bool value) => _toggleCompleted(item, value),
                 onDelete: () => _delete(item),
               ),
             ))
         .toList(growable: false);
+  }
+
+  Future<Map<String, Color>> _loadCourseThemeMap() async {
+    final Map<String, Color> map = <String, Color>{};
+    final List<CourseTableEntity> tables = await _scheduleRepository.getCourseTables();
+
+    for (final CourseTableEntity table in tables) {
+      final int? tableId = table.id;
+      if (tableId == null) {
+        continue;
+      }
+
+      final List<CourseEntity> courses = await _scheduleRepository.getCoursesByTableId(tableId);
+      for (final CourseEntity course in courses) {
+        if (course.name.isEmpty || map.containsKey(course.name)) {
+          continue;
+        }
+        map[course.name] = _resolveCourseThemeColor(course);
+      }
+    }
+    return map;
+  }
+
+  Color _resolveCourseThemeColor(CourseEntity course) {
+    return _colorForCourseName(course.name);
+  }
+
+  Color _colorForCourseName(String name) {
+    const List<Color> palette = <Color>[
+      Color(0xFFD45E6A),
+      Color(0xFFCBA42F),
+      Color(0xFF4A88D2),
+      Color(0xFFB6C223),
+      Color(0xFF896ED8),
+      Color(0xFF2AA4A2),
+      Color(0xFFD68152),
+      Color(0xFFA19586),
+    ];
+    final int hash = name.runes.fold<int>(0, (int v, int e) => v * 31 + e);
+    return palette[hash.abs() % palette.length];
   }
 
   Future<void> _openNewTodo() async {
@@ -610,12 +657,14 @@ class _TodoCard extends StatelessWidget {
   const _TodoCard({
     required this.item,
     required this.completed,
+    required this.courseThemeByName,
     required this.onToggle,
     required this.onDelete,
   });
 
   final TodoItem item;
   final bool completed;
+  final Map<String, Color> courseThemeByName;
   final ValueChanged<bool> onToggle;
   final VoidCallback onDelete;
 
@@ -624,6 +673,8 @@ class _TodoCard extends StatelessWidget {
     final DateTime? dueAt = DateTime.tryParse(item.dueAt)?.toLocal();
     final String dueText =
         dueAt == null ? '无截止时间' : DateFormat('M月d日 HH:mm').format(dueAt);
+    final Color courseTagColor = courseThemeByName[item.courseName] ?? const Color(0xFFE6F1DD);
+    const Color courseTagTextColor = Colors.white;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
@@ -677,14 +728,14 @@ class _TodoCard extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE6F1DD),
+                        color: courseTagColor,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
                         item.courseName!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10,
-                          color: Color(0xFF5E8A4A),
+                          color: courseTagTextColor,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -776,10 +827,40 @@ class _TopActionButton extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF5D6),
+          color: const Color(0xFFFFF0C9),
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Icon(icon, color: const Color(0xFF40352A), size: 20),
+        child: Icon(icon, color: AppTokens.textMain, size: 20),
+      ),
+    );
+  }
+}
+
+class _RoundAddButton extends StatelessWidget {
+  const _RoundAddButton({
+    required this.onTap,
+    required this.child,
+  });
+
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(26),
+        child: Ink(
+          width: 52,
+          height: 52,
+          decoration: const BoxDecoration(
+            color: AppTokens.duckYellow,
+            shape: BoxShape.circle,
+          ),
+          child: Center(child: child),
+        ),
       ),
     );
   }

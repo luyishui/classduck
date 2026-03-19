@@ -174,6 +174,20 @@ class ScheduleRepository {
     return rows.map(CourseEntity.fromMap).toList(growable: false);
   }
 
+  Future<void> deleteCourse(int courseId) async {
+    if (kIsWeb) {
+      _webCourses.removeWhere((CourseEntity item) => item.id == courseId);
+      return;
+    }
+
+    final Database db = await _dbHelper.open();
+    await db.delete(
+      DbHelper.tableCourse,
+      where: 'id = ?',
+      whereArgs: <Object>[courseId],
+    );
+  }
+
   Future<void> deleteCourseTable(int tableId) async {
     if (kIsWeb) {
       _webTables.removeWhere((CourseTableEntity item) => item.id == tableId);

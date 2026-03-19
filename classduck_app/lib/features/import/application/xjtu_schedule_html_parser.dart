@@ -39,8 +39,8 @@ class XjtuScheduleHtmlParser {
         continue;
       }
 
-      final int timeCount = _parseTimeCount(sectionExpr, rowSection);
-      if (timeCount <= 0) {
+      final _SectionRange range = _parseSectionRange(sectionExpr, rowSection);
+      if (range.timeCount <= 0) {
         continue;
       }
 
@@ -57,8 +57,8 @@ class XjtuScheduleHtmlParser {
           teacher: teacher,
           weeks: weeks,
           weekTime: weekDay,
-          startTime: rowSection,
-          timeCount: timeCount,
+          startTime: range.startSection,
+          timeCount: range.timeCount,
         ),
       );
     }
@@ -116,10 +116,10 @@ class XjtuScheduleHtmlParser {
     return unique;
   }
 
-  static int _parseTimeCount(String sectionExpr, int rowSection) {
+  static _SectionRange _parseSectionRange(String sectionExpr, int rowSection) {
     final String normalized = sectionExpr.trim();
     if (normalized.isEmpty) {
-      return 0;
+      return _SectionRange(startSection: rowSection, timeCount: 1);
     }
 
     if (normalized.contains('-')) {
@@ -127,20 +127,24 @@ class XjtuScheduleHtmlParser {
       final int start = int.tryParse(parts.first.trim()) ?? rowSection;
       final int end = int.tryParse(parts.last.trim()) ?? rowSection;
       if (end < start) {
-        return 0;
+        return _SectionRange(startSection: rowSection, timeCount: 1);
       }
-      return end - start + 1;
+      return _SectionRange(startSection: start, timeCount: end - start + 1);
     }
 
     final int value = int.tryParse(normalized) ?? 0;
     if (value <= 0) {
-      return 0;
+      return _SectionRange(startSection: rowSection, timeCount: 1);
     }
 
-    // XJTU page often renders duplicated rows and stores the section end in this field.
-    if (value >= rowSection) {
-      return value - rowSection + 1;
-    }
-    return 1;
+    // 单个数字按“该单节上课”处理：节次=2 表示仅第二节。
+    return _SectionRange(startSection: value, timeCount: 1);
   }
+}
+
+class _SectionRange {
+  const _SectionRange({required this.startSection, required this.timeCount});
+
+  final int startSection;
+  final int timeCount;
 }

@@ -56,7 +56,7 @@ class SchoolConfig {
       return normalized;
     }
 
-    final String source = '${id.toLowerCase()} ${title.toLowerCase()}';
+    final String source = '${(rawLevel ?? '').toLowerCase()} ${id.toLowerCase()} ${title.toLowerCase()}';
     if (source.contains('master') || source.contains('硕士') || source.contains('研究生')) {
       return 'master';
     }

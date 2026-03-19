@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -151,6 +152,8 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
   // WebView 控制器（Web 端通过 webview_flutter_web 使用 iframe 实现）
   WebViewController? _webController;
   bool _webViewLoading = true;
+  bool _cacheMissRecovering = false;
+  bool _cacheMissRecoveredHintShown = false;
   String _currentUrl = '';
 
   // 是否启用桌面模式（修改 User-Agent 为桌面浏览器）——仅原生端有效
@@ -164,10 +167,24 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
   // JS 注入路径数据：WebView 中 JS 脚本回传的原始课表 JSON
   String? _rawJsonFromJs;
 
+  bool get _isGeneralPortal {
+    final String id = widget.config.id.toLowerCase();
+    final String title = widget.config.title;
+    return id.contains('general') || title.contains('通用');
+  }
+
+  String _effectiveInitialUrl() {
+    final String resolved = _resolveInitialUrl(widget.config).trim();
+    if (resolved.isEmpty) {
+      return 'about:blank';
+    }
+    return normalizeImportUrl(resolved);
+  }
+
   @override
   void initState() {
     super.initState();
-    _currentUrl = widget.config.initialUrl;
+    _currentUrl = _effectiveInitialUrl();
     _urlController = TextEditingController(text: _currentUrl);
 
     _initWebView();
@@ -188,11 +205,18 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
     }
 
     final WebViewController controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadRequest(Uri.parse(widget.config.initialUrl));
+      ..setJavaScriptMode(JavaScriptMode.unrestricted);
 
     controller.setNavigationDelegate(
       NavigationDelegate(
+        onNavigationRequest: (NavigationRequest request) {
+          final String url = request.url;
+          if (url.startsWith('chrome-error://')) {
+            _recoverFromCacheMiss();
+            return NavigationDecision.prevent;
+          }
+          return NavigationDecision.navigate;
+        },
         onPageStarted: (String url) {
           if (!mounted) return;
           setState(() {
@@ -209,10 +233,81 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
             _urlController.text = url;
           });
         },
+        onWebResourceError: (WebResourceError error) {
+          if (!mounted) {
+            return;
+          }
+
+          setState(() {
+            _webViewLoading = false;
+          });
+
+          final String desc = error.description.toLowerCase();
+          if (!desc.contains('err_cache_miss')) {
+            return;
+          }
+          _recoverFromCacheMiss();
+        },
       ),
     );
 
+    unawaited(_loadInitialLoginPage(controller));
+
     _webController = controller;
+  }
+
+  Future<void> _loadInitialLoginPage(WebViewController controller) async {
+    try {
+      await controller.clearCache();
+    } catch (_) {
+      // 某些设备上清缓存可能失败，失败时不阻塞后续加载。
+    }
+    await _loadUrlDirect(_effectiveInitialUrl(), controller: controller);
+  }
+
+  Future<void> _loadUrlDirect(String url, {WebViewController? controller}) async {
+    final WebViewController? target = controller ?? _webController;
+    if (target == null) {
+      return;
+    }
+
+    final String normalized = normalizeImportUrl(url);
+    if (normalized.isEmpty) {
+      return;
+    }
+
+    await target.loadRequest(Uri.parse(normalized));
+  }
+
+  Future<void> _recoverFromCacheMiss() async {
+    if (_cacheMissRecovering) {
+      return;
+    }
+    _cacheMissRecovering = true;
+    try {
+      await _webController?.clearCache();
+      await _webController?.clearLocalStorage();
+
+      final String retryUrl = _buildCacheMissRecoveryUrl();
+      await Future<void>.delayed(const Duration(milliseconds: 220));
+      await _loadUrlDirect(retryUrl);
+
+      if (mounted && !_cacheMissRecoveredHintShown) {
+        _cacheMissRecoveredHintShown = true;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('登录页缓存异常，已自动清理缓存并重试。')),
+        );
+      }
+    } finally {
+      _cacheMissRecovering = false;
+    }
+  }
+
+  String _buildCacheMissRecoveryUrl() {
+    final String base = _currentUrl.trim().isNotEmpty && _currentUrl != 'about:blank'
+        ? _currentUrl
+        : _effectiveInitialUrl();
+    return normalizeImportUrl(base);
   }
 
   @override
@@ -240,24 +335,40 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
                     _buildWebFallback()
                   else if (_webController != null)
                     WebViewWidget(controller: _webController!),
+                  if (_isGeneralPortal && (_currentUrl == 'about:blank' || _currentUrl.isEmpty))
+                    Align(
+                      alignment: Alignment.topCenter,
+                      child: Container(
+                        margin: const EdgeInsets.only(top: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(235),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFE9DFC8)),
+                        ),
+                        child: const Text(
+                          '请输入教务网址并填写账号密码，登录后点击下载按钮导入课表。',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF5B4D3D)),
+                        ),
+                      ),
+                    ),
                   // ── 右下角浮动按钮 ──
                   Positioned(
-                    right: 16,
-                    bottom: 16,
+                    right: 20,
+                    bottom: 78,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
-                        _FloatingActionBtn(
-                          icon: Icons.help_outline,
-                          onTap: _showNoticeDialog,
-                        ),
-                        const SizedBox(height: 10),
                         _FloatingActionBtn(
                           icon: _importing
                               ? Icons.hourglass_top
                               : Icons.download,
                           onTap: _importing ? null : _captureAndImport,
-                          highlighted: true,
+                        ),
+                        const SizedBox(height: 20),
+                        _FloatingActionBtn(
+                          icon: Icons.question_mark,
+                          onTap: _showNoticeDialog,
                         ),
                       ],
                     ),
@@ -271,6 +382,16 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
         ),
       ),
     );
+  }
+
+  String _resolveInitialUrl(SchoolConfig config) {
+    final String id = config.id.toLowerCase();
+    final String title = config.title;
+    final bool isXjtu = id.contains('xjtu') || title.contains('西安交通大学');
+    if (isXjtu) {
+      return 'https://gmis.xjtu.edu.cn/pyxx/pygl/xskbcx';
+    }
+    return config.initialUrl;
   }
 
   /// 顶部 URL 栏：返回按钮 + 可编辑地址 + ✓ 确认导航
@@ -408,7 +529,7 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
       setState(() { _currentUrl = finalUrl; });
       _openInBrowser(finalUrl);
     } else {
-      _webController?.loadRequest(Uri.parse(finalUrl));
+      _loadUrlDirect(finalUrl);
     }
   }
 
@@ -431,7 +552,10 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
       _webController?.setUserAgent(null); // 恢复默认
     }
 
-    _webController?.reload();
+    final String reloadUrl = _currentUrl.trim().isEmpty || _currentUrl == 'about:blank'
+      ? _effectiveInitialUrl()
+      : normalizeImportUrl(_currentUrl);
+    _loadUrlDirect(reloadUrl);
   }
 
   /// 密码帮助
@@ -568,7 +692,7 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
   /// 【实现思路】
   /// 1. 检查是否有抓取数据（HTML 或 rawJson），无则提示。
   /// 2. 若已有课表，弹出冲突决策对话框（新建 or 覆盖）。
-  /// 3. hasRawJson → 后端校验通路；否则 → Dart 本地 HTML 解析。
+  /// 3. 统一走后端校验通路（优先 rawJson，否则提交 HTML）。
   /// 4. 成功 → 上报日志 → 返回上一页。
   /// 5. 失败 → 上报错误日志 → SnackBar 提示。
   Future<void> _runImport() async {
@@ -602,22 +726,12 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
     }
 
     try {
-      ImportExecutionResult result;
-
-      if (hasRawJson) {
-        // 新通路：JS 拿到的 raw JSON → 后端校验 → 存入本地
-        result = await _importEngine.importFromRawJson(
-          widget.config, rawJson: _rawJsonFromJs!, mode: mode,
-        );
-      } else {
-        // 旧通路：HTML 抓取 → Dart 本地解析 → 存入本地
-        result = await _importEngine.importFromCapturedHtml(
-          widget.config,
-          html: _capturedHtml!,
-          pageUrl: _capturedUrl ?? widget.config.initialUrl,
-          mode: mode,
-        );
-      }
+      final String payload = hasRawJson ? _rawJsonFromJs! : _capturedHtml!;
+      final ImportExecutionResult result = await _importEngine.importFromRawJson(
+        widget.config,
+        rawJson: payload,
+        mode: mode,
+      );
 
       await _apiService.reportLog(
         schoolId: widget.config.id,
@@ -638,11 +752,7 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '导入失败: ${error.toString().length > 80 ? '${error.toString().substring(0, 80)}...' : error}',
-          ),
-        ),
+        const SnackBar(content: Text('系统维护中，请稍后再试')),
       );
     } finally {
       if (mounted) {
@@ -744,12 +854,10 @@ class _FloatingActionBtn extends StatelessWidget {
   const _FloatingActionBtn({
     required this.icon,
     required this.onTap,
-    this.highlighted = false,
   });
 
   final IconData icon;
   final VoidCallback? onTap;
-  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
@@ -760,22 +868,13 @@ class _FloatingActionBtn extends StatelessWidget {
         width: 52,
         height: 52,
         decoration: BoxDecoration(
-          color: highlighted
-              ? (onTap == null ? const Color(0xFFEDDFC0) : AppTokens.duckYellow)
-              : Colors.white.withAlpha(230),
+          color: onTap == null ? const Color(0xFFEDDFC0) : AppTokens.duckYellow,
           shape: BoxShape.circle,
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: Colors.black.withAlpha(30),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
         ),
         child: Icon(
           icon,
           size: 24,
-          color: highlighted ? Colors.white : Colors.grey.shade700,
+          color: Colors.white,
         ),
       ),
     );

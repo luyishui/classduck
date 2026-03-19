@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
@@ -43,6 +44,7 @@ class _SchedulePageState extends State<SchedulePage> {
   String _activeTableName = '我的课表';
   List<CourseEntity> _courses = const <CourseEntity>[];
   int _currentWeek = 1;
+  int _displayWeek = 1;
   final Map<int, _ScheduleConfig> _tableConfigs = <int, _ScheduleConfig>{};
 
   final List<String> _periodTimes = <String>[
@@ -120,6 +122,7 @@ class _SchedulePageState extends State<SchedulePage> {
       _tableConfigs[active.id!] = config;
       _applyConfigToTimeline(config);
       _currentWeek = _computeCurrentWeek(config);
+      _displayWeek = _currentWeek <= 0 ? 1 : _currentWeek;
 
       setState(() {
         _activeTableId = active.id;
@@ -144,8 +147,12 @@ class _SchedulePageState extends State<SchedulePage> {
     final DateTime now = DateTime.now();
     final _ScheduleConfig config = _activeConfig();
     final String dateText = DateFormat('yyyy年M月d日').format(now);
-    final List<DateTime> weekDates = _currentWeekDates(now, config.weekStartDay);
-    final String weekText = _currentWeek <= 0 ? '未开学' : '第 $_currentWeek 周';
+    final int viewingWeek = _effectiveDisplayWeek(config);
+    final List<DateTime> weekDates = _weekDatesForDisplay(config, viewingWeek);
+    final String weekText = _currentWeek <= 0 ? '未开学' : '第 $viewingWeek 周';
+    final bool viewingOtherWeek = _currentWeek > 0 && viewingWeek != _currentWeek;
+    final double screenWidth = MediaQuery.of(context).size.width;
+    const double horizontalPadding = 5;
 
     return ValueListenableBuilder<AppearanceState>(
       valueListenable: AppearanceStore.state,
@@ -156,7 +163,7 @@ class _SchedulePageState extends State<SchedulePage> {
             child: Stack(
               children: <Widget>[
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(28, 28, 28, 0),
+                  padding: EdgeInsets.fromLTRB(horizontalPadding, 5, horizontalPadding, 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
@@ -169,17 +176,20 @@ class _SchedulePageState extends State<SchedulePage> {
                           ),
                           Expanded(
                             child: Column(
+                              mainAxisSize: MainAxisSize.min,
                               children: <Widget>[
                                 Text(
                                   weekText,
                                   textAlign: TextAlign.center,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.w700,
-                                    color: AppTokens.textMain,
+                                    color: viewingOtherWeek
+                                        ? const Color(0xFFD64545)
+                                        : AppTokens.textMain,
                                   ),
                                 ),
-                                const SizedBox(height: 2),
+                                const SizedBox(height: 1),
                                 Text(
                                   '$dateText ${_weekDayName(now.weekday)}',
                                   textAlign: TextAlign.center,
@@ -207,23 +217,38 @@ class _SchedulePageState extends State<SchedulePage> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: AppTokens.space16),
+                      const SizedBox(height: 4),
                       _WeekHeader(
                         weekDates: weekDates,
                         weekStartDay: config.weekStartDay,
+                        cornerLabel: '${weekDates.first.month}月',
+                        leftSpacing: screenWidth < 380 ? 30 : 32,
                       ),
-                      const SizedBox(height: AppTokens.space8),
+                      const SizedBox(height: 3),
                       Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            image: appearance.backgroundBytes == null
-                                ? null
-                                : DecorationImage(
-                                    image: MemoryImage(appearance.backgroundBytes!),
-                                    fit: BoxFit.cover,
-                                  ),
+                        child: GestureDetector(
+                          onHorizontalDragEnd: (DragEndDetails details) {
+                            final double velocity = details.primaryVelocity ?? 0;
+                            if (velocity.abs() < 150) {
+                              return;
+                            }
+                            if (velocity < 0) {
+                              _shiftDisplayWeek(1);
+                            } else {
+                              _shiftDisplayWeek(-1);
+                            }
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              image: appearance.backgroundBytes == null
+                                  ? null
+                                  : DecorationImage(
+                                      image: MemoryImage(appearance.backgroundBytes!),
+                                      fit: BoxFit.cover,
+                                    ),
+                            ),
+                            child: _buildScheduleGrid(),
                           ),
-                          child: _buildScheduleGrid(),
                         ),
                       ),
                       if (_loadingConfig ||
@@ -268,7 +293,7 @@ class _SchedulePageState extends State<SchedulePage> {
                 if (_addMenuOpen)
                   Positioned(
                     right: AppTokens.space20,
-                    bottom: 176,
+                    bottom: 148,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: <Widget>[
@@ -297,19 +322,27 @@ class _SchedulePageState extends State<SchedulePage> {
                   ),
                 Positioned(
                   right: AppTokens.space20,
-                  bottom: 104,
-                  child: FloatingActionButton(
-                    heroTag: 'schedule-add-fab',
-                    onPressed: _openAddMenu,
-                    backgroundColor: AppTokens.duckYellow,
-                    child: AnimatedRotation(
-                      turns: _addMenuOpen ? 0.125 : 0,
-                      duration: const Duration(milliseconds: 180),
-                      child: const Icon(
-                        Icons.add,
-                        color: Colors.white,
+                  bottom: 94,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      if (viewingOtherWeek && _currentWeek > 0)
+                        _RoundAddButton(
+                          onTap: _resetDisplayWeekToCurrent,
+                          backgroundColor: const Color(0xFFD64545),
+                          child: const Icon(Icons.reply_rounded, color: Colors.white, size: 24),
+                        ),
+                      if (viewingOtherWeek && _currentWeek > 0)
+                        const SizedBox(height: 20),
+                      _RoundAddButton(
+                        onTap: _openAddMenu,
+                        child: AnimatedRotation(
+                          turns: _addMenuOpen ? 0.125 : 0,
+                          duration: const Duration(milliseconds: 180),
+                          child: const Icon(Icons.add, color: Colors.white, size: 26),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ],
@@ -360,6 +393,15 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 
   Future<void> _openScheduleSidebar() async {
+    if (_loadingSchedule) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('课表加载中，请稍后再试。')),
+        );
+      }
+      return;
+    }
+
     List<CourseTableEntity> tables = const <CourseTableEntity>[];
     try {
       tables = await _scheduleRepository.getCourseTables().timeout(const Duration(seconds: 4));
@@ -370,8 +412,38 @@ class _SchedulePageState extends State<SchedulePage> {
       return;
     }
 
+    if (_activeTableId == null && tables.isNotEmpty && tables.first.id != null) {
+      await _switchCourseTable(tables.first.id!, tables.first.name);
+    }
+
     final TextEditingController tableNameController = TextEditingController();
     bool creatingTable = false;
+
+    Future<void> deleteTable(CourseTableEntity table, StateSetter setModalState) async {
+      final int? tableId = table.id;
+      if (tableId == null) {
+        return;
+      }
+      if (tables.length <= 1) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('至少保留一张课表，无法删除最后一张。')),
+          );
+        }
+        return;
+      }
+
+      await _scheduleRepository.deleteCourseTable(tableId);
+      tables = await _scheduleRepository.getCourseTables();
+
+      if (tables.isNotEmpty) {
+        final CourseTableEntity fallback = tables.first;
+        if (fallback.id != null) {
+          await _switchCourseTable(fallback.id!, fallback.name);
+        }
+      }
+      setModalState(() {});
+    }
 
     Future<void> updateConfig(void Function(_ScheduleConfig config) updater) async {
       final int? tableId = _activeTableId;
@@ -453,6 +525,10 @@ class _SchedulePageState extends State<SchedulePage> {
           cursor = _toMinute(autoEnd) + config.breakDuration;
         }
       });
+    }
+
+    if (!mounted) {
+      return;
     }
 
     await showGeneralDialog<void>(
@@ -611,7 +687,14 @@ class _SchedulePageState extends State<SchedulePage> {
                                         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
                                         child: Row(
                                           children: <Widget>[
-                                            const SizedBox(width: 6),
+                                            const SizedBox(width: 2),
+                                            if (table.id == _activeTableId)
+                                              const Padding(
+                                                padding: EdgeInsets.only(right: 6),
+                                                child: Icon(Icons.check_circle, size: 16, color: Color(0xFFB98500)),
+                                              )
+                                            else
+                                              const SizedBox(width: 22),
                                             Expanded(
                                               child: Text(
                                                 table.name,
@@ -622,8 +705,14 @@ class _SchedulePageState extends State<SchedulePage> {
                                                 ),
                                               ),
                                             ),
-                                            if (table.id == _activeTableId)
-                                              const Icon(Icons.check_circle, size: 16, color: Color(0xFFB98500)),
+                                            IconButton(
+                                              constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+                                              padding: EdgeInsets.zero,
+                                              splashRadius: 16,
+                                              tooltip: '删除课表',
+                                              onPressed: () async => deleteTable(table, setModalState),
+                                              icon: const Icon(Icons.delete_outline, size: 16, color: Color(0xFFE16C7B)),
+                                            ),
                                           ],
                                         ),
                                       ),
@@ -803,12 +892,11 @@ class _SchedulePageState extends State<SchedulePage> {
                                     title: '晚上课程节数',
                                     value: config.eveningCount,
                                     min: 1,
-                                    max: (10 - config.morningCount - config.afternoonCount).clamp(1, 10).toInt(),
+                                    max: 8,
                                     buttonColor: const Color(0xFFD37F95),
                                     onChanged: (int value) async {
                                       await updateConfig((config) {
-                                        config.eveningCount = value;
-                                        config.normalizeCounts();
+                                        config.setEveningCountPreferIncrease(value);
                                       });
                                       setModalState(() {});
                                     },
@@ -1040,6 +1128,7 @@ class _SchedulePageState extends State<SchedulePage> {
     _tableConfigs[tableId] = config;
     _applyConfigToTimeline(config);
     _currentWeek = _computeCurrentWeek(config);
+    _displayWeek = _currentWeek <= 0 ? 1 : _currentWeek;
     if (!mounted) {
       return;
     }
@@ -1162,9 +1251,14 @@ class _SchedulePageState extends State<SchedulePage> {
       return;
     }
 
-    final CourseEntity course = courses.first;
-    final List<TodoItem> linkedTodos =
-        await _todoRepository.getTodosByCourseName(course.name);
+    final Map<String, List<TodoItem>> todoByCourseName = <String, List<TodoItem>>{};
+    for (final CourseEntity course in courses) {
+      if (todoByCourseName.containsKey(course.name)) {
+        continue;
+      }
+      final List<TodoItem> linkedTodos = await _todoRepository.getTodosByCourseName(course.name);
+      todoByCourseName[course.name] = linkedTodos;
+    }
 
     if (!mounted) {
       return;
@@ -1173,19 +1267,48 @@ class _SchedulePageState extends State<SchedulePage> {
     await DuckModal.show<void>(
       context: context,
       child: _CourseActivatedModal(
-        course: course,
-        linkedTodos: linkedTodos,
-        onDelete: () {
-          Navigator.of(context).pop();
-          DuckModal.show<void>(
+        courses: courses,
+        todoByCourseName: todoByCourseName,
+        onDelete: (int index) async {
+          final CourseEntity course = courses[index];
+          final int? courseId = course.id;
+          if (courseId == null) {
+            return;
+          }
+
+          final bool? confirmed = await showDialog<bool>(
             context: context,
-            child: const DuckModalFrame(
-              title: '删除课程',
-              child: Padding(
-                padding: EdgeInsets.symmetric(vertical: AppTokens.space12),
-                child: Text('删除能力会在课程编辑链路里接入。'),
-              ),
-            ),
+            builder: (BuildContext dialogContext) {
+              return AlertDialog(
+                title: const Text('删除课程'),
+                content: Text('确认删除课程“${course.name}”吗？'),
+                actions: <Widget>[
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(false),
+                    child: const Text('取消'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(true),
+                    child: const Text('删除'),
+                  ),
+                ],
+              );
+            },
+          );
+
+          if (confirmed != true) {
+            return;
+          }
+
+          await _scheduleRepository.deleteCourse(courseId);
+          await _loadScheduleData();
+
+          if (!mounted) {
+            return;
+          }
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('已删除课程：${course.name}')),
           );
         },
       ),
@@ -1193,107 +1316,131 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 
   Widget _buildScheduleGrid() {
-    final double rowHeight = 80;
-    final double leftWidth = 44;
-    final double gridHeight = rowHeight * _periodTimes.length;
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double leftWidth = screenWidth < 380 ? 30 : 32;
 
     if (_loadingSchedule) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFDFBF7),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: SingleChildScrollView(
-        child: SizedBox(
-          height: gridHeight,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              SizedBox(
-                width: leftWidth,
-                child: Column(
-                  children: List<Widget>.generate(_periodTimes.length, (int index) {
-                    final int period = index + 1;
-                    return SizedBox(
-                      height: rowHeight,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          Text(
-                            '$period',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF40352A),
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            _periodTimes[index],
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 9,
-                              height: 1.2,
-                              color: Color(0xFFB7AA95),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-                ),
-              ),
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (BuildContext context, BoxConstraints constraints) {
-                    final double colWidth = constraints.maxWidth / 7;
+    final List<_RenderedCourseBlock> blocks = _buildRenderedBlocks(_courses);
+    final Map<String, Color> colorMap = <String, Color>{
+      for (final CourseEntity item in _courses) item.name: _colorForCourseName(item.name),
+    };
 
-                    return Stack(
-                      children: <Widget>[
-                        for (int row = 0; row < _periodTimes.length; row++)
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            top: row * rowHeight,
-                            child: Container(
-                              height: rowHeight,
-                              decoration: const BoxDecoration(
-                                border: Border(
-                                  top: BorderSide(color: Color(0xFFF1E9DA), width: 0.8),
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final double availableHeight = constraints.maxHeight.isFinite
+            ? constraints.maxHeight
+            : 760;
+        final double rowHeight =
+          (availableHeight / _periodTimes.length).clamp(68.0, 92.0).toDouble();
+        final double gridHeight = math.max(
+          rowHeight * _periodTimes.length + 56,
+          availableHeight,
+        );
+
+        return Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFFDFBF7),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: SingleChildScrollView(
+            child: SizedBox(
+              height: gridHeight,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  SizedBox(
+                    width: leftWidth,
+                    child: Column(
+                      children: List<Widget>.generate(_periodTimes.length, (int index) {
+                        final int period = index + 1;
+                        return SizedBox(
+                          height: rowHeight,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                              Text(
+                                '$period',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF40352A),
                                 ),
                               ),
-                            ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _periodTimes[index],
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 8.5,
+                                  height: 1.2,
+                                  color: Color(0xFFB7AA95),
+                                ),
+                              ),
+                            ],
                           ),
-                        for (final CourseEntity c in _courses)
-                          _buildCourseCard(
-                            course: c,
-                            colWidth: colWidth,
-                            rowHeight: rowHeight,
-                          ),
-                      ],
-                    );
-                  },
-                ),
+                        );
+                      }),
+                    ),
+                  ),
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (BuildContext context, BoxConstraints constraints) {
+                        final double colWidth = constraints.maxWidth / 7;
+
+                        return Stack(
+                          children: <Widget>[
+                            for (int row = 0; row < _periodTimes.length; row++)
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                top: row * rowHeight,
+                                child: Container(
+                                  height: rowHeight,
+                                  decoration: const BoxDecoration(
+                                    border: Border(
+                                      top: BorderSide(color: Color(0xFFF1E9DA), width: 0.8),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            for (final _RenderedCourseBlock block in blocks)
+                              _buildCourseCard(
+                                block: block,
+                                colWidth: colWidth,
+                                rowHeight: rowHeight,
+                                color: colorMap[block.course.name] ?? _colorForCourseName(block.course.name),
+                              ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
   Widget _buildCourseCard({
-    required CourseEntity course,
+    required _RenderedCourseBlock block,
     required double colWidth,
     required double rowHeight,
+    required Color color,
   }) {
+    final CourseEntity course = block.course;
     final int day = course.weekTime.clamp(1, 7);
-    final int start = course.startTime.clamp(1, _periodTimes.length);
-    final int span = (course.timeCount + 1).clamp(1, 4);
-    final Color color = _parseColor(course.colorHex) ?? const Color(0xFFEFE4D1);
+    final int start = block.start.clamp(1, _periodTimes.length);
+    final int span = block.span.clamp(1, 4);
+    final Color activeColor = _normalizeCourseDisplayColor(color);
+    final Color finalColor = block.active ? activeColor : const Color(0xFFE1DED7);
+    const Color titleColor = Color(0xFF1F1A14);
+    const Color metaColor = Color(0xFF1F1A14);
 
     return Positioned(
       left: (day - 1) * colWidth + 2,
@@ -1301,19 +1448,72 @@ class _SchedulePageState extends State<SchedulePage> {
       width: colWidth - 4,
       height: rowHeight * span - 6,
       child: GestureDetector(
-        onTap: () => _openCourseDetail(start, <CourseEntity>[course]),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            '${course.name}\n${course.classroom ?? ''}',
-            style: const TextStyle(
-              fontSize: 10,
-              height: 1.2,
-              color: Color(0xFF5A4A3A),
+        onTap: () {
+          final List<CourseEntity> detailCourses = _collectDetailCourses(block);
+          _openCourseDetail(
+            start,
+            detailCourses.isEmpty ? block.detailCourses : detailCourses,
+          );
+        },
+        child: TweenAnimationBuilder<double>(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          tween: Tween<double>(begin: 0.96, end: 1),
+          builder: (BuildContext context, double value, Widget? child) {
+            return Opacity(
+              opacity: value,
+              child: Transform.scale(scale: value, child: child),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(6, 7, 6, 7),
+            decoration: BoxDecoration(
+              color: finalColor,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Expanded(
+                  child: Center(
+                    child: Text(
+                      course.name,
+                      maxLines: span >= 2 ? 2 : 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 10,
+                        height: 1.2,
+                        fontWeight: FontWeight.w700,
+                        color: titleColor,
+                      ),
+                    ),
+                  ),
+                ),
+                Text(
+                  course.teacher?.isNotEmpty == true ? course.teacher! : '未填教师',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 9,
+                    height: 1.1,
+                    color: metaColor,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  course.classroom?.isNotEmpty == true ? course.classroom! : '未填地点',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 9,
+                    height: 1.1,
+                    color: metaColor,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -1321,10 +1521,268 @@ class _SchedulePageState extends State<SchedulePage> {
     );
   }
 
+  List<_RenderedCourseBlock> _buildRenderedBlocks(List<CourseEntity> source) {
+    final List<_RenderedCourseBlock> result = <_RenderedCourseBlock>[];
+
+    for (int day = 1; day <= 7; day++) {
+      final List<_ResolvedSlot> slots = List<_ResolvedSlot>.generate(
+        _periodTimes.length + 1,
+        (int _) => const _ResolvedSlot.empty(),
+      );
+
+      for (int period = 1; period <= _periodTimes.length; period++) {
+        final List<CourseEntity> active = source
+            .where((CourseEntity c) =>
+            c.weekTime == day && _coversPeriod(c, period) && _isCourseInDisplayedWeek(c))
+            .toList(growable: false)
+          ..sort((CourseEntity a, CourseEntity b) => a.name.compareTo(b.name));
+
+        if (active.isNotEmpty) {
+          slots[period] = _ResolvedSlot(primary: active.first, all: active, active: true);
+          continue;
+        }
+
+        final List<CourseEntity> inactive = source
+            .where((CourseEntity c) =>
+            c.weekTime == day && _coversPeriod(c, period) && !_isCourseInDisplayedWeek(c))
+            .toList(growable: false)
+          ..sort((CourseEntity a, CourseEntity b) => a.name.compareTo(b.name));
+
+        if (inactive.isNotEmpty) {
+          slots[period] = _ResolvedSlot(primary: inactive.first, all: inactive, active: false);
+        }
+      }
+
+      int period = 1;
+      while (period <= _periodTimes.length) {
+        final _ResolvedSlot current = slots[period];
+        if (current.primary == null) {
+          period++;
+          continue;
+        }
+
+        int end = period;
+        while (end + 1 <= _periodTimes.length) {
+          final _ResolvedSlot next = slots[end + 1];
+          if (next.primary == null) {
+            break;
+          }
+          if (next.active != current.active) {
+            break;
+          }
+          if (next.primary!.name != current.primary!.name) {
+            break;
+          }
+          if (next.primary!.weekTime != current.primary!.weekTime) {
+            break;
+          }
+          end++;
+        }
+
+        result.add(
+          _RenderedCourseBlock(
+            course: current.primary!,
+            start: period,
+            span: end - period + 1,
+            active: current.active,
+            detailCourses: current.all,
+          ),
+        );
+        period = end + 1;
+      }
+    }
+
+    return result;
+  }
+
+  bool _coversPeriod(CourseEntity course, int period) {
+    final int start = course.startTime;
+    final int end = course.startTime + course.timeCount - 1;
+    return period >= start && period <= end;
+  }
+
+  List<CourseEntity> _collectDetailCourses(_RenderedCourseBlock block) {
+    final int day = block.course.weekTime;
+    final int rangeStart = block.start;
+    final int rangeEnd = block.start + block.span - 1;
+
+    final List<CourseEntity> matched = _courses.where((CourseEntity course) {
+      if (course.weekTime != day) {
+        return false;
+      }
+      final int start = course.startTime;
+      final int end = course.startTime + course.timeCount - 1;
+      return !(end < rangeStart || start > rangeEnd);
+    }).toList(growable: false);
+
+    matched.sort((CourseEntity a, CourseEntity b) {
+      final bool aActive = _isCourseInDisplayedWeek(a);
+      final bool bActive = _isCourseInDisplayedWeek(b);
+      if (aActive != bActive) {
+        return aActive ? -1 : 1;
+      }
+      final int byStart = a.startTime.compareTo(b.startTime);
+      if (byStart != 0) {
+        return byStart;
+      }
+      return a.name.compareTo(b.name);
+    });
+    return matched;
+  }
+
+  bool _isCourseInDisplayedWeek(CourseEntity course) {
+    final List<int> weeks = _parseWeeks(course.weeksJson);
+    if (weeks.isEmpty) {
+      return true;
+    }
+    final int displayWeek = _effectiveDisplayWeek(_activeConfig());
+    return weeks.contains(displayWeek);
+  }
+
+  List<int> _parseWeeks(String weeksJson) {
+    try {
+      final List<dynamic> raw = jsonDecode(weeksJson) as List<dynamic>;
+      return raw
+          .whereType<num>()
+          .map((num item) => item.toInt())
+          .where((int value) => value > 0)
+          .toList(growable: false);
+    } catch (_) {
+      return <int>[];
+    }
+  }
+
+  Map<String, Color> _buildAdjacentAwareColorMap(List<CourseEntity> courses) {
+    const List<Color> palette = <Color>[
+      Color(0xFFD45E6A),
+      Color(0xFFCBA42F),
+      Color(0xFF4A88D2),
+      Color(0xFFB6C223),
+      Color(0xFF896ED8),
+      Color(0xFF2AA4A2),
+      Color(0xFFD68152),
+      Color(0xFFA19586),
+    ];
+
+    final List<String> names = courses
+        .map((CourseEntity item) => item.name)
+        .toSet()
+        .toList(growable: false)
+      ..sort();
+
+    final Map<String, Set<String>> neighbors = <String, Set<String>>{};
+    for (final String name in names) {
+      neighbors[name] = <String>{};
+    }
+
+    for (int i = 0; i < courses.length; i++) {
+      for (int j = i + 1; j < courses.length; j++) {
+        final CourseEntity a = courses[i];
+        final CourseEntity b = courses[j];
+        if (a.name == b.name) {
+          continue;
+        }
+        if (_isAdjacentCourse(a, b)) {
+          neighbors[a.name]!.add(b.name);
+          neighbors[b.name]!.add(a.name);
+        }
+      }
+    }
+
+    final Map<String, Color> picked = <String, Color>{};
+
+    for (final String currentName in names) {
+      final Set<int> blocked = <int>{};
+      for (final String neighborName in neighbors[currentName]!) {
+        final Color? used = picked[neighborName];
+        if (used == null) {
+          continue;
+        }
+        blocked.add(palette.indexOf(used));
+      }
+
+      final int preferred = _stableColorIndex(currentName, palette.length);
+      int selected = preferred;
+      if (blocked.contains(selected)) {
+        for (int i = 0; i < palette.length; i++) {
+          final int candidate = (preferred + i) % palette.length;
+          if (!blocked.contains(candidate)) {
+            selected = candidate;
+            break;
+          }
+        }
+      }
+      picked[currentName] = palette[selected];
+    }
+
+    return picked;
+  }
+
+  bool _isAdjacentCourse(CourseEntity a, CourseEntity b) {
+    final int aStart = a.startTime;
+    final int aEnd = a.startTime + a.timeCount - 1;
+    final int bStart = b.startTime;
+    final int bEnd = b.startTime + b.timeCount - 1;
+
+    if (a.weekTime == b.weekTime) {
+      final bool overlapOrTouch = !(aEnd + 1 < bStart || bEnd + 1 < aStart);
+      return overlapOrTouch;
+    }
+    if ((a.weekTime - b.weekTime).abs() == 1) {
+      return !(aEnd < bStart || bEnd < aStart);
+    }
+    return false;
+  }
+
+  int _stableColorIndex(String seed, int paletteLength) {
+    final int hash = seed.runes.fold<int>(0, (int v, int e) => v * 31 + e);
+    return hash.abs() % paletteLength;
+  }
+
   List<DateTime> _currentWeekDates(DateTime now, int weekStartDay) {
     final int startDay = weekStartDay.clamp(1, 7);
     final int delta = (now.weekday - startDay + 7) % 7;
     final DateTime start = now.subtract(Duration(days: delta));
+    return List<DateTime>.generate(7, (int index) => start.add(Duration(days: index)));
+  }
+
+  int _effectiveDisplayWeek(_ScheduleConfig config) {
+    final int minWeek = 1;
+    final int maxWeek = config.termWeeks.clamp(1, 60).toInt();
+    return _displayWeek.clamp(minWeek, maxWeek).toInt();
+  }
+
+  void _shiftDisplayWeek(int delta) {
+    final _ScheduleConfig config = _activeConfig();
+    final int minWeek = 1;
+    final int maxWeek = config.termWeeks.clamp(1, 60).toInt();
+    final int next = (_effectiveDisplayWeek(config) + delta).clamp(minWeek, maxWeek).toInt();
+    if (next == _displayWeek) {
+      return;
+    }
+    setState(() {
+      _displayWeek = next;
+    });
+  }
+
+  void _resetDisplayWeekToCurrent() {
+    if (_currentWeek <= 0 || _displayWeek == _currentWeek) {
+      return;
+    }
+    setState(() {
+      _displayWeek = _currentWeek;
+    });
+  }
+
+  List<DateTime> _weekDatesForDisplay(_ScheduleConfig config, int displayWeek) {
+    if (displayWeek <= 0) {
+      return _currentWeekDates(DateTime.now(), config.weekStartDay);
+    }
+
+    final DateTime seed = config.semesterStartDate.add(Duration(days: (displayWeek - 1) * 7));
+    final int startDay = config.weekStartDay.clamp(1, 7);
+    final int delta = (seed.weekday - startDay + 7) % 7;
+    final DateTime start = seed.subtract(Duration(days: delta));
     return List<DateTime>.generate(7, (int index) => start.add(Duration(days: index)));
   }
 
@@ -1360,16 +1818,54 @@ class _SchedulePageState extends State<SchedulePage> {
     return '当前课表：$_activeTableName | 学校配置 $_schoolConfigCount 所';
   }
 
-  Color? _parseColor(String? hex) {
-    if (hex == null || hex.isEmpty) {
-      return null;
+  Color _colorForCourseName(String name) {
+    const List<Color> palette = <Color>[
+      Color(0xFFD45E6A),
+      Color(0xFFCBA42F),
+      Color(0xFF4A88D2),
+      Color(0xFFB6C223),
+      Color(0xFF896ED8),
+      Color(0xFF2AA4A2),
+      Color(0xFFD68152),
+      Color(0xFFA19586),
+    ];
+    final int hash = name.runes.fold<int>(0, (int v, int e) => v * 31 + e);
+    final int index = hash.abs() % palette.length;
+    return palette[index];
+  }
+
+  Color _normalizeCourseDisplayColor(Color source) {
+    const List<Color> oldPalette = <Color>[
+      Color(0xFFEAA4AF),
+      Color(0xFFF2C27D),
+      Color(0xFFA9CDFE),
+      Color(0xFF9ED9A2),
+      Color(0xFFC7C1F8),
+      Color(0xFF8FD8D0),
+      Color(0xFFF5B57A),
+      Color(0xFFD9C1A5),
+    ];
+    const List<Color> newPalette = <Color>[
+      Color(0xFFD45E6A),
+      Color(0xFFCBA42F),
+      Color(0xFF4A88D2),
+      Color(0xFFB6C223),
+      Color(0xFF896ED8),
+      Color(0xFF2AA4A2),
+      Color(0xFFD68152),
+      Color(0xFFA19586),
+    ];
+
+    for (int i = 0; i < oldPalette.length; i++) {
+      if (source.toARGB32() == oldPalette[i].toARGB32()) {
+        return newPalette[i];
+      }
     }
 
-    final String cleaned = hex.replaceAll('#', '');
-    if (cleaned.length != 6) {
-      return null;
+    if (source.computeLuminance() > 0.58) {
+      return Color.alphaBlend(const Color(0x66000000), source);
     }
-    return Color(int.parse('FF$cleaned', radix: 16));
+    return source;
   }
 
   int _toMinute(String hhmm) {
@@ -1588,10 +2084,17 @@ class _SchedulePageState extends State<SchedulePage> {
 }
 
 class _WeekHeader extends StatelessWidget {
-  const _WeekHeader({required this.weekDates, required this.weekStartDay});
+  const _WeekHeader({
+    required this.weekDates,
+    required this.weekStartDay,
+    required this.cornerLabel,
+    required this.leftSpacing,
+  });
 
   final List<DateTime> weekDates;
   final int weekStartDay;
+  final String cornerLabel;
+  final double leftSpacing;
 
   static const List<String> _names = <String>[
     '周一',
@@ -1611,7 +2114,17 @@ class _WeekHeader extends StatelessWidget {
     ];
     return Row(
       children: <Widget>[
-        const SizedBox(width: 44),
+        SizedBox(
+          width: leftSpacing,
+          child: Text(
+            cornerLabel,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 10,
+              color: Color(0xFFAAA192),
+            ),
+          ),
+        ),
         for (int i = 0; i < 7; i++)
           Expanded(
             child: Column(
@@ -1673,31 +2186,104 @@ class _TopActionButton extends StatelessWidget {
   }
 }
 
-class _CourseActivatedModal extends StatelessWidget {
-  const _CourseActivatedModal({
-    required this.course,
-    required this.linkedTodos,
-    required this.onDelete,
+class _RoundAddButton extends StatelessWidget {
+  const _RoundAddButton({
+    required this.onTap,
+    required this.child,
+    this.backgroundColor = AppTokens.duckYellow,
   });
 
-  final CourseEntity course;
-  final List<TodoItem> linkedTodos;
-  final VoidCallback onDelete;
+  final VoidCallback onTap;
+  final Widget child;
+  final Color backgroundColor;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
-      child: Container(
-        width: 340,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppTokens.surface,
-          borderRadius: BorderRadius.circular(24),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(26),
+        child: Ink(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            shape: BoxShape.circle,
+          ),
+          child: Center(child: child),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
+      ),
+    );
+  }
+}
+
+class _CourseActivatedModal extends StatefulWidget {
+  const _CourseActivatedModal({
+    required this.courses,
+    required this.todoByCourseName,
+    required this.onDelete,
+  });
+
+  final List<CourseEntity> courses;
+  final Map<String, List<TodoItem>> todoByCourseName;
+  final Future<void> Function(int index) onDelete;
+
+  @override
+  State<_CourseActivatedModal> createState() => _CourseActivatedModalState();
+}
+
+class _CourseActivatedModalState extends State<_CourseActivatedModal> {
+  int _index = 0;
+
+  void _showPreviousCourse() {
+    if (_index <= 0) {
+      return;
+    }
+    setState(() {
+      _index -= 1;
+    });
+  }
+
+  void _showNextCourse() {
+    if (_index >= widget.courses.length - 1) {
+      return;
+    }
+    setState(() {
+      _index += 1;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final List<CourseEntity> courses = widget.courses;
+    final CourseEntity course = courses[_index];
+    final List<TodoItem> linkedTodos = widget.todoByCourseName[course.name] ?? const <TodoItem>[];
+
+    return Material(
+      color: Colors.transparent,
+      child: GestureDetector(
+        onHorizontalDragEnd: (DragEndDetails details) {
+          final double velocity = details.primaryVelocity ?? 0;
+          if (velocity.abs() < 160) {
+            return;
+          }
+          if (velocity > 0) {
+            _showPreviousCourse();
+          } else {
+            _showNextCourse();
+          }
+        },
+        child: Container(
+          width: 340,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppTokens.surface,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
             Row(
               children: <Widget>[
                 InkWell(
@@ -1722,7 +2308,7 @@ class _CourseActivatedModal extends StatelessWidget {
                 ),
                 InkWell(
                   borderRadius: BorderRadius.circular(16),
-                  onTap: onDelete,
+                  onTap: () => widget.onDelete(_index),
                   child: const SizedBox(
                     width: 28,
                     height: 28,
@@ -1733,7 +2319,8 @@ class _CourseActivatedModal extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             _CourseInfoLine(label: '星期', value: _weekdayText(course.weekTime)),
-            _CourseInfoLine(label: '节次', value: '第${course.startTime}-${course.startTime + course.timeCount}节'),
+            _CourseInfoLine(label: '节次', value: '第${course.startTime}-${course.startTime + course.timeCount - 1}节'),
+            _CourseInfoLine(label: '周数', value: _weekRangeText(course.weeksJson)),
             _CourseInfoLine(label: '教师', value: course.teacher?.isNotEmpty == true ? course.teacher! : '未填写'),
             _CourseInfoLine(label: '地点', value: course.classroom?.isNotEmpty == true ? course.classroom! : '未填写'),
             const SizedBox(height: 10),
@@ -1784,7 +2371,67 @@ class _CourseActivatedModal extends StatelessWidget {
                   ),
                 );
               }),
-          ],
+            const SizedBox(height: 6),
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: InkWell(
+                      onTap: _index > 0 ? _showPreviousCourse : null,
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.chevron_left,
+                          size: 22,
+                          color: _index > 0
+                              ? const Color(0xFF7B6D5B)
+                              : const Color(0xFFBFB4A7),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    '${_index + 1} / ${courses.length}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 11, color: AppTokens.textMuted),
+                  ),
+                ),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: InkWell(
+                      onTap: _index < courses.length - 1 ? _showNextCourse : null,
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.chevron_right,
+                          size: 22,
+                          color: _index < courses.length - 1
+                              ? const Color(0xFF7B6D5B)
+                              : const Color(0xFFBFB4A7),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const Text(
+              '左右滑动或点击两侧箭头切换课程',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 10, color: AppTokens.textMuted),
+            ),
+            ],
+          ),
         ),
       ),
     );
@@ -1808,6 +2455,24 @@ class _CourseActivatedModal extends StatelessWidget {
         return '日';
       default:
         return '-';
+    }
+  }
+
+  static String _weekRangeText(String weeksJson) {
+    try {
+      final List<dynamic> raw = jsonDecode(weeksJson) as List<dynamic>;
+      final List<int> weeks = raw
+          .whereType<num>()
+          .map((num item) => item.toInt())
+          .where((int value) => value > 0)
+          .toList(growable: false)
+        ..sort();
+      if (weeks.isEmpty) {
+        return '未填写';
+      }
+      return '第${weeks.first}-${weeks.last}周';
+    } catch (_) {
+      return '未填写';
     }
   }
 }
@@ -2200,6 +2865,34 @@ class _ScheduleConfig {
     eveningCount = eveningCount.clamp(1, maxEvening).toInt();
   }
 
+  void setEveningCountPreferIncrease(int target) {
+    final int desired = target.clamp(1, 8).toInt();
+    if (desired <= eveningCount) {
+      eveningCount = desired;
+      normalizeCounts();
+      return;
+    }
+
+    int delta = desired - eveningCount;
+    while (delta > 0) {
+      if (afternoonCount > 1) {
+        afternoonCount -= 1;
+        eveningCount += 1;
+        delta -= 1;
+        continue;
+      }
+      if (morningCount > 1) {
+        morningCount -= 1;
+        eveningCount += 1;
+        delta -= 1;
+        continue;
+      }
+      break;
+    }
+
+    normalizeCounts();
+  }
+
   static int _toMinutes(String hhmm) {
     final List<String> parts = hhmm.split(':');
     final int h = int.tryParse(parts.first) ?? 0;
@@ -2223,6 +2916,35 @@ class _SectionTime {
   _SectionTime copyWith({String? start, String? end}) {
     return _SectionTime(start: start ?? this.start, end: end ?? this.end);
   }
+}
+
+class _ResolvedSlot {
+  const _ResolvedSlot({required this.primary, required this.all, required this.active});
+
+  const _ResolvedSlot.empty()
+      : primary = null,
+        all = const <CourseEntity>[],
+        active = false;
+
+  final CourseEntity? primary;
+  final List<CourseEntity> all;
+  final bool active;
+}
+
+class _RenderedCourseBlock {
+  const _RenderedCourseBlock({
+    required this.course,
+    required this.start,
+    required this.span,
+    required this.active,
+    required this.detailCourses,
+  });
+
+  final CourseEntity course;
+  final int start;
+  final int span;
+  final bool active;
+  final List<CourseEntity> detailCourses;
 }
 
 class _AddMenuItem extends StatelessWidget {

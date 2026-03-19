@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:lpinyin/lpinyin.dart';
 
 import '../../../shared/theme/app_tokens.dart';
@@ -201,6 +202,37 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
               ),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+            child: Row(
+              children: <Widget>[
+                Text(
+                  '共 ${filtered.length} 所',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppTokens.textMuted,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTokens.duckYellowSoft,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    _schoolLevelTabs[_activeLevelIndex],
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: AppTokens.textMain,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
@@ -235,7 +267,7 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
                               ),
                               Positioned(
                                 right: 20,
-                                bottom: 108,
+                                bottom: 78,
                                 child: Column(
                                   children: <Widget>[
                                     _ToolButton(
@@ -246,7 +278,7 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
                                         );
                                       },
                                     ),
-                                    const SizedBox(height: 10),
+                                    const SizedBox(height: 20),
                                     _ToolButton(
                                       icon: Icons.question_mark,
                                       onTap: () {
@@ -351,9 +383,15 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
     }
 
     final String activeLevel = _schoolLevelKeys[_activeLevelIndex];
-    return _allConfigs
+    final List<SchoolConfig> levelMatched = _allConfigs
         .where((SchoolConfig config) => config.level == activeLevel)
         .toList(growable: false);
+
+    // 某些后端配置 level 不规范时，避免分栏误判导致页面看起来“空列表”。
+    if (levelMatched.isEmpty && _allConfigs.isNotEmpty) {
+      return _allConfigs;
+    }
+    return levelMatched;
   }
 
   Map<String, List<SchoolConfig>> _groupByLetter(List<SchoolConfig> configs) {
@@ -413,9 +451,22 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
     }
 
     if (_activeLetter != letter) {
-      setState(() {
-        _activeLetter = letter;
-      });
+      final SchedulerPhase phase = SchedulerBinding.instance.schedulerPhase;
+      if (phase == SchedulerPhase.persistentCallbacks ||
+          phase == SchedulerPhase.transientCallbacks) {
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _activeLetter == letter) {
+            return;
+          }
+          setState(() {
+            _activeLetter = letter;
+          });
+        });
+      } else {
+        setState(() {
+          _activeLetter = letter;
+        });
+      }
     }
   }
 
@@ -482,8 +533,13 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
   }
 
   Future<void> _openExecutionPage(SchoolConfig config) async {
-    // 保护：未适配学校（example.com 占位 URL）给出友好提示
-    if (config.initialUrl.contains('example.com') || config.initialUrl.isEmpty) {
+    final bool isGeneralPortal =
+        config.level == 'general' || config.title.contains('通用');
+
+    // 保护：未适配学校（example.com 占位 URL）给出友好提示；
+    // 通用入口允许空链接，进入后由用户手动输入。
+    if (!isGeneralPortal &&
+        (config.initialUrl.contains('example.com') || config.initialUrl.isEmpty)) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${config.title} 暂未适配教务系统，敬请期待')),

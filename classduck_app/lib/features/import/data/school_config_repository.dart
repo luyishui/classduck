@@ -10,27 +10,26 @@ import '../domain/school_config.dart';
 /// 采用“后端配置优先，本地内置兜底”的合并策略：
 /// - Python 后端返回的学校配置用于真实适配和动态更新。
 /// - `schools.builtin.json` 用于后端只配置少量学校时保持列表完整。
-///
-/// 这能同时满足开发联调和产品展示，不会因为后端样例数据太少导致学校列表为空。
 class SchoolConfigRepository {
   SchoolConfigRepository({HttpJsonClient? client}) : _client = client ?? HttpJsonClient();
 
   final HttpJsonClient _client;
 
   /// 合并策略：API 返回的数据优先，再补充内置数据中没有覆盖到的学校。
-  /// 这样后端只配了少量学校时，内置的 82 所仍然能展示。
+  /// 这样后端只配了少量学校时，内置学校仍然能展示。
   Future<List<SchoolConfig>> fetchSchoolConfigs() async {
     final List<SchoolConfig> builtinConfigs = await _loadBuiltinConfigs();
     List<SchoolConfig> apiConfigs = <SchoolConfig>[];
 
     try {
       final Map<String, dynamic> payload = await _client.getJsonMap('/v1/config/schools');
-      final dynamic list = payload['data'];
-      if (list is List<dynamic>) {
-        apiConfigs = list
-            .whereType<Map<String, dynamic>>()
-            .map(SchoolConfig.fromMap)
-            .toList(growable: false);
+      final dynamic rawList = payload['data'] ?? payload['schools'] ?? payload['items'] ?? payload;
+      if (rawList is List<dynamic>) {
+        apiConfigs = rawList
+        .whereType<Map>()
+        .map((Map item) => Map<String, dynamic>.from(item))
+        .map(SchoolConfig.fromMap)
+        .toList(growable: false);
       }
     } catch (_) {
       // API 不可用时仅使用内置数据
@@ -59,7 +58,8 @@ class SchoolConfigRepository {
       }
 
       return list
-          .whereType<Map<String, dynamic>>()
+          .whereType<Map>()
+          .map((Map item) => Map<String, dynamic>.from(item))
           .map(SchoolConfig.fromMap)
           .toList(growable: false);
     } catch (_) {

@@ -10,7 +10,7 @@ class NotificationService {
       android: androidSettings,
       iOS: iosSettings,
     );
-    await _plugin.initialize(settings);
+    await _plugin.initialize(settings: settings);
   }
 
   static Future<void> showSimpleNotification({
@@ -31,6 +31,12 @@ class NotificationService {
       android: androidDetails,
       iOS: iosDetails,
     );
-    await _plugin.show(id, title, body, details, payload: payload);
+    await _plugin.show(
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: details,
+      payload: payload,
+    );
   }
 }

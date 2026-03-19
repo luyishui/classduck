@@ -23,10 +23,10 @@
                      "id":  "generic-qingguo",
                      "delaySeconds":  3,
                      "level":  "general",
-                     "targetUrl":  "https://example.com/course",
+                     "targetUrl":  "",
                      "extractScriptUrl":  "local://parsers/qingguo-generic.js",
                      "title":  "青果教务",
-                     "initialUrl":  "https://example.com/login"
+                     "initialUrl":  ""
                  },
                  {
                      "id":  "generic-jinzhi",
@@ -41,19 +41,19 @@
                      "id":  "generic-zhengfang",
                      "delaySeconds":  3,
                      "level":  "general",
-                     "targetUrl":  "https://example.com/course",
+                     "targetUrl":  "",
                      "extractScriptUrl":  "local://parsers/zhengfang-generic.js",
                      "title":  "正方教务",
-                     "initialUrl":  "https://example.com/login"
+                     "initialUrl":  ""
                  },
                  {
                      "id":  "generic-qiangzhi",
                      "delaySeconds":  3,
                      "level":  "general",
-                     "targetUrl":  "https://example.com/course",
+                     "targetUrl":  "",
                      "extractScriptUrl":  "local://parsers/qiangzhi-generic.js",
                      "title":  "强智教务",
-                     "initialUrl":  "https://example.com/login"
+                     "initialUrl":  ""
                  },
                  {
                      "id":  "generic-jinchuang",
@@ -671,37 +671,19 @@
                      "id":  "school-060-南京大学-beta",
                      "delaySeconds":  3,
                      "level":  "undergraduate",
-                     "targetUrl":  "https://authserver.nju.edu.cn/authserver/login",
+                     "targetUrl":  "https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/*default/index.do#/xskcb",
                      "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "南京大学(beta)",
-                     "initialUrl":  "https://authserver.nju.edu.cn/authserver/login"
-                 },
-                 {
-                     "id":  "school-061-南京大学选课",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://xk.nju.edu.cn",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "南京大学选课",
-                     "initialUrl":  "https://xk.nju.edu.cn"
+                     "title":  "南京大学课表(本科)",
+                     "initialUrl":  "https://authserver.nju.edu.cn/authserver/login?service=https%3A%2F%2Fehallapp.nju.edu.cn%2Fjwapp%2Fsys%2Fwdkb%2F*default%2Findex.do%23%2Fxskcb"
                  },
                  {
                      "id":  "school-062-南京大学TS",
                      "delaySeconds":  3,
                      "level":  "master",
-                     "targetUrl":  "https://authserver.nju.edu.cn/authserver/login",
+                     "targetUrl":  "https://ehallapp.nju.edu.cn/gsapp/sys/wdkbapp/*default/index.do#/xskcb",
                      "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "南京大学TS",
-                     "initialUrl":  "https://authserver.nju.edu.cn/authserver/login"
-                 },
-                 {
-                     "id":  "school-063-南京大学选课-硕士",
-                     "delaySeconds":  3,
-                     "level":  "master",
-                     "targetUrl":  "https://yjsxk.nju.edu.cn/yjsxkapp/sys/xsxkapp/index_nju.html",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "南京大学选课(硕士)",
-                     "initialUrl":  "https://yjsxk.nju.edu.cn/yjsxkapp/sys/xsxkapp/index_nju.html"
+                     "title":  "南京大学课表(研究生)",
+                     "initialUrl":  "https://authserver.nju.edu.cn/authserver/login?service=https%3A%2F%2Fehallapp.nju.edu.cn%2Fgsapp%2Fsys%2Fwdkbapp%2F*default%2Findex.do%23%2Fxskcb"
                  },
                  {
                      "id":  "school-064-上海交通大学",

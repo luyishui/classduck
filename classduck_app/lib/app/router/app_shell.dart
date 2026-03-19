@@ -28,10 +28,7 @@ class _AppShellState extends State<AppShell> {
     return Scaffold(
       body: Stack(
         children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.only(bottom: 96),
-            child: IndexedStack(index: _tabIndex, children: _pages),
-          ),
+          IndexedStack(index: _tabIndex, children: _pages),
           Positioned(
             left: 28,
             right: 28,

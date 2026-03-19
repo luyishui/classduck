@@ -1,8 +1,31 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(keystorePropertiesFile.inputStream())
+}
+
+fun keystoreValue(key: String): String? {
+    val direct = keystoreProperties.getProperty(key)
+    if (!direct.isNullOrBlank()) return direct
+
+    val bomKey = "\uFEFF$key"
+    val withBom = keystoreProperties.getProperty(bomKey)
+    if (!withBom.isNullOrBlank()) return withBom
+
+    return keystoreProperties
+        .entries
+        .firstOrNull { (k, _) -> k.toString().trimStart('\uFEFF') == key }
+        ?.value
+        ?.toString()
 }
 
 android {
@@ -13,6 +36,7 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -32,13 +56,24 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (keystorePropertiesFile.exists()) {
+                signingConfigs.create("release") {
+                    storeFile = file(keystoreValue("storeFile") ?: error("Missing storeFile in key.properties"))
+                    storePassword = keystoreValue("storePassword") ?: error("Missing storePassword in key.properties")
+                    keyAlias = keystoreValue("keyAlias") ?: error("Missing keyAlias in key.properties")
+                    keyPassword = keystoreValue("keyPassword") ?: error("Missing keyPassword in key.properties")
+                }
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }

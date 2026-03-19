@@ -1,5 +1,17 @@
 allprojects {
     repositories {
+        maven("http://maven.aliyun.com/repository/google") {
+            isAllowInsecureProtocol = true
+        }
+        maven("http://maven.aliyun.com/repository/public") {
+            isAllowInsecureProtocol = true
+        }
+        maven("https://storage.flutter-io.cn/download.flutter.io")
+        maven("https://mirrors.tuna.tsinghua.edu.cn/flutter/download.flutter.io")
+        maven("https://maven.aliyun.com/repository/gradle-plugin")
+        maven("https://maven.aliyun.com/repository/google")
+        maven("https://maven.aliyun.com/repository/public")
+        maven("https://mirrors.cloud.tencent.com/nexus/repository/maven-public/")
         google()
         mavenCentral()
     }
