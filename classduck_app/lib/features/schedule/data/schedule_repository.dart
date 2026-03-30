@@ -24,6 +24,13 @@ class ScheduleRepository {
   static int _webCourseIdSeed = 1;
   static final List<CourseTableEntity> _webTables = <CourseTableEntity>[];
   static final List<CourseEntity> _webCourses = <CourseEntity>[];
+  static final ValueNotifier<int?> activeTableIdNotifier = ValueNotifier<int?>(null);
+
+  static int? get activeTableId => activeTableIdNotifier.value;
+
+  void setActiveTableId(int? tableId) {
+    activeTableIdNotifier.value = tableId;
+  }
 
   /// 创建课表。Web 端写入内存，原生端写入 SQLite。
   Future<CourseTableEntity> createCourseTable({
@@ -86,7 +93,11 @@ class ScheduleRepository {
           ),
         );
       }
-      return _webTables.reversed.toList(growable: false);
+      final List<CourseTableEntity> tables = _webTables.reversed.toList(growable: false);
+      if (activeTableIdNotifier.value == null && tables.isNotEmpty) {
+        activeTableIdNotifier.value = tables.first.id;
+      }
+      return tables;
     }
 
     final Database db = await _dbHelper.open();
@@ -96,7 +107,11 @@ class ScheduleRepository {
       orderBy: 'id DESC',
     );
 
-    return rows.map(CourseTableEntity.fromMap).toList(growable: false);
+    final List<CourseTableEntity> tables = rows.map(CourseTableEntity.fromMap).toList(growable: false);
+    if (activeTableIdNotifier.value == null && tables.isNotEmpty) {
+      activeTableIdNotifier.value = tables.first.id;
+    }
+    return tables;
   }
 
   /// 批量写入课程。
@@ -174,6 +189,46 @@ class ScheduleRepository {
     return rows.map(CourseEntity.fromMap).toList(growable: false);
   }
 
+  Future<List<CourseEntity>> getAllCourses() async {
+    if (kIsWeb) {
+      return List<CourseEntity>.from(_webCourses);
+    }
+
+    final Database db = await _dbHelper.open();
+    final List<Map<String, Object?>> rows = await db.query(DbHelper.tableCourse);
+    return rows.map(CourseEntity.fromMap).toList(growable: false);
+  }
+
+  Future<List<CourseEntity>> getAllManualCourses() async {
+    final List<CourseEntity> courses = await getAllCourses();
+    return courses.where((CourseEntity course) => course.importType == 0).toList(growable: false);
+  }
+
+  Future<String?> getManualCourseBaseColor(String exactCourseName) async {
+    final List<CourseEntity> candidates = (await getAllManualCourses())
+        .where((CourseEntity course) => course.name == exactCourseName)
+        .toList(growable: false);
+    if (candidates.isEmpty) {
+      return null;
+    }
+
+    candidates.sort((CourseEntity a, CourseEntity b) {
+      final DateTime ta = _parseCourseTime(a.createdAt);
+      final DateTime tb = _parseCourseTime(b.createdAt);
+      final int cmpTime = ta.compareTo(tb);
+      if (cmpTime != 0) {
+        return cmpTime;
+      }
+      return (a.id ?? 1 << 30).compareTo(b.id ?? 1 << 30);
+    });
+
+    final String? color = candidates.first.colorHex?.trim();
+    if (color == null || color.isEmpty) {
+      return null;
+    }
+    return color;
+  }
+
   Future<void> deleteCourse(int courseId) async {
     if (kIsWeb) {
       _webCourses.removeWhere((CourseEntity item) => item.id == courseId);
@@ -183,6 +238,66 @@ class ScheduleRepository {
     final Database db = await _dbHelper.open();
     await db.delete(
       DbHelper.tableCourse,
+      where: 'id = ?',
+      whereArgs: <Object>[courseId],
+    );
+  }
+
+  Future<void> updateCourseDetail({
+    required int courseId,
+    required String name,
+    required int weekTime,
+    required String weeksJson,
+    required int startTime,
+    required int timeCount,
+    String? teacher,
+    String? classroom,
+  }) async {
+    final String now = DateTime.now().toUtc().toIso8601String();
+
+    if (kIsWeb) {
+      final int index = _webCourses.indexWhere((CourseEntity item) => item.id == courseId);
+      if (index < 0) {
+        return;
+      }
+      final CourseEntity current = _webCourses[index];
+      _webCourses[index] = CourseEntity(
+        id: current.id,
+        tableId: current.tableId,
+        name: name,
+        classroom: classroom,
+        classNumber: current.classNumber,
+        teacher: teacher,
+        testTime: current.testTime,
+        testLocation: current.testLocation,
+        infoLink: current.infoLink,
+        info: current.info,
+        weeksJson: weeksJson,
+        weekTime: weekTime,
+        startTime: startTime,
+        timeCount: timeCount,
+        importType: current.importType,
+        colorHex: current.colorHex,
+        courseId: current.courseId,
+        createdAt: current.createdAt,
+        updatedAt: now,
+      );
+      return;
+    }
+
+    final Database db = await _dbHelper.open();
+    await db.update(
+      DbHelper.tableCourse,
+      <String, Object?>{
+        'name': name,
+        'week_time': weekTime,
+        'weeks_json': weeksJson,
+        'start_time': startTime,
+        'time_count': timeCount,
+        'teacher': teacher,
+        'classroom': classroom,
+        'updated_at': now,
+      },
       where: 'id = ?',
       whereArgs: <Object>[courseId],
     );
@@ -303,5 +418,13 @@ class ScheduleRepository {
     if (hm <= 1645) return 7;
     if (hm <= 1745) return 8;
     return 99;
+  }
+
+  DateTime _parseCourseTime(String raw) {
+    final DateTime? parsed = DateTime.tryParse(raw);
+    if (parsed == null) {
+      return DateTime.fromMillisecondsSinceEpoch(0);
+    }
+    return parsed;
   }
 }

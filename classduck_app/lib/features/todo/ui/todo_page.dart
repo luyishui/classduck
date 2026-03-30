@@ -4,8 +4,8 @@ import 'package:intl/intl.dart';
 import '../../../shared/theme/app_tokens.dart';
 import '../../../shared/widgets/duck_modal.dart';
 import '../../schedule/domain/course.dart';
-import '../../schedule/data/schedule_repository.dart';
 import '../../schedule/domain/course_table.dart';
+import '../../schedule/data/schedule_repository.dart';
 import '../data/todo_repository.dart';
 import '../domain/todo_item.dart';
 import 'new_todo_page.dart';
@@ -18,13 +18,14 @@ class TodoPage extends StatefulWidget {
 }
 
 class _TodoPageState extends State<TodoPage>
-    with SingleTickerProviderStateMixin {
+  with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final TodoRepository _repository = TodoRepository();
   final ScheduleRepository _scheduleRepository = ScheduleRepository();
   late final TabController _tabController;
 
   bool _loading = false;
   String? _error;
+  int? _activeTableId;
   List<TodoItem> _pending = const <TodoItem>[];
   List<TodoItem> _completed = const <TodoItem>[];
   Map<String, Color> _courseThemeByName = const <String, Color>{};
@@ -56,14 +57,56 @@ class _TodoPageState extends State<TodoPage>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    TodoRepository.dataVersion.addListener(_onTodoDataChanged);
+    ScheduleRepository.activeTableIdNotifier.addListener(_onActiveTableChanged);
     _tabController = TabController(length: 2, vsync: this);
     _load();
   }
 
   @override
   void dispose() {
+    TodoRepository.dataVersion.removeListener(_onTodoDataChanged);
+    ScheduleRepository.activeTableIdNotifier.removeListener(_onActiveTableChanged);
+    WidgetsBinding.instance.removeObserver(this);
     _tabController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted && !_loading) {
+      _load();
+    }
+  }
+
+  void _onTodoDataChanged() {
+    if (!mounted || _loading) {
+      return;
+    }
+    // 课程页删除课程后，待办页依靠仓储版本通知即时刷新，无需手动下拉。
+    _load();
+  }
+
+  void _onActiveTableChanged() {
+    if (!mounted || _loading) {
+      return;
+    }
+    _load();
+  }
+
+  Future<int?> _resolveActiveTableId() async {
+    final int? current = ScheduleRepository.activeTableId;
+    if (current != null) {
+      return current;
+    }
+    final List<CourseTableEntity> tables = await _scheduleRepository.getCourseTables();
+    if (tables.isEmpty || tables.first.id == null) {
+      return null;
+    }
+    final int tableId = tables.first.id!;
+    _scheduleRepository.setActiveTableId(tableId);
+    return tableId;
   }
 
   Future<void> _load() async {
@@ -73,11 +116,20 @@ class _TodoPageState extends State<TodoPage>
     });
 
     try {
-      final List<TodoItem> pending = await _repository.getTodos(completed: false);
-      final List<TodoItem> completed = await _repository.getTodos(completed: true);
-      final Map<String, Color> courseThemeByName = await _loadCourseThemeMap();
+      final int? tableId = await _resolveActiveTableId();
+      final List<TodoItem> pending = tableId == null
+          ? const <TodoItem>[]
+          : await _repository.getTodos(completed: false, tableId: tableId);
+      final List<TodoItem> completed = tableId == null
+          ? const <TodoItem>[]
+          : await _repository.getTodos(completed: true, tableId: tableId);
+      final List<CourseSelectorOption> options = await _loadCourseSelectorOptions();
+      final Map<String, Color> courseThemeByName = <String, Color>{
+        for (final CourseSelectorOption option in options) option.name: option.themeColor,
+      };
 
       setState(() {
+        _activeTableId = tableId;
         _pending = pending;
         _completed = completed;
         _courseThemeByName = courseThemeByName;
@@ -195,6 +247,7 @@ class _TodoPageState extends State<TodoPage>
     );
   }
 
+
   Widget _buildError() {
     return Center(
       child: Padding(
@@ -218,26 +271,38 @@ class _TodoPageState extends State<TodoPage>
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(28, 6, 28, 120),
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 120),
         children: <Widget>[
           for (final String type in _typeOrder) ...<Widget>[
-            _buildGroupHeader(
-              type: type,
-              expanded: expandedMap[type] ?? false,
-              count: items.where((TodoItem item) => item.taskType == type).length,
-              onToggle: () {
-                setState(() {
-                  expandedMap[type] = !(expandedMap[type] ?? false);
-                });
-              },
+            Container(
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFF3EBDD)),
+              ),
+              child: Column(
+                children: <Widget>[
+                  _buildGroupHeader(
+                    type: type,
+                    expanded: expandedMap[type] ?? false,
+                    count: items.where((TodoItem item) => item.taskType == type).length,
+                    onToggle: () {
+                      setState(() {
+                        expandedMap[type] = !(expandedMap[type] ?? false);
+                      });
+                    },
+                  ),
+                  ..._buildGroupItems(
+                    type: type,
+                    items: items,
+                    expanded: expandedMap[type] ?? false,
+                    completed: completed,
+                  ),
+                ],
+              ),
             ),
-            ..._buildGroupItems(
-              type: type,
-              items: items,
-              expanded: expandedMap[type] ?? false,
-              completed: completed,
-            ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
           ],
           if (items.isEmpty)
             const Padding(
@@ -262,7 +327,7 @@ class _TodoPageState extends State<TodoPage>
     return InkWell(
       onTap: onToggle,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.only(bottom: 2),
         child: Row(
           children: <Widget>[
             Text(
@@ -311,7 +376,7 @@ class _TodoPageState extends State<TodoPage>
 
     return visible
         .map((TodoItem item) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(top: 8),
               child: _TodoCard(
                 item: item,
                 completed: completed,
@@ -321,31 +386,6 @@ class _TodoPageState extends State<TodoPage>
               ),
             ))
         .toList(growable: false);
-  }
-
-  Future<Map<String, Color>> _loadCourseThemeMap() async {
-    final Map<String, Color> map = <String, Color>{};
-    final List<CourseTableEntity> tables = await _scheduleRepository.getCourseTables();
-
-    for (final CourseTableEntity table in tables) {
-      final int? tableId = table.id;
-      if (tableId == null) {
-        continue;
-      }
-
-      final List<CourseEntity> courses = await _scheduleRepository.getCoursesByTableId(tableId);
-      for (final CourseEntity course in courses) {
-        if (course.name.isEmpty || map.containsKey(course.name)) {
-          continue;
-        }
-        map[course.name] = _resolveCourseThemeColor(course);
-      }
-    }
-    return map;
-  }
-
-  Color _resolveCourseThemeColor(CourseEntity course) {
-    return _colorForCourseName(course.name);
   }
 
   Color _colorForCourseName(String name) {
@@ -364,7 +404,11 @@ class _TodoPageState extends State<TodoPage>
   }
 
   Future<void> _openNewTodo() async {
-    final List<String> latestCourseOptions = await _loadCourseOptions();
+    final int? tableId = _activeTableId ?? await _resolveActiveTableId();
+    if (tableId == null || !mounted) {
+      return;
+    }
+    final List<CourseSelectorOption> latestCourseOptions = await _loadCourseSelectorOptions();
     if (!mounted) {
       return;
     }
@@ -372,8 +416,9 @@ class _TodoPageState extends State<TodoPage>
     final bool? created = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
         builder: (BuildContext context) => NewTodoPage(
+          activeTableId: tableId,
           taskTypeLabels: Map<String, String>.from(_typeLabels),
-          courseOptions: List<String>.from(latestCourseOptions),
+          courseOptions: List<CourseSelectorOption>.from(latestCourseOptions),
         ),
       ),
     );
@@ -398,29 +443,88 @@ class _TodoPageState extends State<TodoPage>
     return _typeLabels[type] ?? type;
   }
 
-  Future<List<String>> _loadCourseOptions() async {
-    final List<CourseTableEntity> tables = await _scheduleRepository.getCourseTables();
-    final Set<String> names = <String>{};
+  Future<List<CourseSelectorOption>> _loadCourseSelectorOptions() async {
+    final int? tableId = _activeTableId ?? await _resolveActiveTableId();
+    if (tableId == null) {
+      return const <CourseSelectorOption>[];
+    }
+    final List<CourseEntity> tableCourses = await _scheduleRepository.getCoursesByTableId(tableId);
+    final List<CourseEntity> manualCourses = tableCourses
+        .where((CourseEntity item) => item.importType == 0)
+        .toList(growable: false);
+    final Map<String, _ManualCourseSummary> grouped = <String, _ManualCourseSummary>{};
 
-    final List<Future<List<CourseEntity>>> tasks = <Future<List<CourseEntity>>>[];
-    for (final CourseTableEntity table in tables) {
-      final int? tableId = table.id;
-      if (tableId == null) {
+    for (final CourseEntity course in manualCourses) {
+      final String name = course.name;
+      if (name.trim().isEmpty) {
         continue;
       }
-      tasks.add(_scheduleRepository.getCoursesByTableId(tableId));
-    }
 
-    final List<List<CourseEntity>> allCourses = await Future.wait(tasks);
-    for (final List<CourseEntity> courses in allCourses) {
-      for (final item in courses) {
-        final String name = item.name.trim();
-        if (name.isNotEmpty) {
-          names.add(name);
-        }
+      final DateTime createdAt = _parseCourseTime(course.createdAt);
+      final int idForCompare = course.id ?? (1 << 30);
+      final _ManualCourseSummary summary = grouped.putIfAbsent(
+        name,
+        () => _ManualCourseSummary(
+          earliestAt: createdAt,
+          earliestId: idForCompare,
+          latestAt: createdAt,
+          latestId: idForCompare,
+          baselineColorHex: course.colorHex,
+        ),
+      );
+
+      final bool isEarlier = createdAt.isBefore(summary.earliestAt) ||
+          (createdAt.isAtSameMomentAs(summary.earliestAt) && idForCompare < summary.earliestId);
+      if (isEarlier) {
+        summary.earliestAt = createdAt;
+        summary.earliestId = idForCompare;
+        summary.baselineColorHex = course.colorHex;
+      }
+
+      final bool isLater = createdAt.isAfter(summary.latestAt) ||
+          (createdAt.isAtSameMomentAs(summary.latestAt) && idForCompare > summary.latestId);
+      if (isLater) {
+        summary.latestAt = createdAt;
+        summary.latestId = idForCompare;
       }
     }
-    return names.toList(growable: false);
+
+    final List<CourseSelectorOption> options = grouped.entries.map((MapEntry<String, _ManualCourseSummary> entry) {
+      final String name = entry.key;
+      final _ManualCourseSummary summary = entry.value;
+      final Color color = _parseCourseHex(summary.baselineColorHex) ?? _colorForCourseName(name);
+      return CourseSelectorOption(
+        name: name,
+        themeColor: color,
+        latestCreatedAt: summary.latestAt,
+      );
+    }).toList(growable: false);
+
+    options.sort((CourseSelectorOption a, CourseSelectorOption b) {
+      final int cmp = b.latestCreatedAt.compareTo(a.latestCreatedAt);
+      if (cmp != 0) {
+        return cmp;
+      }
+      return a.name.compareTo(b.name);
+    });
+
+    return options;
+  }
+
+  DateTime _parseCourseTime(String raw) {
+    return DateTime.tryParse(raw) ?? DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  Color? _parseCourseHex(String? rawHex) {
+    final String? hex = rawHex?.trim();
+    if (hex == null || hex.isEmpty) {
+      return null;
+    }
+    final String normalized = hex.startsWith('#') ? hex.substring(1) : hex;
+    if (normalized.length != 6) {
+      return null;
+    }
+    return Color(int.parse('FF$normalized', radix: 16));
   }
 
   Future<void> _openSidebarPlaceholder() async {
@@ -542,7 +646,10 @@ class _TodoPageState extends State<TodoPage>
                                           return;
                                         }
 
-                                        await _repository.deleteTodosByTaskType(key);
+                                        await _repository.deleteTodosByTaskType(
+                                          key,
+                                          tableId: _activeTableId,
+                                        );
                                         setState(() {
                                           _typeOrder.remove(key);
                                           _typeLabels.remove(key);
@@ -651,6 +758,22 @@ class _TodoPageState extends State<TodoPage>
       ),
     );
   }
+}
+
+class _ManualCourseSummary {
+  _ManualCourseSummary({
+    required this.earliestAt,
+    required this.earliestId,
+    required this.latestAt,
+    required this.latestId,
+    required this.baselineColorHex,
+  });
+
+  DateTime earliestAt;
+  int earliestId;
+  DateTime latestAt;
+  int latestId;
+  String? baselineColorHex;
 }
 
 class _TodoCard extends StatelessWidget {

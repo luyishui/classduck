@@ -4,15 +4,29 @@ import 'package:flutter/material.dart';
 import '../../../shared/theme/app_tokens.dart';
 import '../data/todo_repository.dart';
 
+class CourseSelectorOption {
+  const CourseSelectorOption({
+    required this.name,
+    required this.themeColor,
+    required this.latestCreatedAt,
+  });
+
+  final String name;
+  final Color themeColor;
+  final DateTime latestCreatedAt;
+}
+
 class NewTodoPage extends StatefulWidget {
   const NewTodoPage({
     super.key,
+    required this.activeTableId,
     required this.taskTypeLabels,
-    this.courseOptions = const <String>[],
+    this.courseOptions = const <CourseSelectorOption>[],
   });
 
+  final int activeTableId;
   final Map<String, String> taskTypeLabels;
-  final List<String> courseOptions;
+  final List<CourseSelectorOption> courseOptions;
 
   @override
   State<NewTodoPage> createState() => _NewTodoPageState();
@@ -29,7 +43,7 @@ class _NewTodoPageState extends State<NewTodoPage> {
   String? _error;
 
   late final List<(String key, String label)> _taskTypes;
-  late final List<String> _courseOptions;
+  late final List<CourseSelectorOption> _allCourseOptions;
 
   @override
   void initState() {
@@ -38,9 +52,7 @@ class _NewTodoPageState extends State<NewTodoPage> {
         .map((MapEntry<String, String> item) => (item.key, item.value))
         .toList(growable: false);
     _taskType = _taskTypes.isNotEmpty ? _taskTypes.first.$1 : 'assignment';
-    _courseOptions = widget.courseOptions.isNotEmpty
-        ? <String>[...widget.courseOptions, '更多']
-        : const <String>[];
+    _allCourseOptions = List<CourseSelectorOption>.from(widget.courseOptions);
   }
 
   @override
@@ -140,7 +152,7 @@ class _NewTodoPageState extends State<NewTodoPage> {
             children: _buildTaskTypePills(),
           ),
           const SizedBox(height: 20),
-          if (_courseOptions.isNotEmpty) ...<Widget>[
+          if (_allCourseOptions.isNotEmpty) ...<Widget>[
             const Text(
               '关联课程',
               style: TextStyle(
@@ -153,21 +165,26 @@ class _NewTodoPageState extends State<NewTodoPage> {
             Wrap(
               spacing: 10,
               runSpacing: 10,
-              children: _courseOptions
-                  .map((String course) => _SelectPill(
-                        text: course,
-                        active: _selectedCourse == course,
-                        onTap: () async {
-                          if (course == '更多') {
-                            await _inputCustomCourse();
-                            return;
-                          }
-                          setState(() {
-                            _selectedCourse = course;
-                          });
-                        },
-                      ))
-                  .toList(growable: false),
+              children: <Widget>[
+                ..._buildVisibleCourseOptions().map(
+                  (CourseSelectorOption option) => _CourseSelectPill(
+                    text: option.name,
+                    color: option.themeColor,
+                    active: _selectedCourse == option.name,
+                    onTap: () {
+                      setState(() {
+                        _selectedCourse = option.name;
+                      });
+                    },
+                  ),
+                ),
+                if (_allCourseOptions.length > 5)
+                  _SelectPill(
+                    text: '更多',
+                    active: false,
+                    onTap: _openCourseSelectorModal,
+                  ),
+              ],
             ),
             const SizedBox(height: 20),
           ],
@@ -289,8 +306,8 @@ class _NewTodoPageState extends State<NewTodoPage> {
             onPressed: _submitting ? null : _submit,
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(52),
-              backgroundColor: const Color(0xFFF7CC57),
-              foregroundColor: AppTokens.textMain,
+              backgroundColor: AppTokens.duckYellow,
+              foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(26),
               ),
@@ -414,40 +431,198 @@ class _NewTodoPageState extends State<NewTodoPage> {
     }
   }
 
-  Future<void> _inputCustomCourse() async {
-    // “更多”入口允许用户补录课程，避免关联课程被固定选项限制。
-    final TextEditingController controller = TextEditingController();
-    final String? course = await showDialog<String>(
+  List<CourseSelectorOption> _buildVisibleCourseOptions() {
+    final List<CourseSelectorOption> visible = _allCourseOptions.take(5).toList(growable: true);
+    final String? selected = _selectedCourse;
+    if (selected == null || visible.any((CourseSelectorOption item) => item.name == selected)) {
+      return visible;
+    }
+
+    CourseSelectorOption? selectedOption;
+    for (final CourseSelectorOption option in _allCourseOptions) {
+      if (option.name == selected) {
+        selectedOption = option;
+        break;
+      }
+    }
+
+    if (selectedOption == null) {
+      return visible;
+    }
+
+    if (visible.isEmpty) {
+      visible.add(selectedOption);
+      return visible;
+    }
+    visible[visible.length - 1] = selectedOption;
+    return visible;
+  }
+
+  Future<void> _openCourseSelectorModal() async {
+    String keyword = '';
+
+    final CourseSelectorOption? picked = await showDialog<CourseSelectorOption>(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('输入课程名称'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            decoration: const InputDecoration(hintText: '例如：专业英语'),
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('取消'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-              child: const Text('确认'),
-            ),
-          ],
+      barrierColor: const Color(0x66000000),
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            final List<CourseSelectorOption> filtered = _allCourseOptions
+                .where((CourseSelectorOption option) => option.name.contains(keyword))
+                .toList(growable: false);
+
+            return Dialog(
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: 336,
+                  maxHeight: MediaQuery.of(context).size.height * 0.78,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Row(
+                        children: <Widget>[
+                          IconButton(
+                            onPressed: () => Navigator.of(dialogContext).pop(),
+                            icon: const Icon(Icons.close_rounded, color: AppTokens.textMain),
+                          ),
+                          const Expanded(
+                            child: Text(
+                              '选择关联课程',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: AppTokens.textMain,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 48),
+                        ],
+                      ),
+                      Container(
+                        height: 40,
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3F1EC),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: <Widget>[
+                            const Icon(Icons.search, size: 18, color: AppTokens.textMuted),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                textAlignVertical: TextAlignVertical.center,
+                                onChanged: (String value) {
+                                  setModalState(() {
+                                    keyword = value.trim();
+                                  });
+                                },
+                                decoration: const InputDecoration(
+                                  isCollapsed: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  hintText: '搜索课程',
+                                  border: InputBorder.none,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      if (filtered.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 20),
+                          child: Text(
+                            '未找到匹配课程',
+                            style: TextStyle(color: AppTokens.textMuted),
+                          ),
+                        )
+                      else
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 300),
+                          child: ListView.separated(
+                            shrinkWrap: true,
+                            itemCount: filtered.length,
+                            itemBuilder: (BuildContext context, int index) {
+                              final CourseSelectorOption option = filtered[index];
+                              final bool selected = _selectedCourse == option.name;
+                              return Material(
+                                color: selected ? const Color(0xFFFFF2C9) : Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(14),
+                                  onTap: () => Navigator.of(dialogContext).pop(option),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                    child: Row(
+                                      children: <Widget>[
+                                        Container(
+                                          width: 10,
+                                          height: 10,
+                                          decoration: BoxDecoration(
+                                            color: option.themeColor,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            option.name,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppTokens.textMain,
+                                            ),
+                                          ),
+                                        ),
+                                        if (selected)
+                                          const Icon(Icons.check_circle, color: AppTokens.duckYellow),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                            separatorBuilder: (_, __) => const SizedBox(height: 6),
+                          ),
+                        ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: FilledButton(
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppTokens.duckYellow,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                          ),
+                          child: const Text('关闭'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         );
       },
     );
-    controller.dispose();
 
-    if (course == null || course.isEmpty) {
+    if (picked == null) {
       return;
     }
 
     setState(() {
-      _selectedCourse = course;
+      _selectedCourse = picked.name;
     });
   }
 
@@ -470,6 +645,7 @@ class _NewTodoPageState extends State<NewTodoPage> {
       await _repository.addTodo(
         title: title,
         taskType: _taskType,
+        tableId: widget.activeTableId,
         courseName: _selectedCourse,
         dueAt: _dueAt,
       );
@@ -524,6 +700,55 @@ class _SelectPill extends StatelessWidget {
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: active ? AppTokens.textMain : const Color(0xFF7F7A74),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CourseSelectPill extends StatelessWidget {
+  const _CourseSelectPill({
+    required this.text,
+    required this.color,
+    required this.active,
+    required this.onTap,
+  });
+
+  final String text;
+  final Color color;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color background = active ? color : color.withOpacity(0.18);
+    final Color textColor = active ? Colors.white : AppTokens.textMain;
+
+    return Material(
+      color: background,
+      borderRadius: BorderRadius.circular(17),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(17),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              if (active) ...<Widget>[
+                const Icon(Icons.check, size: 13, color: Colors.white),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                text,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: textColor,
                 ),
               ),
             ],

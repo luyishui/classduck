@@ -101,7 +101,7 @@ class _ProfilePageState extends State<ProfilePage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+                color: Colors.white,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -256,160 +256,186 @@ class _ProfilePageState extends State<ProfilePage> {
       barrierColor: const Color(0x66000000),
       child: StatefulBuilder(
         builder: (BuildContext context, StateSetter setModalState) {
+          final List<String> filteredMoods = _moodOptions
+              .where((String mood) => mood.contains(keyword))
+              .toList(growable: false);
+          final double moodListHeight = (filteredMoods.length * 64.0).clamp(64.0, 198.0).toDouble();
+
           return Material(
             color: Colors.transparent,
-            child: Container(
-              width: 336,
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-              decoration: BoxDecoration(
-                color: AppTokens.pageBackground,
-                borderRadius: BorderRadius.circular(32),
-                boxShadow: const <BoxShadow>[
-                  BoxShadow(
-                    color: Color(0x2B000000),
-                    blurRadius: 52,
-                    offset: Offset(0, 22),
-                  ),
-                ],
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: 336,
+                maxHeight: MediaQuery.of(context).size.height * 0.78,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Row(
+              child: Container(
+                width: 336,
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                decoration: BoxDecoration(
+                  color: AppTokens.pageBackground,
+                  borderRadius: BorderRadius.circular(32),
+                  boxShadow: const <BoxShadow>[
+                    BoxShadow(
+                      color: Color(0x2B000000),
+                      blurRadius: 52,
+                      offset: Offset(0, 22),
+                    ),
+                  ],
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
-                      IconButton(
-                        onPressed: () {
-                          setState(() {
-                            _todayMoodLabel = pending;
-                          });
-                          Navigator.of(context).pop();
-                        },
-                        icon: const Icon(Icons.close_rounded, color: Color(0xFF8F8A84)),
-                      ),
-                      const Expanded(
-                        child: Text(
-                          '今日状态',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: AppTokens.textMain,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 48),
-                    ],
-                  ),
-                  Container(
-                    height: 40,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF3F1EC),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: TextField(
-                      onChanged: (String value) {
-                        setModalState(() {
-                          keyword = value.trim();
-                        });
-                      },
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        hintText: '搜索心情...',
-                        icon: Icon(Icons.search, color: AppTokens.textMuted, size: 18),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 198,
-                    child: ListView(
-                      children: _moodOptions
-                          .where((String mood) => mood.contains(keyword))
-                          .map(
-                            (String mood) => Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: _MoodOptionTile(
-                                label: mood,
-                                active: pending == mood,
-                                onTap: () {
-                                  setModalState(() {
-                                    pending = mood;
-                                  });
-                                },
-                              ),
-                            ),
-                          )
-                          .toList(growable: false),
-                    ),
-                  ),
-                  if (creating)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Row(
+                      Row(
                         children: <Widget>[
-                          Expanded(
-                            child: Container(
-                              height: 50,
-                              padding: const EdgeInsets.symmetric(horizontal: 14),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFFF6DD),
-                                borderRadius: BorderRadius.circular(18),
-                              ),
-                              child: TextField(
-                                onChanged: (String value) {
-                                  custom = value.trim();
-                                },
-                                decoration: const InputDecoration(
-                                  border: InputBorder.none,
-                                  hintText: '自定义名称',
-                                ),
-                              ),
-                            ),
-                          ),
                           IconButton(
                             onPressed: () {
-                              if (custom.isEmpty || _moodOptions.contains(custom)) {
-                                return;
-                              }
                               setState(() {
-                                _moodOptions.add(custom);
-                                _todayMoodLabel = custom;
+                                _todayMoodLabel = pending;
                               });
                               Navigator.of(context).pop();
                             },
-                            icon: const Icon(Icons.check_circle, color: AppTokens.duckYellow),
+                            icon: const Icon(Icons.close_rounded, color: Color(0xFF8F8A84)),
                           ),
-                          IconButton(
-                            onPressed: () {
-                              setModalState(() {
-                                creating = false;
-                              });
-                            },
-                            icon: const Icon(Icons.cancel, color: AppTokens.textMuted),
+                          const Expanded(
+                            child: Text(
+                              '今日状态',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: AppTokens.textMain,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
                           ),
+                          const SizedBox(width: 48),
                         ],
                       ),
-                    ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: FilledButton(
-                      onPressed: () {
-                        setModalState(() {
-                          creating = true;
-                        });
-                      },
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppTokens.duckYellow,
-                        foregroundColor: AppTokens.textMain,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                      Container(
+                        height: 40,
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3F1EC),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: <Widget>[
+                            const Icon(Icons.search, color: AppTokens.textMuted, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                textAlignVertical: TextAlignVertical.center,
+                                onChanged: (String value) {
+                                  setModalState(() {
+                                    keyword = value.trim();
+                                  });
+                                },
+                                decoration: const InputDecoration(
+                                  isCollapsed: true,
+                                  contentPadding: EdgeInsets.zero,
+                                  border: InputBorder.none,
+                                  hintText: '搜索心情...',
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      child: const Text('新建心情'),
-                    ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        height: moodListHeight,
+                        child: ListView(
+                          shrinkWrap: true,
+                          physics: filteredMoods.length > 3
+                              ? const BouncingScrollPhysics()
+                              : const NeverScrollableScrollPhysics(),
+                          children: filteredMoods
+                              .map(
+                                (String mood) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: _MoodOptionTile(
+                                    label: mood,
+                                    active: pending == mood,
+                                    onTap: () {
+                                      setModalState(() {
+                                        pending = mood;
+                                      });
+                                    },
+                                  ),
+                                ),
+                              )
+                              .toList(growable: false),
+                        ),
+                      ),
+                      if (creating)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Row(
+                            children: <Widget>[
+                              Expanded(
+                                child: Container(
+                                  height: 50,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFF6DD),
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                  child: TextField(
+                                    onChanged: (String value) {
+                                      custom = value.trim();
+                                    },
+                                    decoration: const InputDecoration(
+                                      border: InputBorder.none,
+                                      hintText: '自定义名称',
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () {
+                                  if (custom.isEmpty || _moodOptions.contains(custom)) {
+                                    return;
+                                  }
+                                  setState(() {
+                                    _moodOptions.add(custom);
+                                    _todayMoodLabel = custom;
+                                  });
+                                  Navigator.of(context).pop();
+                                },
+                                icon: const Icon(Icons.check_circle, color: AppTokens.duckYellow),
+                              ),
+                              IconButton(
+                                onPressed: () {
+                                  setModalState(() {
+                                    creating = false;
+                                  });
+                                },
+                                icon: const Icon(Icons.cancel, color: AppTokens.textMuted),
+                              ),
+                            ],
+                          ),
+                        ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: FilledButton(
+                          onPressed: () {
+                            setModalState(() {
+                              creating = true;
+                            });
+                          },
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppTokens.duckYellow,
+                            foregroundColor: AppTokens.textMain,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                          ),
+                          child: const Text('新建心情'),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           );
@@ -555,7 +581,7 @@ class _StatBlock extends StatelessWidget {
                 color: highlightColor,
               ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 1),
             Text(
               label,
               style: const TextStyle(fontSize: 11, color: Color(0xFFB2A592)),
@@ -649,161 +675,183 @@ class _ReadonlyGroupedModalState extends State<_ReadonlyGroupedModal> {
 
     return Material(
       color: Colors.transparent,
-      child: Container(
-        width: 336,
-        height: 476,
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-        decoration: BoxDecoration(
-          color: AppTokens.pageBackground,
-          borderRadius: BorderRadius.circular(28),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 336,
+          maxHeight: MediaQuery.of(context).size.height * 0.78,
         ),
-        child: Column(
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                IconButton(
-                  onPressed: () => Navigator.of(context).maybePop(),
-                  icon: const Icon(Icons.close_rounded, color: AppTokens.textMuted),
-                ),
-                Expanded(
-                  child: Text(
-                    widget.title,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: AppTokens.textMain,
+        child: Container(
+          width: 336,
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+          decoration: BoxDecoration(
+            color: AppTokens.pageBackground,
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  IconButton(
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    icon: const Icon(Icons.close_rounded, color: AppTokens.textMuted),
+                  ),
+                  Expanded(
+                    child: Text(
+                      widget.title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: AppTokens.textMain,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 48),
-              ],
-            ),
-            Container(
-              height: 40,
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF3F1EC),
-                borderRadius: BorderRadius.circular(20),
+                  const SizedBox(width: 48),
+                ],
               ),
-              child: TextField(
-                controller: _searchController,
-                onChanged: (String value) {
-                  setState(() {
-                    _keyword = value.trim();
-                  });
-                },
-                decoration: const InputDecoration(
-                  icon: Icon(Icons.search, size: 18, color: AppTokens.textMuted),
-                  hintText: '搜索',
-                  border: InputBorder.none,
+              Container(
+                height: 40,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3F1EC),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: filtered.isEmpty
-                  ? Center(
-                      child: Text(
-                        widget.emptyText,
-                        style: const TextStyle(color: AppTokens.textMuted),
+                child: Row(
+                  children: <Widget>[
+                    const Icon(Icons.search, size: 18, color: AppTokens.textMuted),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        textAlignVertical: TextAlignVertical.center,
+                        onChanged: (String value) {
+                          setState(() {
+                            _keyword = value.trim();
+                          });
+                        },
+                        decoration: const InputDecoration(
+                          isCollapsed: true,
+                          contentPadding: EdgeInsets.zero,
+                          hintText: '搜索',
+                          border: InputBorder.none,
+                        ),
                       ),
-                    )
-                  : ListView(
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 4),
+              if (filtered.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 28),
+                  child: Text(
+                    widget.emptyText,
+                    style: const TextStyle(color: AppTokens.textMuted),
+                  ),
+                )
+              else
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 292),
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
                       children: filtered.entries.map((MapEntry<String, List<String>> entry) {
-                        final bool opened = _expanded.contains(entry.key);
-                        final List<String> preview = opened
-                            ? entry.value
-                            : entry.value.take(3).toList(growable: false);
+                      final bool opened = _expanded.contains(entry.key);
+                      final List<String> preview = opened
+                          ? entry.value
+                          : entry.value.take(3).toList(growable: false);
 
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: Column(
-                            children: <Widget>[
-                              Material(
-                                color: opened ? const Color(0xFFFFF6DD) : Colors.white,
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Column(
+                          children: <Widget>[
+                            Material(
+                              color: opened ? const Color(0xFFFFF6DD) : Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              child: InkWell(
                                 borderRadius: BorderRadius.circular(16),
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(16),
-                                  onTap: () {
-                                    setState(() {
-                                      if (opened) {
-                                        _expanded.remove(entry.key);
-                                      } else {
-                                        _expanded.add(entry.key);
-                                      }
-                                    });
-                                  },
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                    child: Row(
-                                      children: <Widget>[
-                                        Expanded(
-                                          child: Text(
-                                            entry.key,
-                                            style: const TextStyle(
-                                              color: AppTokens.textMain,
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w700,
-                                            ),
+                                onTap: () {
+                                  setState(() {
+                                    if (opened) {
+                                      _expanded.remove(entry.key);
+                                    } else {
+                                      _expanded.add(entry.key);
+                                    }
+                                  });
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                  child: Row(
+                                    children: <Widget>[
+                                      Expanded(
+                                        child: Text(
+                                          entry.key,
+                                          style: const TextStyle(
+                                            color: AppTokens.textMain,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
                                           ),
                                         ),
-                                        Icon(
-                                          opened
-                                              ? Icons.keyboard_arrow_up_rounded
-                                              : Icons.keyboard_arrow_down_rounded,
-                                          color: AppTokens.textMuted,
-                                        ),
-                                      ],
-                                    ),
+                                      ),
+                                      Icon(
+                                        opened
+                                            ? Icons.keyboard_arrow_up_rounded
+                                            : Icons.keyboard_arrow_down_rounded,
+                                        color: AppTokens.textMuted,
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
-                              if (opened)
-                                Container(
-                                  width: double.infinity,
-                                  margin: const EdgeInsets.only(top: 6),
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  child: Column(
-                                    children: preview
-                                        .map(
-                                          (String item) => Padding(
-                                            padding: const EdgeInsets.only(bottom: 8),
-                                            child: Row(
-                                              children: <Widget>[
-                                                const Icon(
-                                                  Icons.circle,
-                                                  size: 6,
-                                                  color: AppTokens.textMuted,
-                                                ),
-                                                const SizedBox(width: 8),
-                                                Expanded(
-                                                  child: Text(
-                                                    item,
-                                                    style: const TextStyle(
-                                                      fontSize: 13,
-                                                      color: AppTokens.textMain,
-                                                    ),
+                            ),
+                            if (opened)
+                              Container(
+                                width: double.infinity,
+                                margin: const EdgeInsets.only(top: 6),
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Column(
+                                  children: preview
+                                      .map(
+                                        (String item) => Padding(
+                                          padding: const EdgeInsets.only(bottom: 8),
+                                          child: Row(
+                                            children: <Widget>[
+                                              const Icon(
+                                                Icons.circle,
+                                                size: 6,
+                                                color: AppTokens.textMuted,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: Text(
+                                                  item,
+                                                  style: const TextStyle(
+                                                    fontSize: 13,
+                                                    color: AppTokens.textMain,
                                                   ),
                                                 ),
-                                              ],
-                                            ),
+                                              ),
+                                            ],
                                           ),
-                                        )
-                                        .toList(growable: false),
-                                  ),
+                                        ),
+                                      )
+                                      .toList(growable: false),
                                 ),
-                            ],
-                          ),
-                        );
+                              ),
+                          ],
+                        ),
+                      );
                       }).toList(growable: false),
                     ),
-            ),
-          ],
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

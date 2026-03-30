@@ -3,7 +3,7 @@ import 'package:sqflite/sqflite.dart';
 
 class DbHelper {
   static const String databaseName = 'classduck.db';
-  static const int databaseVersion = 2;
+  static const int databaseVersion = 3;
 
   static const String tableCourseTable = 'course_table';
   static const String tableCourse = 'course';
@@ -50,6 +50,7 @@ CREATE TABLE todo_item (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   title TEXT NOT NULL,
   task_type TEXT NOT NULL,
+  table_id INTEGER,
   course_name TEXT,
   due_at TEXT NOT NULL,
   is_completed INTEGER NOT NULL,
@@ -76,6 +77,23 @@ CREATE TABLE todo_item (
       onUpgrade: (Database db, int oldVersion, int newVersion) async {
         if (oldVersion < 2) {
           await db.execute(createTodoSql);
+        }
+        if (oldVersion < 3) {
+          await db.execute('ALTER TABLE $tableTodo ADD COLUMN table_id INTEGER');
+          final List<Map<String, Object?>> tables = await db.query(
+            tableCourseTable,
+            columns: const <String>['id'],
+            orderBy: 'id DESC',
+            limit: 1,
+          );
+          final int? fallbackTableId = tables.isNotEmpty ? tables.first['id'] as int? : null;
+          if (fallbackTableId != null) {
+            await db.update(
+              tableTodo,
+              <String, Object?>{'table_id': fallbackTableId},
+              where: 'table_id IS NULL',
+            );
+          }
         }
       },
     );

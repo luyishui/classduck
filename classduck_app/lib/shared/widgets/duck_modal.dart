@@ -10,17 +10,20 @@ class DuckModal {
     required Widget child,
     Color barrierColor = const Color(0x8A000000),
     double blurSigma = 6,
+    bool barrierDismissible = true,
   }) {
     return showGeneralDialog<T>(
       context: context,
       barrierLabel: 'duck-modal',
-      barrierDismissible: true,
+      barrierDismissible: barrierDismissible,
       barrierColor: barrierColor,
       transitionDuration: const Duration(milliseconds: 180),
       pageBuilder: (dialogContext, animation, secondaryAnimation) {
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onDoubleTap: () => Navigator.of(context).maybePop(),
+          onDoubleTap: barrierDismissible
+              ? () => Navigator.of(context).maybePop()
+              : null,
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
             child: Center(

@@ -8,18 +8,14 @@ class ManualMoreColorsPage extends StatelessWidget {
   final String? initialColor;
 
   static const List<String> palette = <String>[
-    '#FFE6EA',
-    '#FFD8B8',
-    '#FFF4CC',
-    '#E5F7EA',
-    '#CDEFE9',
-    '#E5F1FF',
-    '#D3E4FF',
-    '#F1E7FF',
-    '#EFD9FF',
-    '#F5EDE2',
-    '#FFDDE5',
-    '#D8F6D9',
+    '#D45E6A',
+    '#CBA42F',
+    '#4A88D2',
+    '#B6C223',
+    '#896ED8',
+    '#2AA4A2',
+    '#D68152',
+    '#A19586',
   ];
 
   @override
