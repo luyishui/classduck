@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:lpinyin/lpinyin.dart';
 
 import '../../../shared/theme/app_tokens.dart';
+import '../../../shared/theme/app_motion.dart';
+import '../../../shared/widgets/duck_pressable.dart';
+import '../../../shared/navigation/duck_page_route.dart';
 import '../data/school_config_repository.dart';
 import '../domain/school_config.dart';
 import 'import_execution_page.dart';
@@ -94,43 +97,67 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
     return Scaffold(
       backgroundColor: AppTokens.pageBackground,
       appBar: AppBar(
+        backgroundColor: AppTokens.pageBackground,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          color: AppTokens.textMain,
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: _searchActive
-            ? Container(
-                height: 38,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(19),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (String value) {
-                    setState(() {
-                      _keyword = value.trim();
-                    });
-                  },
-                  decoration: const InputDecoration(
-                    hintText: '搜索学校',
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        title: AnimatedSwitcher(
+          duration: AppMotion.quick,
+          child: _searchActive
+              ? Container(
+                  key: const ValueKey<String>('search'),
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(AppTokens.radius20),
+                    boxShadow: <BoxShadow>[
+                      BoxShadow(
+                        color: Colors.black.withAlpha(10),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    autofocus: true,
+                    onChanged: (String value) {
+                      setState(() {
+                        _keyword = value.trim();
+                      });
+                    },
+                    style: const TextStyle(fontSize: 15, color: AppTokens.textMain),
+                    decoration: InputDecoration(
+                      hintText: '搜索学校名称…',
+                      hintStyle: TextStyle(color: AppTokens.textMuted.withAlpha(160)),
+                      border: InputBorder.none,
+                      prefixIcon: Icon(Icons.search_rounded, size: 20, color: AppTokens.textMuted.withAlpha(160)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    ),
+                  ),
+                )
+              : const Text(
+                  key: ValueKey<String>('title'),
+                  '选择学校',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: AppTokens.textMain,
                   ),
                 ),
-              )
-            : const Text(
-                '选择学校',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: AppTokens.textMain,
-                ),
-              ),
+        ),
         actions: <Widget>[
           IconButton(
-            icon: Icon(_searchActive ? Icons.close : Icons.search),
+            icon: Icon(
+              _searchActive ? Icons.close_rounded : Icons.search_rounded,
+              size: 22,
+            ),
+            color: AppTokens.textMain,
             onPressed: () {
               setState(() {
                 _searchActive = !_searchActive;
@@ -146,7 +173,7 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
       body: Column(
         children: <Widget>[
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: GestureDetector(
               onHorizontalDragEnd: (DragEndDetails details) {
                 // 交互要求：分栏支持左右滑动切换，不仅限于点击。
@@ -163,11 +190,18 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
                 });
               },
               child: Container(
-                height: 40,
+                height: 44,
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(22),
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: Colors.black.withAlpha(8),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: <Widget>[
@@ -192,18 +226,18 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
             ),
           ),
           const Padding(
-            padding: EdgeInsets.fromLTRB(20, 2, 20, 8),
+            padding: EdgeInsets.fromLTRB(20, 6, 20, 8),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                '找不到学校？试试搜索或使用通用教务',
+                '💡 找不到学校？试试搜索或使用「通用教务」',
                 style: TextStyle(fontSize: 12, color: AppTokens.textMuted),
               ),
             ),
           ),
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator(color: AppTokens.duckYellow, strokeWidth: 3))
                 : _error != null
                     ? _buildError()
                     : filtered.isEmpty
@@ -269,9 +303,31 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Text('加载失败：$_error'),
-          const SizedBox(height: 8),
-          OutlinedButton(onPressed: _load, child: const Text('重试')),
+          const Text('😢', style: TextStyle(fontSize: 48)),
+          const SizedBox(height: 12),
+          Text(
+            '加载失败',
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppTokens.textMain),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '$_error',
+            style: const TextStyle(fontSize: 13, color: AppTokens.textMuted),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          DuckPressable(
+            borderRadius: BorderRadius.circular(AppTokens.radius20),
+            onTap: _load,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppTokens.duckYellow,
+                borderRadius: BorderRadius.circular(AppTokens.radius20),
+              ),
+              child: const Text('重试', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+            ),
+          ),
         ],
       ),
     );
@@ -283,14 +339,32 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
     grouped.forEach((String letter, List<SchoolConfig> schools) {
       widgets.add(
         Padding(
-          padding: const EdgeInsets.only(top: 10, bottom: 4),
-          child: Text(
-            letter,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: AppTokens.textMuted,
-            ),
+          padding: const EdgeInsets.only(top: 12, bottom: 6),
+          child: Row(
+            children: <Widget>[
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: AppTokens.duckYellowSoft,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    letter,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppTokens.duckYellow,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Container(height: 1, color: AppTokens.duckYellowSoft),
+              ),
+            ],
           ),
         ),
       );
@@ -299,32 +373,49 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
         widgets.add(
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: Material(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: () => _openExecutionPage(config),
+            child: DuckPressable(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => _openExecutionPage(config),
+              child: GestureDetector(
                 onLongPress: () => _showConfigPreview(config),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: <BoxShadow>[
+                      BoxShadow(
+                        color: Colors.black.withAlpha(8),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
                   child: Row(
                     children: <Widget>[
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(
-                              config.title,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: AppTokens.textMain,
-                              ),
-                            ),
-                          ],
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: AppTokens.duckYellowSoft,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Center(
+                          child: Text('\ud83c\udfeb', style: TextStyle(fontSize: 18)),
                         ),
                       ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          config.title,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppTokens.textMain,
+                          ),
+                        ),
+                      ),
+                      Icon(Icons.chevron_right_rounded, size: 20, color: AppTokens.textMuted.withAlpha(120)),
                     ],
                   ),
                 ),
@@ -492,7 +583,7 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
     }
 
     final bool? imported = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
+      DuckPageRoute<bool>(
         builder: (BuildContext context) => ImportExecutionPage(config: config),
       ),
     );
@@ -506,9 +597,26 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
     await showDialog<void>(
       context: context,
       builder: (BuildContext context) {
-        return const AlertDialog(
-          title: Text('导入帮助'),
-          content: Text('1. 先选择学校\n2. 进入教务系统登录\n3. 进入课表页后执行导入'),
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTokens.radius24)),
+          backgroundColor: Colors.white,
+          title: const Row(
+            children: <Widget>[
+              Text('📖', style: TextStyle(fontSize: 22)),
+              SizedBox(width: 8),
+              Text('导入帮助', style: TextStyle(fontWeight: FontWeight.w700, color: AppTokens.textMain)),
+            ],
+          ),
+          content: const Text(
+            '1. 先选择你的学校\n2. 进入教务系统登录\n3. 进入课表页后点击导入',
+            style: TextStyle(fontSize: 14, color: AppTokens.textMain, height: 1.6),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('我知道啦', style: TextStyle(color: AppTokens.duckYellow, fontWeight: FontWeight.w600)),
+            ),
+          ],
         );
       },
     );
@@ -532,44 +640,53 @@ class _LetterBar extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    const double itemExtent = 22;
+    const double itemExtent = 20;
 
     void selectByDy(double dy) {
       final int index = (dy ~/ itemExtent).clamp(0, letters.length - 1).toInt();
       onTapLetter(letters[index]);
     }
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onVerticalDragStart: (DragStartDetails details) => selectByDy(details.localPosition.dy),
-      onVerticalDragUpdate: (DragUpdateDetails details) => selectByDy(details.localPosition.dy),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: letters.map((String letter) {
-          final bool active = letter == activeLetter;
-          return GestureDetector(
-            onTap: () => onTapLetter(letter),
-            child: Container(
-              width: 24,
-              height: itemExtent,
-              margin: const EdgeInsets.symmetric(vertical: 1),
-              decoration: BoxDecoration(
-                color: active ? AppTokens.duckYellow : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Text(
-                  letter,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: active ? Colors.white : AppTokens.textMuted,
-                    fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(200),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onVerticalDragStart: (DragStartDetails details) => selectByDy(details.localPosition.dy - 4),
+        onVerticalDragUpdate: (DragUpdateDetails details) => selectByDy(details.localPosition.dy - 4),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: letters.map((String letter) {
+            final bool active = letter == activeLetter;
+            return GestureDetector(
+              onTap: () => onTapLetter(letter),
+              child: AnimatedContainer(
+                duration: AppMotion.quick,
+                width: 22,
+                height: itemExtent,
+                margin: const EdgeInsets.symmetric(vertical: 0.5),
+                decoration: BoxDecoration(
+                  color: active ? AppTokens.duckYellow : Colors.transparent,
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                child: Center(
+                  child: Text(
+                    letter,
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: active ? Colors.white : AppTokens.textMuted,
+                      fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
-            ),
-          );
-        }).toList(growable: false),
+            );
+          }).toList(growable: false),
+        ),
       ),
     );
   }
@@ -583,15 +700,22 @@ class _ToolButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
+    return DuckPressable(
       borderRadius: BorderRadius.circular(26),
+      onTap: onTap,
       child: Container(
         width: 52,
         height: 52,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppTokens.duckYellow,
           shape: BoxShape.circle,
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: AppTokens.duckYellow.withAlpha(60),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Icon(icon, size: 24, color: Colors.white),
       ),
@@ -612,24 +736,35 @@ class _SchoolLevelTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: active ? AppTokens.duckYellow : Colors.transparent,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: SizedBox(
-          width: double.infinity,
-          height: 32,
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: active ? FontWeight.w700 : FontWeight.w600,
-                color: active ? AppTokens.textMain : AppTokens.textMuted,
-              ),
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: AppMotion.quick,
+        curve: AppMotion.standard,
+        width: double.infinity,
+        height: 36,
+        decoration: BoxDecoration(
+          color: active ? AppTokens.duckYellow : Colors.transparent,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: active
+              ? <BoxShadow>[
+                  BoxShadow(
+                    color: AppTokens.duckYellow.withAlpha(40),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Center(
+          child: AnimatedDefaultTextStyle(
+            duration: AppMotion.quick,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+              color: active ? Colors.white : AppTokens.textMuted,
             ),
+            child: Text(label),
           ),
         ),
       ),

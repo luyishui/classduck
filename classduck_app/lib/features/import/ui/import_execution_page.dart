@@ -7,6 +7,8 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../schedule/data/schedule_repository.dart';
 import '../../../shared/theme/app_tokens.dart';
+import '../../../shared/theme/app_motion.dart';
+import '../../../shared/widgets/duck_pressable.dart';
 import '../../../shared/navigation/duck_page_route.dart';
 import '../application/import_engine.dart';
 import '../data/import_api_service.dart';
@@ -89,29 +91,55 @@ class ImportWebFallbackPanel extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(Icons.web_asset_off, size: 64, color: Colors.grey.shade400),
-            const SizedBox(height: 16),
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppTokens.duckYellowSoft,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Center(
+                child: Text('🌐', style: TextStyle(fontSize: 40)),
+              ),
+            ),
+            const SizedBox(height: 20),
             const Text(
               'Web 端不支持内嵌教务网页',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTokens.textMain),
             ),
             const SizedBox(height: 12),
             Text(
-              '课表导入需要在 WebView 中登录教务系统并抓取页面数据，\n'
-              '该功能仅在 Windows / Android / iOS 客户端可用。\n\n'
-              '你可以点击下方按钮在浏览器新标签页中打开教务网站。',
+              '课表导入需要在 WebView 中登录教务系统\n'
+              '并抓取页面数据，仅支持客户端使用。\n\n'
+              '你可以点击下方按钮在浏览器中打开教务网站。',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade600, height: 1.5),
+              style: const TextStyle(color: AppTokens.textMuted, fontSize: 14, height: 1.6),
             ),
             const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: onOpen,
-              icon: const Icon(Icons.open_in_new),
-              label: const Text('在浏览器中打开教务网站'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTokens.duckYellow,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            DuckPressable(
+              borderRadius: BorderRadius.circular(AppTokens.radius24),
+              onTap: onOpen,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+                decoration: BoxDecoration(
+                  color: AppTokens.duckYellow,
+                  borderRadius: BorderRadius.circular(AppTokens.radius24),
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: AppTokens.duckYellow.withAlpha(50),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Icon(Icons.open_in_new_rounded, size: 18, color: Colors.white),
+                    SizedBox(width: 8),
+                    Text('在浏览器中打开', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
+                  ],
+                ),
               ),
             ),
           ],
@@ -127,16 +155,27 @@ class ImportConflictDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('导入冲突处理'),
-      content: const Text('检测到当前已有课表，选择导入方式：'),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTokens.radius24)),
+      backgroundColor: Colors.white,
+      title: const Row(
+        children: <Widget>[
+          Text('⚠️', style: TextStyle(fontSize: 22)),
+          SizedBox(width: 8),
+          Text('导入冲突处理', style: TextStyle(fontWeight: FontWeight.w700, color: AppTokens.textMain)),
+        ],
+      ),
+      content: const Text(
+        '检测到当前已有课表，请选择导入方式：',
+        style: TextStyle(fontSize: 14, color: AppTokens.textMain),
+      ),
       actions: <Widget>[
         TextButton(
           onPressed: () => Navigator.of(context).pop(ImportConflictMode.createNew),
-          child: const Text('新建课表导入'),
+          child: const Text('新建课表导入', style: TextStyle(color: AppTokens.duckYellow, fontWeight: FontWeight.w600)),
         ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(ImportConflictMode.overwriteExisting),
-          child: const Text('覆盖当前课表'),
+          child: Text('覆盖当前课表', style: TextStyle(color: Colors.red.shade400, fontWeight: FontWeight.w600)),
         ),
       ],
     );
@@ -233,7 +272,11 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
             _buildUrlBar(context),
             // ── 加载进度条 ──
             if (_webViewLoading)
-              const LinearProgressIndicator(minHeight: 2),
+              LinearProgressIndicator(
+                minHeight: 2.5,
+                backgroundColor: AppTokens.duckYellowSoft,
+                valueColor: const AlwaysStoppedAnimation<Color>(AppTokens.duckYellow),
+              ),
             // ── WebView 主体（原生端）/ 替代提示（Web 端）──
             Expanded(
               child: Stack(
@@ -278,59 +321,71 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
   /// 顶部 URL 栏：返回按钮 + 可编辑地址 + ✓ 确认导航
   Widget _buildUrlBar(BuildContext context) {
     return Container(
-      color: Colors.grey.shade100,
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppTokens.pageBackground,
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: Colors.black.withAlpha(8),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       child: Row(
         children: <Widget>[
           // 返回
           IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+            color: AppTokens.textMain,
             onPressed: () => Navigator.of(context).pop(),
           ),
           // URL 输入框
           Expanded(
             child: Container(
+              height: 42,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(AppTokens.radius20),
+                border: Border.all(color: AppTokens.duckYellowSoft, width: 1.5),
               ),
               child: Row(
                 children: <Widget>[
                   const SizedBox(width: 12),
+                  Icon(Icons.language_rounded, size: 16, color: AppTokens.textMuted.withAlpha(140)),
+                  const SizedBox(width: 8),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        Text(
-                          '在此输入教务网址',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey.shade500,
-                          ),
-                        ),
-                        TextField(
-                          controller: _urlController,
-                          style: const TextStyle(fontSize: 13),
-                          decoration: const InputDecoration(
-                            isDense: true,
-                            contentPadding: EdgeInsets.symmetric(vertical: 4),
-                            border: InputBorder.none,
-                          ),
-                          onSubmitted: _navigateToUrl,
-                        ),
-                      ],
+                    child: TextField(
+                      controller: _urlController,
+                      style: const TextStyle(fontSize: 13, color: AppTokens.textMain),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        hintText: '输入教务网址…',
+                        hintStyle: TextStyle(fontSize: 13, color: AppTokens.textMuted.withAlpha(140)),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                        border: InputBorder.none,
+                      ),
+                      onSubmitted: _navigateToUrl,
                     ),
                   ),
                 ],
               ),
             ),
           ),
+          const SizedBox(width: 4),
           // ✓ 确认按钮（导航到输入的 URL）
-          IconButton(
-            icon: const Icon(Icons.check),
-            onPressed: () => _navigateToUrl(_urlController.text),
+          DuckPressable(
+            borderRadius: BorderRadius.circular(AppTokens.radius20),
+            onTap: () => _navigateToUrl(_urlController.text),
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppTokens.duckYellow,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.arrow_forward_rounded, size: 18, color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -340,44 +395,38 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
   /// 底部工具栏：电脑模式 + 密码帮助
   Widget _buildBottomToolbar(BuildContext context) {
     return Container(
-      color: Colors.grey.shade50,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: Colors.black.withAlpha(8),
+            blurRadius: 6,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: <Widget>[
-          OutlinedButton(
-            onPressed: _openDoubaoImport,
-            child: const Text(
-              '豆包导入',
-              style: TextStyle(color: Colors.black87),
-            ),
+          _ToolbarPill(
+            icon: Icons.auto_awesome_rounded,
+            label: '豆包导入',
+            active: false,
+            onTap: _openDoubaoImport,
           ),
-          const SizedBox(width: 12),
-          OutlinedButton(
-            onPressed: _toggleDesktopMode,
-            style: OutlinedButton.styleFrom(
-              backgroundColor: _desktopMode
-                  ? AppTokens.duckYellow.withAlpha(40)
-                  : null,
-              side: BorderSide(
-                color: _desktopMode
-                    ? AppTokens.duckYellow
-                    : Colors.grey.shade400,
-              ),
-            ),
-            child: Text(
-              '电脑模式',
-              style: TextStyle(
-                color: _desktopMode ? AppTokens.duckYellow : Colors.black87,
-              ),
-            ),
+          const SizedBox(width: 10),
+          _ToolbarPill(
+            icon: Icons.desktop_windows_rounded,
+            label: '电脑模式',
+            active: _desktopMode,
+            onTap: _toggleDesktopMode,
           ),
-          const SizedBox(width: 12),
-          OutlinedButton(
-            onPressed: _showPasswordHelp,
-            child: const Text(
-              '密码一直错误？',
-              style: TextStyle(color: Colors.black87),
-            ),
+          const SizedBox(width: 10),
+          _ToolbarPill(
+            icon: Icons.help_outline_rounded,
+            label: '密码一直错误？',
+            active: false,
+            onTap: _showPasswordHelp,
           ),
         ],
       ),
@@ -391,9 +440,7 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
     final bool? imported = await Navigator.of(context).push<bool>(
       DuckPageRoute<bool>(
         builder: (BuildContext context) => DoubaoImportPage(
-          initialTableName: '$sourceLabel课表',
           sourceLabel: sourceLabel,
-          autoCopyPrompt: true,
         ),
       ),
     );
@@ -468,17 +515,26 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
     showDialog<void>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
-        title: const Text('密码一直错误？'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTokens.radius24)),
+        backgroundColor: Colors.white,
+        title: const Row(
+          children: <Widget>[
+            Text('🔑', style: TextStyle(fontSize: 22)),
+            SizedBox(width: 8),
+            Text('密码一直错误？', style: TextStyle(fontWeight: FontWeight.w700, color: AppTokens.textMain)),
+          ],
+        ),
         content: const Text(
-          '1. 确认是否使用了正确的教务系统账号密码\n'
-          '2. 部分学校初始密码为身份证后6位\n'
+          '1. 确认是否使用了正确的教务账号密码\n'
+          '2. 部分学校初始密码为身份证后 6 位\n'
           '3. 如忘记密码，请联系学校教务处重置\n'
           '4. 部分学校需要连接校园网才能访问',
+          style: TextStyle(fontSize: 14, color: AppTokens.textMain, height: 1.6),
         ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('我知道啦'),
+            child: const Text('我知道啦', style: TextStyle(color: AppTokens.duckYellow, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -490,40 +546,43 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
     showDialog<void>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
-        title: const Text('注意事项'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTokens.radius24)),
+        backgroundColor: Colors.white,
+        title: const Row(
+          children: <Widget>[
+            Text('📝', style: TextStyle(fontSize: 22)),
+            SizedBox(width: 8),
+            Text('操作指南', style: TextStyle(fontWeight: FontWeight.w700, color: AppTokens.textMain)),
+          ],
+        ),
         content: const Text.rich(
           TextSpan(
+            style: TextStyle(fontSize: 14, color: AppTokens.textMain, height: 1.7),
             children: <TextSpan>[
-              TextSpan(text: '1. 在上方输入教务网址，部分学校需要连接校园网。\n\n'),
+              TextSpan(text: '1. 在上方输入教务网址，部分学校需连接校园网。\n\n'),
               TextSpan(text: '2. 登录后点击到'),
               TextSpan(
-                text: '个人课表',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+                text: '「个人课表」',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFE85D5D)),
               ),
-              TextSpan(text: '的页面，注意选择自己需要导入的学期，'),
+              TextSpan(text: '的页面，注意选择需要导入的学期，'),
               TextSpan(
-                text: '一般首页的课表都是不可导入的！',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+                text: '首页课表通常不可导入！',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFE85D5D)),
               ),
-              TextSpan(text: ' 另外不会导入调课、'),
-              TextSpan(
-                text: '停课的信息',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
-              ),
-              TextSpan(text: '，请导入后自行修改！\n\n'),
-              TextSpan(text: '3. 点击右下角的按钮完成导入。\n\n'),
-              TextSpan(text: '4. 如果遇到网页错位等问题，可以尝试取消底栏的「电脑模式」或者调节字体缩放。'),
+              TextSpan(text: '\n\n3. 点击右下角下载按钮完成导入。\n\n'),
+              TextSpan(text: '4. 遇到网页错位，可尝试切换「电脑模式」。'),
             ],
           ),
         ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('如何正确选择教务？'),
+            child: Text('如何正确选择教务？', style: TextStyle(color: AppTokens.textMuted, fontSize: 13)),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('我知道啦'),
+            child: const Text('我知道啦', style: TextStyle(color: AppTokens.duckYellow, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -768,7 +827,7 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
 
 }
 
-/// 右下角圆形浮动按钮
+/// 右下角圆形浮动按钮（Macaron 风格）
 class _FloatingActionBtn extends StatelessWidget {
   const _FloatingActionBtn({
     required this.icon,
@@ -782,29 +841,82 @@ class _FloatingActionBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
+    return DuckPressable(
       borderRadius: BorderRadius.circular(26),
-      child: Container(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: AppMotion.quick,
         width: 52,
         height: 52,
         decoration: BoxDecoration(
           color: highlighted
               ? (onTap == null ? const Color(0xFFEDDFC0) : AppTokens.duckYellow)
-              : Colors.white.withAlpha(230),
+              : Colors.white,
           shape: BoxShape.circle,
           boxShadow: <BoxShadow>[
             BoxShadow(
-              color: Colors.black.withAlpha(30),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: highlighted
+                  ? AppTokens.duckYellow.withAlpha(50)
+                  : Colors.black.withAlpha(15),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Icon(
           icon,
           size: 24,
-          color: highlighted ? Colors.white : Colors.grey.shade700,
+          color: highlighted ? Colors.white : AppTokens.textMuted,
+        ),
+      ),
+    );
+  }
+}
+
+/// 底部工具栏药丸按钮
+class _ToolbarPill extends StatelessWidget {
+  const _ToolbarPill({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return DuckPressable(
+      borderRadius: BorderRadius.circular(AppTokens.radius20),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: AppMotion.quick,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? AppTokens.duckYellowSoft : AppTokens.pageBackground,
+          borderRadius: BorderRadius.circular(AppTokens.radius20),
+          border: Border.all(
+            color: active ? AppTokens.duckYellow : Colors.transparent,
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(icon, size: 16, color: active ? AppTokens.duckYellow : AppTokens.textMuted),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+                color: active ? AppTokens.duckYellow : AppTokens.textMain,
+              ),
+            ),
+          ],
         ),
       ),
     );

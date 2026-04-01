@@ -290,8 +290,15 @@ class _SchedulePageState extends State<SchedulePage> {
                             _AddMenuItem(
                               icon: Icons.auto_awesome_rounded,
                               iconColor: const Color(0xFFF6C86B),
-                              title: '大学课程导入',
+                              title: 'AI 导入',
                               onTap: () => _handleAddMenuAction('doubao'),
+                            ),
+                            const SizedBox(height: 10),
+                            _AddMenuItem(
+                              icon: Icons.cloud_sync_outlined,
+                              iconColor: const Color(0xFFF59EBC),
+                              title: '教务导入',
+                              onTap: () => _handleAddMenuAction('import'),
                             ),
                             const SizedBox(height: 10),
                             _AddMenuItem(
@@ -299,20 +306,6 @@ class _SchedulePageState extends State<SchedulePage> {
                               iconColor: const Color(0xFF93C5FD),
                               title: '手动添加',
                               onTap: () => _handleAddMenuAction('manual'),
-                            ),
-                            const SizedBox(height: 10),
-                            _AddMenuItem(
-                              icon: Icons.cloud_sync_outlined,
-                              iconColor: const Color(0xFFF59EBC),
-                              title: '教务添加',
-                              onTap: () => _handleAddMenuAction('import'),
-                            ),
-                            const SizedBox(height: 10),
-                            _AddMenuItem(
-                              icon: Icons.photo_camera_outlined,
-                              iconColor: const Color(0xFF86EFAC),
-                              title: '拍照添加',
-                              onTap: () => _handleAddMenuAction('camera'),
                             ),
                           ],
                         ),
@@ -382,8 +375,6 @@ class _SchedulePageState extends State<SchedulePage> {
       if (saved == true) {
         await _loadScheduleData();
       }
-    } else if (action == 'camera') {
-      await _handleCameraAdd();
     }
   }
 
