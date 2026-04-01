@@ -21,6 +21,7 @@ def test_list_schools_v1() -> None:
     payload = response.json()
     assert "data" in payload
     assert any(item["id"] == "xjtu" for item in payload["data"])
+    assert any(item["id"] == "sora" for item in payload["data"])
 
 
 def test_get_school_config() -> None:
@@ -37,3 +38,11 @@ def test_get_provider_script() -> None:
     payload = response.json()
     assert "script" in payload
     assert "fetch(" in payload["script"]
+
+
+def test_get_sora_provider_script() -> None:
+    response = client.get("/api/schools/sora/script?script_type=provider")
+    assert response.status_code == 200
+    payload = response.json()
+    assert "script" in payload
+    assert "window.flutter_inappwebview.callHandler" in payload["script"]

@@ -1,4 +1,7 @@
 import '../../../data/remote/http_json_client.dart';
+import 'package:flutter/services.dart' show rootBundle;
+
+import '../domain/school_config.dart';
 
 /// 对接 Python 导入后端 /api 系列接口的服务层。
 ///
@@ -28,6 +31,36 @@ class ImportApiService {
     final Map<String, dynamic> payload =
         await _client.getJsonMap('/api/schools/$schoolId/script?script_type=$type');
     return payload['script'] as String? ?? '';
+  }
+
+  /// 优先使用后端脚本接口，失败时回退到本地 local:// 脚本资源。
+  ///
+  /// local:// 映射规则：
+  /// - local://parsers/a.js -> assets/parsers/a.js
+  Future<String> getProviderScriptWithFallback(
+    SchoolConfig config, {
+    String type = 'provider',
+  }) async {
+    try {
+      final String remote = await getProviderScript(config.id, type: type);
+      if (remote.trim().isNotEmpty) {
+        return remote;
+      }
+    } catch (_) {
+      // 远端不可用时继续尝试 local:// 资源。
+    }
+
+    final String localUrl = config.extractScriptUrl.trim();
+    if (!localUrl.startsWith('local://')) {
+      return '';
+    }
+
+    final String assetPath = localUrl.replaceFirst('local://', 'assets/');
+    try {
+      return await rootBundle.loadString(assetPath);
+    } catch (_) {
+      return '';
+    }
   }
 
   /// 将 WebView 拿到的原始 JSON 发给后端校验并返回标准化结果。

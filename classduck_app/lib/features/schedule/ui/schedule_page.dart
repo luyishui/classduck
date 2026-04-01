@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../import/data/school_config_repository.dart';
 import '../../import/domain/school_config.dart';
+import '../../import/ui/doubao_import_page.dart';
 import '../../import/ui/import_school_list_page.dart';
 import '../../settings/data/appearance_state.dart';
 import '../../todo/data/todo_repository.dart';
@@ -16,8 +17,11 @@ import '../data/schedule_repository.dart';
 import '../domain/course.dart';
 import '../domain/course_table.dart';
 import 'manual_add_course_page.dart';
+import '../../../shared/navigation/duck_page_route.dart';
+import '../../../shared/theme/app_motion.dart';
 import '../../../shared/theme/app_tokens.dart';
 import '../../../shared/widgets/duck_modal.dart';
+import '../../../shared/widgets/duck_pressable.dart';
 
 class SchedulePage extends StatefulWidget {
   const SchedulePage({super.key});
@@ -76,8 +80,8 @@ class _SchedulePageState extends State<SchedulePage> {
     });
 
     try {
-      final List<SchoolConfig> configs =
-          await _configRepository.fetchSchoolConfigs();
+      final List<SchoolConfig> configs = await _configRepository
+          .fetchSchoolConfigs();
       setState(() {
         _schoolConfigCount = configs.length;
       });
@@ -144,179 +148,194 @@ class _SchedulePageState extends State<SchedulePage> {
     final DateTime now = DateTime.now();
     final _ScheduleConfig config = _activeConfig();
     final String dateText = DateFormat('yyyy年M月d日').format(now);
-    final List<DateTime> weekDates = _currentWeekDates(now, config.weekStartDay);
+    final List<DateTime> weekDates = _currentWeekDates(
+      now,
+      config.weekStartDay,
+    );
     final String weekText = _currentWeek <= 0 ? '未开学' : '第 $_currentWeek 周';
 
     return ValueListenableBuilder<AppearanceState>(
       valueListenable: AppearanceStore.state,
-      builder: (BuildContext context, AppearanceState appearance, Widget? child) {
-        return Container(
-          color: AppTokens.pageBackground,
-          child: SafeArea(
-            child: Stack(
-              children: <Widget>[
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(28, 28, 28, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      builder:
+          (BuildContext context, AppearanceState appearance, Widget? child) {
+            return Container(
+              color: AppTokens.pageBackground,
+              child: SafeArea(
+                child: Stack(
+                  children: <Widget>[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(28, 28, 28, 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: <Widget>[
-                          _TopActionButton(
-                            icon: Icons.menu,
-                            onTap: _openScheduleSidebar,
-                          ),
-                          Expanded(
-                            child: Column(
-                              children: <Widget>[
-                                Text(
-                                  weekText,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppTokens.textMain,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '$dateText ${_weekDayName(now.weekday)}',
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: AppTokens.textMuted,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: <Widget>[
+                              _TopActionButton(
+                                icon: Icons.menu,
+                                onTap: _openScheduleSidebar,
+                              ),
+                              Expanded(
+                                child: Column(
+                                  children: <Widget>[
+                                    Text(
+                                      weekText,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppTokens.textMain,
                                       ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '$dateText ${_weekDayName(now.weekday)}',
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: AppTokens.textMuted,
+                                          ),
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
+                              _TopActionButton(
+                                icon: Icons.share_outlined,
+                                onTap: () {
+                                  DuckModal.show<void>(
+                                    context: context,
+                                    child: const DuckModalFrame(
+                                      title: '分享上课鸭',
+                                      child: Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: AppTokens.space12,
+                                        ),
+                                        child: Text('分享 App 链路将在后续任务接入。'),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppTokens.space16),
+                          _WeekHeader(
+                            weekDates: weekDates,
+                            weekStartDay: config.weekStartDay,
+                          ),
+                          const SizedBox(height: AppTokens.space8),
+                          Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                image: appearance.backgroundBytes == null
+                                    ? null
+                                    : DecorationImage(
+                                        image: MemoryImage(
+                                          appearance.backgroundBytes!,
+                                        ),
+                                        fit: BoxFit.cover,
+                                      ),
+                              ),
+                              child: _buildScheduleGrid(),
                             ),
                           ),
-                          _TopActionButton(
-                            icon: Icons.share_outlined,
-                            onTap: () {
-                              DuckModal.show<void>(
-                                context: context,
-                                child: const DuckModalFrame(
-                                  title: '分享上课鸭',
-                                  child: Padding(
-                                    padding: EdgeInsets.symmetric(vertical: AppTokens.space12),
-                                    child: Text('分享 App 链路将在后续任务接入。'),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
+                          if (_loadingConfig ||
+                              _loadingSchedule ||
+                              _configError != null ||
+                              _scheduleError != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(
+                                _buildStatusLine(),
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(color: AppTokens.textMuted),
+                              ),
+                            ),
+                          if (!_loadingSchedule &&
+                              _courses.isEmpty &&
+                              _scheduleError == null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 10),
+                              child: Text(
+                                '当前还没有课程，点击右下角 + 开始导入或手动添加。',
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(color: AppTokens.textMuted),
+                              ),
+                            ),
                         ],
                       ),
-                      const SizedBox(height: AppTokens.space16),
-                      _WeekHeader(
-                        weekDates: weekDates,
-                        weekStartDay: config.weekStartDay,
-                      ),
-                      const SizedBox(height: AppTokens.space8),
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            image: appearance.backgroundBytes == null
-                                ? null
-                                : DecorationImage(
-                                    image: MemoryImage(appearance.backgroundBytes!),
-                                    fit: BoxFit.cover,
-                                  ),
-                          ),
-                          child: _buildScheduleGrid(),
+                    ),
+                    if (_addMenuOpen)
+                      Positioned.fill(
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _addMenuOpen = false;
+                            });
+                          },
+                          child: Container(color: const Color(0x33000000)),
                         ),
                       ),
-                      if (_loadingConfig ||
-                          _loadingSchedule ||
-                          _configError != null ||
-                          _scheduleError != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(
-                            _buildStatusLine(),
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: AppTokens.textMuted,
-                                ),
-                          ),
+                    if (_addMenuOpen)
+                      Positioned(
+                        right: AppTokens.space20,
+                        bottom: 176,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: <Widget>[
+                            _AddMenuItem(
+                              icon: Icons.auto_awesome_rounded,
+                              iconColor: const Color(0xFFF6C86B),
+                              title: '大学课程导入',
+                              onTap: () => _handleAddMenuAction('doubao'),
+                            ),
+                            const SizedBox(height: 10),
+                            _AddMenuItem(
+                              icon: Icons.edit_note_rounded,
+                              iconColor: const Color(0xFF93C5FD),
+                              title: '手动添加',
+                              onTap: () => _handleAddMenuAction('manual'),
+                            ),
+                            const SizedBox(height: 10),
+                            _AddMenuItem(
+                              icon: Icons.cloud_sync_outlined,
+                              iconColor: const Color(0xFFF59EBC),
+                              title: '教务添加',
+                              onTap: () => _handleAddMenuAction('import'),
+                            ),
+                            const SizedBox(height: 10),
+                            _AddMenuItem(
+                              icon: Icons.photo_camera_outlined,
+                              iconColor: const Color(0xFF86EFAC),
+                              title: '拍照添加',
+                              onTap: () => _handleAddMenuAction('camera'),
+                            ),
+                          ],
                         ),
-                      if (!_loadingSchedule && _courses.isEmpty && _scheduleError == null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 10),
-                          child: Text(
-                            '当前还没有课程，点击右下角 + 开始导入或手动添加。',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: AppTokens.textMuted,
-                                ),
-                          ),
+                      ),
+                    Positioned(
+                      right: AppTokens.space20,
+                      bottom: 104,
+                      child: FloatingActionButton(
+                        heroTag: 'schedule-add-fab',
+                        onPressed: _openAddMenu,
+                        backgroundColor: AppTokens.duckYellow,
+                        child: AnimatedRotation(
+                          turns: _addMenuOpen ? 0.125 : 0,
+                          duration: AppMotion.quick,
+                          child: const Icon(Icons.add, color: Colors.white),
                         ),
-                    ],
-                  ),
+                      ),
+                    ),
+                  ],
                 ),
-                if (_addMenuOpen)
-                  Positioned.fill(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _addMenuOpen = false;
-                        });
-                      },
-                      child: Container(color: const Color(0x33000000)),
-                    ),
-                  ),
-                if (_addMenuOpen)
-                  Positioned(
-                    right: AppTokens.space20,
-                    bottom: 176,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: <Widget>[
-                        _AddMenuItem(
-                          icon: Icons.edit_note_rounded,
-                          iconColor: const Color(0xFF93C5FD),
-                          title: '手动添加',
-                          onTap: () => _handleAddMenuAction('manual'),
-                        ),
-                        const SizedBox(height: 10),
-                        _AddMenuItem(
-                          icon: Icons.cloud_sync_outlined,
-                          iconColor: const Color(0xFFF59EBC),
-                          title: '教务添加',
-                          onTap: () => _handleAddMenuAction('import'),
-                        ),
-                        const SizedBox(height: 10),
-                        _AddMenuItem(
-                          icon: Icons.photo_camera_outlined,
-                          iconColor: const Color(0xFF86EFAC),
-                          title: '拍照添加',
-                          onTap: () => _handleAddMenuAction('camera'),
-                        ),
-                      ],
-                    ),
-                  ),
-                Positioned(
-                  right: AppTokens.space20,
-                  bottom: 104,
-                  child: FloatingActionButton(
-                    heroTag: 'schedule-add-fab',
-                    onPressed: _openAddMenu,
-                    backgroundColor: AppTokens.duckYellow,
-                    child: AnimatedRotation(
-                      turns: _addMenuOpen ? 0.125 : 0,
-                      duration: const Duration(milliseconds: 180),
-                      child: const Icon(
-                        Icons.add,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+              ),
+            );
+          },
     );
   }
 
@@ -336,9 +355,18 @@ class _SchedulePageState extends State<SchedulePage> {
     }
 
     // 统一路由分发：保证任一路径完成后都能刷新课表数据。
-    if (action == 'import') {
+    if (action == 'doubao') {
       final bool? imported = await Navigator.of(context).push<bool>(
-        MaterialPageRoute<bool>(
+        DuckPageRoute<bool>(
+          builder: (BuildContext context) => const DoubaoImportPage(),
+        ),
+      );
+      if (imported == true) {
+        await _loadScheduleData();
+      }
+    } else if (action == 'import') {
+      final bool? imported = await Navigator.of(context).push<bool>(
+        DuckPageRoute<bool>(
           builder: (BuildContext context) => const ImportSchoolListPage(),
         ),
       );
@@ -347,7 +375,7 @@ class _SchedulePageState extends State<SchedulePage> {
       }
     } else if (action == 'manual') {
       final bool? saved = await Navigator.of(context).push<bool>(
-        MaterialPageRoute<bool>(
+        DuckPageRoute<bool>(
           builder: (BuildContext context) => const ManualAddCoursePage(),
         ),
       );
@@ -362,7 +390,9 @@ class _SchedulePageState extends State<SchedulePage> {
   Future<void> _openScheduleSidebar() async {
     List<CourseTableEntity> tables = const <CourseTableEntity>[];
     try {
-      tables = await _scheduleRepository.getCourseTables().timeout(const Duration(seconds: 4));
+      tables = await _scheduleRepository.getCourseTables().timeout(
+        const Duration(seconds: 4),
+      );
     } catch (_) {
       tables = const <CourseTableEntity>[];
     }
@@ -373,7 +403,9 @@ class _SchedulePageState extends State<SchedulePage> {
     final TextEditingController tableNameController = TextEditingController();
     bool creatingTable = false;
 
-    Future<void> updateConfig(void Function(_ScheduleConfig config) updater) async {
+    Future<void> updateConfig(
+      void Function(_ScheduleConfig config) updater,
+    ) async {
       final int? tableId = _activeTableId;
       if (tableId == null) {
         return;
@@ -392,11 +424,14 @@ class _SchedulePageState extends State<SchedulePage> {
       if (trimmed.isEmpty || trimmed.length > 20) {
         return;
       }
-      final CourseTableEntity table = await _scheduleRepository.createCourseTable(
-        name: trimmed,
-        semesterStartMonday: DateFormat('yyyy-MM-dd').format(DateTime.now()),
-        classTimeList: const <Map<String, String>>[],
-      );
+      final CourseTableEntity table = await _scheduleRepository
+          .createCourseTable(
+            name: trimmed,
+            semesterStartMonday: DateFormat(
+              'yyyy-MM-dd',
+            ).format(DateTime.now()),
+            classTimeList: const <Map<String, String>>[],
+          );
       _tableConfigs[table.id!] = _ScheduleConfig.defaults();
       await _scheduleRepository.updateCourseTableConfig(
         tableId: table.id!,
@@ -416,7 +451,9 @@ class _SchedulePageState extends State<SchedulePage> {
       if (index < 0 || index >= config.sections.length) {
         return;
       }
-      final String source = start ? config.sections[index].start : config.sections[index].end;
+      final String source = start
+          ? config.sections[index].start
+          : config.sections[index].end;
       final String? pickedValue = await _openTimeEditDialog(context, source);
       if (pickedValue == null) {
         return;
@@ -429,9 +466,9 @@ class _SchedulePageState extends State<SchedulePage> {
             ? _formatMinute(_toMinute(value) + config.classDuration)
             : value;
         if (_toMinute(nextStart) >= _toMinute(nextEnd)) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('上课时间必须早于下课时间')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('上课时间必须早于下课时间')));
           return;
         }
 
@@ -440,16 +477,23 @@ class _SchedulePageState extends State<SchedulePage> {
         // 2) 改结束时间 -> 保留本节开始，结束按用户输入
         // 3) 后续节次按“上一节结束 + 课间时长 + 课时时长”整体顺延
         if (start) {
-          config.sections[index] = current.copyWith(start: nextStart, end: nextEnd);
+          config.sections[index] = current.copyWith(
+            start: nextStart,
+            end: nextEnd,
+          );
         } else {
           config.sections[index] = current.copyWith(end: nextEnd);
         }
 
-        int cursor = _toMinute(config.sections[index].end) + config.breakDuration;
+        int cursor =
+            _toMinute(config.sections[index].end) + config.breakDuration;
         for (int i = index + 1; i < config.sections.length; i++) {
           final String autoStart = _formatMinute(cursor);
           final String autoEnd = _formatMinute(cursor + config.classDuration);
-          config.sections[i] = config.sections[i].copyWith(start: autoStart, end: autoEnd);
+          config.sections[i] = config.sections[i].copyWith(
+            start: autoStart,
+            end: autoEnd,
+          );
           cursor = _toMinute(autoEnd) + config.breakDuration;
         }
       });
@@ -461,565 +505,793 @@ class _SchedulePageState extends State<SchedulePage> {
       barrierLabel: 'schedule-sidebar',
       barrierColor: Colors.transparent,
       transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (
-        BuildContext dialogContext,
-        Animation<double> animation,
-        Animation<double> secondaryAnimation,
-      ) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            final _ScheduleConfig config = _activeConfig();
+      pageBuilder:
+          (
+            BuildContext dialogContext,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+          ) {
+            return StatefulBuilder(
+              builder: (BuildContext context, StateSetter setModalState) {
+                final _ScheduleConfig config = _activeConfig();
 
-            Widget buildSectionEditors(int fromSection, int toSection) {
-              return Column(
-                children: <Widget>[
-                  for (int section = fromSection; section <= toSection; section++)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF2EFE9),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: <Widget>[
-                            SizedBox(
-                              width: 34,
-                              child: Text(
-                                '$section节',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppTokens.textMain,
-                                ),
-                              ),
+                Widget buildSectionEditors(int fromSection, int toSection) {
+                  return Column(
+                    children: <Widget>[
+                      for (
+                        int section = fromSection;
+                        section <= toSection;
+                        section++
+                      )
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
                             ),
-                            Expanded(
-                              child: InkWell(
-                                onTap: () async {
-                                  await pickTime(index: section - 1, start: true);
-                                  setModalState(() {});
-                                },
-                                child: Container(
-                                  height: 28,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFE7E3DC),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    config.sections[section - 1].start,
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(fontSize: 12, color: AppTokens.textMain),
-                                  ),
-                                ),
-                              ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF2EFE9),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            const Text('-', style: TextStyle(fontSize: 12, color: AppTokens.textMuted)),
-                            Expanded(
-                              child: InkWell(
-                                onTap: () async {
-                                  await pickTime(index: section - 1, start: false);
-                                  setModalState(() {});
-                                },
-                                child: Container(
-                                  height: 28,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFE7E3DC),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    config.sections[section - 1].end,
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(fontSize: 12, color: AppTokens.textMain),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            }
-
-            return Stack(
-              children: <Widget>[
-                Positioned.fill(
-                  child: GestureDetector(
-                    onTap: () => Navigator.of(dialogContext).pop(),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-                      child: Container(
-                        color: const Color(0x66000000),
-                      ),
-                    ),
-                  ),
-                ),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Material(
-                    color: const Color(0xFFFFFDF6),
-                    child: SizedBox(
-                      width: 340,
-                      child: SafeArea(
-                        child: ListView(
-                          padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
-                          children: <Widget>[
-                            Row(
+                            child: Row(
                               children: <Widget>[
-                                const SizedBox(width: 8),
-                                const Text(
-                                  '上课鸭',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppTokens.textMain,
+                                SizedBox(
+                                  width: 34,
+                                  child: Text(
+                                    '$section节',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTokens.textMain,
+                                    ),
                                   ),
                                 ),
-                                const Spacer(),
-                                IconButton(
-                                  onPressed: () => Navigator.of(dialogContext).pop(),
-                                  icon: const Icon(Icons.close, color: AppTokens.textMain),
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () async {
+                                      await pickTime(
+                                        index: section - 1,
+                                        start: true,
+                                      );
+                                      setModalState(() {});
+                                    },
+                                    child: Container(
+                                      height: 28,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE7E3DC),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        config.sections[section - 1].start,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppTokens.textMain,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const Text(
+                                  '-',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppTokens.textMuted,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () async {
+                                      await pickTime(
+                                        index: section - 1,
+                                        start: false,
+                                      );
+                                      setModalState(() {});
+                                    },
+                                    child: Container(
+                                      height: 28,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFE7E3DC),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        config.sections[section - 1].end,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppTokens.textMain,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
-                            _SidebarGroupCard(
-                              title: '课表设置',
-                              icon: Icons.calendar_month,
-                              color: const Color(0xFFFFF2C9),
-                              expanded: _expandedSidebarGroup == 0,
-                              onToggle: () => setModalState(() {
-                                _expandedSidebarGroup = _expandedSidebarGroup == 0 ? -1 : 0;
-                              }),
-                              child: Column(
-                                children: <Widget>[
-                                  for (final CourseTableEntity table in tables)
-                                    InkWell(
-                                      onTap: () async {
-                                        if (table.id == null) {
-                                          return;
-                                        }
-                                        await _switchCourseTable(table.id!, table.name);
-                                        setModalState(() {});
-                                      },
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                                        child: Row(
-                                          children: <Widget>[
-                                            const SizedBox(width: 6),
-                                            Expanded(
+                          ),
+                        ),
+                    ],
+                  );
+                }
+
+                return Stack(
+                  children: <Widget>[
+                    Positioned.fill(
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(dialogContext).pop(),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                          child: Container(color: const Color(0x66000000)),
+                        ),
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Material(
+                        color: const Color(0xFFFFFDF6),
+                        child: SizedBox(
+                          width: 340,
+                          child: SafeArea(
+                            child: ListView(
+                              padding: const EdgeInsets.fromLTRB(
+                                14,
+                                14,
+                                14,
+                                24,
+                              ),
+                              children: <Widget>[
+                                Row(
+                                  children: <Widget>[
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      '上课鸭',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppTokens.textMain,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    IconButton(
+                                      onPressed: () =>
+                                          Navigator.of(dialogContext).pop(),
+                                      icon: const Icon(
+                                        Icons.close,
+                                        color: AppTokens.textMain,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                _SidebarGroupCard(
+                                  title: '课表设置',
+                                  icon: Icons.calendar_month,
+                                  color: const Color(0xFFFFF2C9),
+                                  expanded: _expandedSidebarGroup == 0,
+                                  onToggle: () => setModalState(() {
+                                    _expandedSidebarGroup =
+                                        _expandedSidebarGroup == 0 ? -1 : 0;
+                                  }),
+                                  child: Column(
+                                    children: <Widget>[
+                                      for (final CourseTableEntity table
+                                          in tables)
+                                        InkWell(
+                                          onTap: () async {
+                                            if (table.id == null) {
+                                              return;
+                                            }
+                                            await _switchCourseTable(
+                                              table.id!,
+                                              table.name,
+                                            );
+                                            setModalState(() {});
+                                          },
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 4,
+                                              vertical: 6,
+                                            ),
+                                            child: Row(
+                                              children: <Widget>[
+                                                const SizedBox(width: 6),
+                                                Expanded(
+                                                  child: Text(
+                                                    table.name,
+                                                    style: const TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: AppTokens.textMain,
+                                                    ),
+                                                  ),
+                                                ),
+                                                if (table.id == _activeTableId)
+                                                  const Icon(
+                                                    Icons.check_circle,
+                                                    size: 16,
+                                                    color: Color(0xFFB98500),
+                                                  ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      if (creatingTable)
+                                        Container(
+                                          margin: const EdgeInsets.only(top: 4),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            children: <Widget>[
+                                              const SizedBox(width: 6),
+                                              Expanded(
+                                                child: TextField(
+                                                  controller:
+                                                      tableNameController,
+                                                  maxLength: 20,
+                                                  decoration:
+                                                      const InputDecoration(
+                                                        counterText: '',
+                                                        hintText: '课表名称',
+                                                        isDense: true,
+                                                        border:
+                                                            InputBorder.none,
+                                                      ),
+                                                ),
+                                              ),
+                                              IconButton(
+                                                onPressed: () => createTable(
+                                                  tableNameController.text,
+                                                  setModalState,
+                                                ),
+                                                icon: const Icon(
+                                                  Icons.check_circle,
+                                                  color: AppTokens.duckYellow,
+                                                ),
+                                              ),
+                                              IconButton(
+                                                onPressed: () => setModalState(
+                                                  () {
+                                                    creatingTable = false;
+                                                    tableNameController.clear();
+                                                  },
+                                                ),
+                                                icon: const Icon(
+                                                  Icons.cancel,
+                                                  color: AppTokens.duckYellow,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      else
+                                        Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(
+                                              left: 10,
+                                            ),
+                                            child: TextButton(
+                                              onPressed: () =>
+                                                  setModalState(() {
+                                                    creatingTable = true;
+                                                  }),
+                                              child: const Text('+ 新建课表'),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                _SidebarGroupCard(
+                                  title: '时间设置',
+                                  icon: Icons.access_time,
+                                  color: const Color(0xFFE7F2FF),
+                                  expanded: _expandedSidebarGroup == 1,
+                                  onToggle: () => setModalState(() {
+                                    _expandedSidebarGroup =
+                                        _expandedSidebarGroup == 1 ? -1 : 1;
+                                  }),
+                                  child: Column(
+                                    children: <Widget>[
+                                      _StepInputRow(
+                                        title: '每节课时长',
+                                        value: config.classDuration,
+                                        min: 10,
+                                        max: 180,
+                                        buttonColor: const Color(0xFF6D9CD5),
+                                        onChanged: (int value) async {
+                                          await updateConfig(
+                                            (config) =>
+                                                config.classDuration = value,
+                                          );
+                                          setModalState(() {});
+                                        },
+                                      ),
+                                      const SizedBox(height: 10),
+                                      _StepInputRow(
+                                        title: '课间时长',
+                                        value: config.breakDuration,
+                                        min: 0,
+                                        max: 120,
+                                        buttonColor: const Color(0xFF6D9CD5),
+                                        onChanged: (int value) async {
+                                          await updateConfig(
+                                            (config) =>
+                                                config.breakDuration = value,
+                                          );
+                                          setModalState(() {});
+                                        },
+                                      ),
+                                      const SizedBox(height: 10),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: FilledButton(
+                                          onPressed: () async {
+                                            await updateConfig(
+                                              (config) =>
+                                                  config.alignByTemplate(),
+                                            );
+                                            setModalState(() {});
+                                          },
+                                          style: FilledButton.styleFrom(
+                                            backgroundColor: const Color(
+                                              0xFF65A5EA,
+                                            ),
+                                          ),
+                                          child: const Text('一键批量对齐'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                _SidebarGroupCard(
+                                  title: '上午课程',
+                                  icon: Icons.wb_sunny,
+                                  color: const Color(0xFFFFEDD5),
+                                  expanded: _expandedSidebarGroup == 2,
+                                  onToggle: () => setModalState(() {
+                                    _expandedSidebarGroup =
+                                        _expandedSidebarGroup == 2 ? -1 : 2;
+                                  }),
+                                  child: Column(
+                                    children: <Widget>[
+                                      _StepInputRow(
+                                        title: '上午课程节数',
+                                        value: config.morningCount,
+                                        min: 1,
+                                        max: 8,
+                                        buttonColor: const Color(0xFFF2A866),
+                                        onChanged: (int value) async {
+                                          await updateConfig((config) {
+                                            config.morningCount = value;
+                                            config.normalizeCounts();
+                                          });
+                                          setModalState(() {});
+                                        },
+                                      ),
+                                      const SizedBox(height: 8),
+                                      buildSectionEditors(1, config.morningEnd),
+                                    ],
+                                  ),
+                                ),
+                                _SidebarGroupCard(
+                                  title: '下午课程',
+                                  icon: Icons.wb_cloudy,
+                                  color: const Color(0xFFFFF5E5),
+                                  expanded: _expandedSidebarGroup == 3,
+                                  onToggle: () => setModalState(() {
+                                    _expandedSidebarGroup =
+                                        _expandedSidebarGroup == 3 ? -1 : 3;
+                                  }),
+                                  child: Column(
+                                    children: <Widget>[
+                                      _StepInputRow(
+                                        title: '下午课程节数',
+                                        value: config.afternoonCount,
+                                        min: 1,
+                                        max: (10 - config.morningCount - 1)
+                                            .clamp(1, 8)
+                                            .toInt(),
+                                        buttonColor: const Color(0xFFE5A15A),
+                                        onChanged: (int value) async {
+                                          await updateConfig((config) {
+                                            config.afternoonCount = value;
+                                            config.normalizeCounts();
+                                          });
+                                          setModalState(() {});
+                                        },
+                                      ),
+                                      const SizedBox(height: 8),
+                                      buildSectionEditors(
+                                        config.afternoonStart,
+                                        config.afternoonEnd,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                _SidebarGroupCard(
+                                  title: '晚上课程',
+                                  icon: Icons.dark_mode,
+                                  color: const Color(0xFFFFE9EF),
+                                  expanded: _expandedSidebarGroup == 4,
+                                  onToggle: () => setModalState(() {
+                                    _expandedSidebarGroup =
+                                        _expandedSidebarGroup == 4 ? -1 : 4;
+                                  }),
+                                  child: Column(
+                                    children: <Widget>[
+                                      _StepInputRow(
+                                        title: '晚上课程节数',
+                                        value: config.eveningCount,
+                                        min: 1,
+                                        max:
+                                            (10 -
+                                                    config.morningCount -
+                                                    config.afternoonCount)
+                                                .clamp(1, 10)
+                                                .toInt(),
+                                        buttonColor: const Color(0xFFD37F95),
+                                        onChanged: (int value) async {
+                                          await updateConfig((config) {
+                                            config.eveningCount = value;
+                                            config.normalizeCounts();
+                                          });
+                                          setModalState(() {});
+                                        },
+                                      ),
+                                      const SizedBox(height: 8),
+                                      buildSectionEditors(
+                                        config.eveningStart,
+                                        config.eveningEnd,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                _SidebarGroupCard(
+                                  title: '周数设置',
+                                  icon: Icons.repeat,
+                                  color: const Color(0xFFECE6FF),
+                                  expanded: _expandedSidebarGroup == 5,
+                                  onToggle: () => setModalState(() {
+                                    _expandedSidebarGroup =
+                                        _expandedSidebarGroup == 5 ? -1 : 5;
+                                  }),
+                                  child: Column(
+                                    children: <Widget>[
+                                      _StepInputRow(
+                                        title: '学习周数',
+                                        value: config.termWeeks,
+                                        min: 1,
+                                        max: 35,
+                                        buttonColor: const Color(0xFFA58ADC),
+                                        onChanged: (int value) async {
+                                          await updateConfig(
+                                            (config) =>
+                                                config.termWeeks = value,
+                                          );
+                                          setModalState(() {});
+                                        },
+                                      ),
+                                      const SizedBox(height: 10),
+                                      const Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          '每周起始日',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: AppTokens.textMuted,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      SizedBox(
+                                        height: 88,
+                                        child: CupertinoPicker(
+                                          looping: true,
+                                          itemExtent: 30,
+                                          selectionOverlay: DecoratedBox(
+                                            decoration: BoxDecoration(
+                                              color: const Color(0x20FFFFFF),
+                                              border: Border.symmetric(
+                                                horizontal: BorderSide(
+                                                  color: Color(0x44FFFFFF),
+                                                ),
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          scrollController:
+                                              FixedExtentScrollController(
+                                                initialItem:
+                                                    config.weekStartDay - 1,
+                                              ),
+                                          onSelectedItemChanged:
+                                              (int index) async {
+                                                await updateConfig(
+                                                  (config) =>
+                                                      config.weekStartDay =
+                                                          index + 1,
+                                                );
+                                                setModalState(() {});
+                                              },
+                                          children: const <Widget>[
+                                            Center(
                                               child: Text(
-                                                table.name,
-                                                style: const TextStyle(
-                                                  fontSize: 13,
+                                                '星期一',
+                                                style: TextStyle(
+                                                  fontSize: 14,
                                                   fontWeight: FontWeight.w700,
                                                   color: AppTokens.textMain,
                                                 ),
                                               ),
                                             ),
-                                            if (table.id == _activeTableId)
-                                              const Icon(Icons.check_circle, size: 16, color: Color(0xFFB98500)),
+                                            Center(
+                                              child: Text(
+                                                '星期二',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppTokens.textMain,
+                                                ),
+                                              ),
+                                            ),
+                                            Center(
+                                              child: Text(
+                                                '星期三',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppTokens.textMain,
+                                                ),
+                                              ),
+                                            ),
+                                            Center(
+                                              child: Text(
+                                                '星期四',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppTokens.textMain,
+                                                ),
+                                              ),
+                                            ),
+                                            Center(
+                                              child: Text(
+                                                '星期五',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppTokens.textMain,
+                                                ),
+                                              ),
+                                            ),
+                                            Center(
+                                              child: Text(
+                                                '星期六',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppTokens.textMain,
+                                                ),
+                                              ),
+                                            ),
+                                            Center(
+                                              child: Text(
+                                                '星期日',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppTokens.textMain,
+                                                ),
+                                              ),
+                                            ),
                                           ],
                                         ),
                                       ),
-                                    ),
-                                  if (creatingTable)
-                                    Container(
-                                      margin: const EdgeInsets.only(top: 4),
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Row(
-                                        children: <Widget>[
-                                          const SizedBox(width: 6),
-                                          Expanded(
-                                            child: TextField(
-                                              controller: tableNameController,
-                                              maxLength: 20,
-                                              decoration: const InputDecoration(
-                                                counterText: '',
-                                                hintText: '课表名称',
-                                                isDense: true,
-                                                border: InputBorder.none,
+                                    ],
+                                  ),
+                                ),
+                                _SidebarGroupCard(
+                                  title: '开学日期',
+                                  icon: Icons.event,
+                                  color: const Color(0xFFE6F8FF),
+                                  expanded: _expandedSidebarGroup == 6,
+                                  onToggle: () => setModalState(() {
+                                    _expandedSidebarGroup =
+                                        _expandedSidebarGroup == 6 ? -1 : 6;
+                                  }),
+                                  trailingText: DateFormat(
+                                    'yyyy-MM-dd',
+                                  ).format(config.semesterStartDate),
+                                  child: SizedBox(
+                                    height: 96,
+                                    child: Row(
+                                      children: <Widget>[
+                                        Expanded(
+                                          child: CupertinoPicker(
+                                            itemExtent: 30,
+                                            scrollController:
+                                                FixedExtentScrollController(
+                                                  initialItem:
+                                                      config
+                                                          .semesterStartDate
+                                                          .year -
+                                                      2020,
+                                                ),
+                                            onSelectedItemChanged:
+                                                (int index) async {
+                                                  await updateConfig((config) {
+                                                    config.semesterStartDate =
+                                                        DateTime(
+                                                          2020 + index,
+                                                          config
+                                                              .semesterStartDate
+                                                              .month,
+                                                          config
+                                                              .semesterStartDate
+                                                              .day,
+                                                        );
+                                                  });
+                                                  setModalState(() {});
+                                                },
+                                            children: List<Widget>.generate(
+                                              20,
+                                              (int index) => Center(
+                                                child: Text(
+                                                  '${2020 + index}',
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: AppTokens.textMain,
+                                                  ),
+                                                ),
                                               ),
                                             ),
                                           ),
-                                          IconButton(
-                                            onPressed: () => createTable(tableNameController.text, setModalState),
-                                            icon: const Icon(Icons.check_circle, color: AppTokens.duckYellow),
-                                          ),
-                                          IconButton(
-                                            onPressed: () => setModalState(() {
-                                              creatingTable = false;
-                                              tableNameController.clear();
-                                            }),
-                                            icon: const Icon(Icons.cancel, color: AppTokens.duckYellow),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  else
-                                    Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(left: 10),
-                                        child: TextButton(
-                                          onPressed: () => setModalState(() {
-                                            creatingTable = true;
-                                          }),
-                                          child: const Text('+ 新建课表'),
                                         ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            _SidebarGroupCard(
-                              title: '时间设置',
-                              icon: Icons.access_time,
-                              color: const Color(0xFFE7F2FF),
-                              expanded: _expandedSidebarGroup == 1,
-                              onToggle: () => setModalState(() {
-                                _expandedSidebarGroup = _expandedSidebarGroup == 1 ? -1 : 1;
-                              }),
-                              child: Column(
-                                children: <Widget>[
-                                  _StepInputRow(
-                                    title: '每节课时长',
-                                    value: config.classDuration,
-                                    min: 10,
-                                    max: 180,
-                                    buttonColor: const Color(0xFF6D9CD5),
-                                    onChanged: (int value) async {
-                                      await updateConfig((config) => config.classDuration = value);
-                                      setModalState(() {});
-                                    },
-                                  ),
-                                  const SizedBox(height: 10),
-                                  _StepInputRow(
-                                    title: '课间时长',
-                                    value: config.breakDuration,
-                                    min: 0,
-                                    max: 120,
-                                    buttonColor: const Color(0xFF6D9CD5),
-                                    onChanged: (int value) async {
-                                      await updateConfig((config) => config.breakDuration = value);
-                                      setModalState(() {});
-                                    },
-                                  ),
-                                  const SizedBox(height: 10),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: FilledButton(
-                                      onPressed: () async {
-                                        await updateConfig((config) => config.alignByTemplate());
-                                        setModalState(() {});
-                                      },
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor: const Color(0xFF65A5EA),
-                                      ),
-                                      child: const Text('一键批量对齐'),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            _SidebarGroupCard(
-                              title: '上午课程',
-                              icon: Icons.wb_sunny,
-                              color: const Color(0xFFFFEDD5),
-                              expanded: _expandedSidebarGroup == 2,
-                              onToggle: () => setModalState(() {
-                                _expandedSidebarGroup = _expandedSidebarGroup == 2 ? -1 : 2;
-                              }),
-                              child: Column(
-                                children: <Widget>[
-                                  _StepInputRow(
-                                    title: '上午课程节数',
-                                    value: config.morningCount,
-                                    min: 1,
-                                    max: 8,
-                                    buttonColor: const Color(0xFFF2A866),
-                                    onChanged: (int value) async {
-                                      await updateConfig((config) {
-                                        config.morningCount = value;
-                                        config.normalizeCounts();
-                                      });
-                                      setModalState(() {});
-                                    },
-                                  ),
-                                  const SizedBox(height: 8),
-                                  buildSectionEditors(1, config.morningEnd),
-                                ],
-                              ),
-                            ),
-                            _SidebarGroupCard(
-                              title: '下午课程',
-                              icon: Icons.wb_cloudy,
-                              color: const Color(0xFFFFF5E5),
-                              expanded: _expandedSidebarGroup == 3,
-                              onToggle: () => setModalState(() {
-                                _expandedSidebarGroup = _expandedSidebarGroup == 3 ? -1 : 3;
-                              }),
-                              child: Column(
-                                children: <Widget>[
-                                  _StepInputRow(
-                                    title: '下午课程节数',
-                                    value: config.afternoonCount,
-                                    min: 1,
-                                    max: (10 - config.morningCount - 1).clamp(1, 8).toInt(),
-                                    buttonColor: const Color(0xFFE5A15A),
-                                    onChanged: (int value) async {
-                                      await updateConfig((config) {
-                                        config.afternoonCount = value;
-                                        config.normalizeCounts();
-                                      });
-                                      setModalState(() {});
-                                    },
-                                  ),
-                                  const SizedBox(height: 8),
-                                  buildSectionEditors(config.afternoonStart, config.afternoonEnd),
-                                ],
-                              ),
-                            ),
-                            _SidebarGroupCard(
-                              title: '晚上课程',
-                              icon: Icons.dark_mode,
-                              color: const Color(0xFFFFE9EF),
-                              expanded: _expandedSidebarGroup == 4,
-                              onToggle: () => setModalState(() {
-                                _expandedSidebarGroup = _expandedSidebarGroup == 4 ? -1 : 4;
-                              }),
-                              child: Column(
-                                children: <Widget>[
-                                  _StepInputRow(
-                                    title: '晚上课程节数',
-                                    value: config.eveningCount,
-                                    min: 1,
-                                    max: (10 - config.morningCount - config.afternoonCount).clamp(1, 10).toInt(),
-                                    buttonColor: const Color(0xFFD37F95),
-                                    onChanged: (int value) async {
-                                      await updateConfig((config) {
-                                        config.eveningCount = value;
-                                        config.normalizeCounts();
-                                      });
-                                      setModalState(() {});
-                                    },
-                                  ),
-                                  const SizedBox(height: 8),
-                                  buildSectionEditors(config.eveningStart, config.eveningEnd),
-                                ],
-                              ),
-                            ),
-                            _SidebarGroupCard(
-                              title: '周数设置',
-                              icon: Icons.repeat,
-                              color: const Color(0xFFECE6FF),
-                              expanded: _expandedSidebarGroup == 5,
-                              onToggle: () => setModalState(() {
-                                _expandedSidebarGroup = _expandedSidebarGroup == 5 ? -1 : 5;
-                              }),
-                              child: Column(
-                                children: <Widget>[
-                                  _StepInputRow(
-                                    title: '学习周数',
-                                    value: config.termWeeks,
-                                    min: 1,
-                                    max: 35,
-                                    buttonColor: const Color(0xFFA58ADC),
-                                    onChanged: (int value) async {
-                                      await updateConfig((config) => config.termWeeks = value);
-                                      setModalState(() {});
-                                    },
-                                  ),
-                                  const SizedBox(height: 10),
-                                  const Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Text(
-                                      '每周起始日',
-                                      style: TextStyle(fontSize: 12, color: AppTokens.textMuted),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  SizedBox(
-                                    height: 88,
-                                    child: CupertinoPicker(
-                                      looping: true,
-                                      itemExtent: 30,
-                                      selectionOverlay: DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          color: const Color(0x20FFFFFF),
-                                          border: Border.symmetric(
-                                            horizontal: BorderSide(color: Color(0x44FFFFFF)),
+                                        Expanded(
+                                          child: CupertinoPicker(
+                                            itemExtent: 30,
+                                            scrollController:
+                                                FixedExtentScrollController(
+                                                  initialItem:
+                                                      config
+                                                          .semesterStartDate
+                                                          .month -
+                                                      1,
+                                                ),
+                                            onSelectedItemChanged:
+                                                (int index) async {
+                                                  await updateConfig((config) {
+                                                    config.semesterStartDate =
+                                                        DateTime(
+                                                          config
+                                                              .semesterStartDate
+                                                              .year,
+                                                          index + 1,
+                                                          config
+                                                              .semesterStartDate
+                                                              .day,
+                                                        );
+                                                  });
+                                                  setModalState(() {});
+                                                },
+                                            children: List<Widget>.generate(
+                                              12,
+                                              (int index) => Center(
+                                                child: Text(
+                                                  '${index + 1}',
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: AppTokens.textMain,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
                                           ),
-                                          borderRadius: BorderRadius.circular(8),
                                         ),
-                                      ),
-                                      scrollController: FixedExtentScrollController(
-                                        initialItem: config.weekStartDay - 1,
-                                      ),
-                                      onSelectedItemChanged: (int index) async {
-                                        await updateConfig((config) => config.weekStartDay = index + 1);
-                                        setModalState(() {});
-                                      },
-                                      children: const <Widget>[
-                                        Center(child: Text('星期一', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.textMain))),
-                                        Center(child: Text('星期二', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.textMain))),
-                                        Center(child: Text('星期三', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.textMain))),
-                                        Center(child: Text('星期四', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.textMain))),
-                                        Center(child: Text('星期五', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.textMain))),
-                                        Center(child: Text('星期六', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.textMain))),
-                                        Center(child: Text('星期日', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.textMain))),
+                                        Expanded(
+                                          child: CupertinoPicker(
+                                            itemExtent: 30,
+                                            scrollController:
+                                                FixedExtentScrollController(
+                                                  initialItem:
+                                                      config
+                                                          .semesterStartDate
+                                                          .day -
+                                                      1,
+                                                ),
+                                            onSelectedItemChanged:
+                                                (int index) async {
+                                                  await updateConfig((config) {
+                                                    config.semesterStartDate =
+                                                        DateTime(
+                                                          config
+                                                              .semesterStartDate
+                                                              .year,
+                                                          config
+                                                              .semesterStartDate
+                                                              .month,
+                                                          index + 1,
+                                                        );
+                                                  });
+                                                  setModalState(() {});
+                                                },
+                                            children: List<Widget>.generate(
+                                              31,
+                                              (int index) => Center(
+                                                child: Text(
+                                                  '${index + 1}',
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: AppTokens.textMain,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
-                            _SidebarGroupCard(
-                              title: '开学日期',
-                              icon: Icons.event,
-                              color: const Color(0xFFE6F8FF),
-                              expanded: _expandedSidebarGroup == 6,
-                              onToggle: () => setModalState(() {
-                                _expandedSidebarGroup = _expandedSidebarGroup == 6 ? -1 : 6;
-                              }),
-                              trailingText: DateFormat('yyyy-MM-dd').format(config.semesterStartDate),
-                              child: SizedBox(
-                                height: 96,
-                                child: Row(
-                                  children: <Widget>[
-                                    Expanded(
-                                      child: CupertinoPicker(
-                                        itemExtent: 30,
-                                        scrollController: FixedExtentScrollController(
-                                          initialItem: config.semesterStartDate.year - 2020,
-                                        ),
-                                        onSelectedItemChanged: (int index) async {
-                                          await updateConfig((config) {
-                                            config.semesterStartDate = DateTime(
-                                              2020 + index,
-                                              config.semesterStartDate.month,
-                                              config.semesterStartDate.day,
-                                            );
-                                          });
-                                          setModalState(() {});
-                                        },
-                                        children: List<Widget>.generate(
-                                          20,
-                                          (int index) => Center(
-                                            child: Text(
-                                              '${2020 + index}',
-                                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.textMain),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: CupertinoPicker(
-                                        itemExtent: 30,
-                                        scrollController: FixedExtentScrollController(
-                                          initialItem: config.semesterStartDate.month - 1,
-                                        ),
-                                        onSelectedItemChanged: (int index) async {
-                                          await updateConfig((config) {
-                                            config.semesterStartDate = DateTime(
-                                              config.semesterStartDate.year,
-                                              index + 1,
-                                              config.semesterStartDate.day,
-                                            );
-                                          });
-                                          setModalState(() {});
-                                        },
-                                        children: List<Widget>.generate(
-                                          12,
-                                          (int index) => Center(
-                                            child: Text(
-                                              '${index + 1}',
-                                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.textMain),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: CupertinoPicker(
-                                        itemExtent: 30,
-                                        scrollController: FixedExtentScrollController(
-                                          initialItem: config.semesterStartDate.day - 1,
-                                        ),
-                                        onSelectedItemChanged: (int index) async {
-                                          await updateConfig((config) {
-                                            config.semesterStartDate = DateTime(
-                                              config.semesterStartDate.year,
-                                              config.semesterStartDate.month,
-                                              index + 1,
-                                            );
-                                          });
-                                          setModalState(() {});
-                                        },
-                                        children: List<Widget>.generate(
-                                          31,
-                                          (int index) => Center(
-                                            child: Text(
-                                              '${index + 1}',
-                                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.textMain),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
                                 ),
-                              ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-              ],
+                  ],
+                );
+              },
             );
           },
-        );
-      },
-      transitionBuilder: (
-        BuildContext context,
-        Animation<double> animation,
-        Animation<double> secondaryAnimation,
-        Widget child,
-      ) {
-        final CurvedAnimation curve = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutCubic,
-          reverseCurve: Curves.easeInCubic,
-        );
-        final Animation<Offset> slide = Tween<Offset>(
-          begin: const Offset(-0.22, 0),
-          end: Offset.zero,
-        ).animate(curve);
-        final Animation<double> scale = Tween<double>(begin: 0.985, end: 1).animate(curve);
-        return FadeTransition(
-          opacity: curve,
-          child: SlideTransition(
-            position: slide,
-            child: ScaleTransition(
-              scale: scale,
-              alignment: Alignment.centerLeft,
-              child: child,
-            ),
-          ),
-        );
-      },
+      transitionBuilder:
+          (
+            BuildContext context,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+            Widget child,
+          ) {
+            final CurvedAnimation curve = CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+              reverseCurve: Curves.easeInCubic,
+            );
+            final Animation<Offset> slide = Tween<Offset>(
+              begin: const Offset(-0.22, 0),
+              end: Offset.zero,
+            ).animate(curve);
+            final Animation<double> scale = Tween<double>(
+              begin: 0.985,
+              end: 1,
+            ).animate(curve);
+            return FadeTransition(
+              opacity: curve,
+              child: SlideTransition(
+                position: slide,
+                child: ScaleTransition(
+                  scale: scale,
+                  alignment: Alignment.centerLeft,
+                  child: child,
+                ),
+              ),
+            );
+          },
     );
 
     tableNameController.dispose();
@@ -1027,8 +1299,10 @@ class _SchedulePageState extends State<SchedulePage> {
 
   Future<void> _switchCourseTable(int tableId, String tableName) async {
     // 切换课表只更新当前展示上下文，不修改数据库原始数据。
-    final List<CourseEntity> courses = await _scheduleRepository.getCoursesByTableId(tableId);
-    final List<CourseTableEntity> tables = await _scheduleRepository.getCourseTables();
+    final List<CourseEntity> courses = await _scheduleRepository
+        .getCoursesByTableId(tableId);
+    final List<CourseTableEntity> tables = await _scheduleRepository
+        .getCourseTables();
     CourseTableEntity? target;
     for (final CourseTableEntity table in tables) {
       if (table.id == tableId) {
@@ -1120,9 +1394,9 @@ class _SchedulePageState extends State<SchedulePage> {
 
       if (captured == null) {
         // 用户主动取消不属于异常，提示后直接返回。
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已取消拍照，未写入课程数据。')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('已取消拍照，未写入课程数据。')));
         return;
       }
 
@@ -1141,9 +1415,9 @@ class _SchedulePageState extends State<SchedulePage> {
         return;
       }
       // 统一拦截权限与设备能力异常，避免流程静默失败。
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('无法访问相机，请检查系统权限设置。')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('无法访问相机，请检查系统权限设置。')));
     }
   }
 
@@ -1163,8 +1437,8 @@ class _SchedulePageState extends State<SchedulePage> {
     }
 
     final CourseEntity course = courses.first;
-    final List<TodoItem> linkedTodos =
-        await _todoRepository.getTodosByCourseName(course.name);
+    final List<TodoItem> linkedTodos = await _todoRepository
+        .getTodosByCourseName(course.name);
 
     if (!mounted) {
       return;
@@ -1215,7 +1489,9 @@ class _SchedulePageState extends State<SchedulePage> {
               SizedBox(
                 width: leftWidth,
                 child: Column(
-                  children: List<Widget>.generate(_periodTimes.length, (int index) {
+                  children: List<Widget>.generate(_periodTimes.length, (
+                    int index,
+                  ) {
                     final int period = index + 1;
                     return SizedBox(
                       height: rowHeight,
@@ -1262,7 +1538,10 @@ class _SchedulePageState extends State<SchedulePage> {
                               height: rowHeight,
                               decoration: const BoxDecoration(
                                 border: Border(
-                                  top: BorderSide(color: Color(0xFFF1E9DA), width: 0.8),
+                                  top: BorderSide(
+                                    color: Color(0xFFF1E9DA),
+                                    width: 0.8,
+                                  ),
                                 ),
                               ),
                             ),
@@ -1300,16 +1579,27 @@ class _SchedulePageState extends State<SchedulePage> {
       top: (start - 1) * rowHeight + 3,
       width: colWidth - 4,
       height: rowHeight * span - 6,
-      child: GestureDetector(
+      child: DuckPressable(
         onTap: () => _openCourseDetail(start, <CourseEntity>[course]),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
           decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(8),
+            color: color.withValues(alpha: 0.94),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.72)),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: color.withValues(alpha: 0.22),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Text(
             '${course.name}\n${course.classroom ?? ''}',
+            maxLines: 5,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: 10,
               height: 1.2,
@@ -1325,7 +1615,10 @@ class _SchedulePageState extends State<SchedulePage> {
     final int startDay = weekStartDay.clamp(1, 7);
     final int delta = (now.weekday - startDay + 7) % 7;
     final DateTime start = now.subtract(Duration(days: delta));
-    return List<DateTime>.generate(7, (int index) => start.add(Duration(days: index)));
+    return List<DateTime>.generate(
+      7,
+      (int index) => start.add(Duration(days: index)),
+    );
   }
 
   String _weekDayName(int weekday) {
@@ -1385,7 +1678,10 @@ class _SchedulePageState extends State<SchedulePage> {
     return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
   }
 
-  Future<String?> _openTimeEditDialog(BuildContext context, String initialValue) async {
+  Future<String?> _openTimeEditDialog(
+    BuildContext context,
+    String initialValue,
+  ) async {
     final List<String> parts = initialValue.split(':');
     int hour = int.tryParse(parts.first) ?? 8;
     int minute = int.tryParse(parts.last) ?? 0;
@@ -1412,14 +1708,19 @@ class _SchedulePageState extends State<SchedulePage> {
 
             bool applyManualInput() {
               final int? nextHour = int.tryParse(hourController.text.trim());
-              final int? nextMinute = int.tryParse(minuteController.text.trim());
+              final int? nextMinute = int.tryParse(
+                minuteController.text.trim(),
+              );
               if (nextHour == null || nextMinute == null) {
                 setModalState(() {
                   errorText = '请输入有效数字';
                 });
                 return false;
               }
-              if (nextHour < 0 || nextHour > 23 || nextMinute < 0 || nextMinute > 59) {
+              if (nextHour < 0 ||
+                  nextHour > 23 ||
+                  nextMinute < 0 ||
+                  nextMinute > 59) {
                 setModalState(() {
                   errorText = '小时范围 0-23，分钟范围 0-59';
                 });
@@ -1478,7 +1779,9 @@ class _SchedulePageState extends State<SchedulePage> {
                             Expanded(
                               child: CupertinoPicker(
                                 itemExtent: 34,
-                                scrollController: FixedExtentScrollController(initialItem: hour),
+                                scrollController: FixedExtentScrollController(
+                                  initialItem: hour,
+                                ),
                                 onSelectedItemChanged: (int value) {
                                   setModalState(() {
                                     hour = value;
@@ -1489,19 +1792,29 @@ class _SchedulePageState extends State<SchedulePage> {
                                 children: List<Widget>.generate(
                                   24,
                                   (int index) => Center(
-                                    child: Text(index.toString().padLeft(2, '0')),
+                                    child: Text(
+                                      index.toString().padLeft(2, '0'),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
                             const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 8),
-                              child: Text(':', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                              child: Text(
+                                ':',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ),
                             Expanded(
                               child: CupertinoPicker(
                                 itemExtent: 34,
-                                scrollController: FixedExtentScrollController(initialItem: minute),
+                                scrollController: FixedExtentScrollController(
+                                  initialItem: minute,
+                                ),
                                 onSelectedItemChanged: (int value) {
                                   setModalState(() {
                                     minute = value;
@@ -1512,7 +1825,9 @@ class _SchedulePageState extends State<SchedulePage> {
                                 children: List<Widget>.generate(
                                   60,
                                   (int index) => Center(
-                                    child: Text(index.toString().padLeft(2, '0')),
+                                    child: Text(
+                                      index.toString().padLeft(2, '0'),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -1525,7 +1840,10 @@ class _SchedulePageState extends State<SchedulePage> {
                       children: <Widget>[
                         Text(
                           wheelMode ? '当前：滚轮模式' : '当前：手动输入模式',
-                          style: const TextStyle(fontSize: 12, color: AppTokens.textMuted),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTokens.textMuted,
+                          ),
                         ),
                         const Spacer(),
                         IconButton(
@@ -1552,7 +1870,10 @@ class _SchedulePageState extends State<SchedulePage> {
                         alignment: Alignment.centerLeft,
                         child: Text(
                           errorText!,
-                          style: const TextStyle(fontSize: 12, color: Colors.redAccent),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.redAccent,
+                          ),
                         ),
                       ),
                   ],
@@ -1645,7 +1966,9 @@ class _WeekHeader extends StatelessWidget {
 
   bool _isToday(DateTime value) {
     final DateTime now = DateTime.now();
-    return now.year == value.year && now.month == value.month && now.day == value.day;
+    return now.year == value.year &&
+        now.month == value.month &&
+        now.day == value.day;
   }
 }
 
@@ -1657,7 +1980,7 @@ class _TopActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return DuckPressable(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppTokens.radius20),
       child: Container(
@@ -1666,6 +1989,13 @@ class _TopActionButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFFFFF0C9),
           borderRadius: BorderRadius.circular(AppTokens.radius20),
+          boxShadow: const <BoxShadow>[
+            BoxShadow(
+              color: Color(0x14D19B00),
+              blurRadius: 12,
+              offset: Offset(0, 6),
+            ),
+          ],
         ),
         child: Icon(icon, color: AppTokens.textMain, size: 20),
       ),
@@ -1706,7 +2036,11 @@ class _CourseActivatedModal extends StatelessWidget {
                   child: const SizedBox(
                     width: 28,
                     height: 28,
-                    child: Icon(Icons.close, size: 18, color: Color(0xFF9F9488)),
+                    child: Icon(
+                      Icons.close,
+                      size: 18,
+                      color: Color(0xFF9F9488),
+                    ),
                   ),
                 ),
                 Expanded(
@@ -1726,16 +2060,34 @@ class _CourseActivatedModal extends StatelessWidget {
                   child: const SizedBox(
                     width: 28,
                     height: 28,
-                    child: Icon(Icons.delete_outline, size: 18, color: Color(0xFFE16C7B)),
+                    child: Icon(
+                      Icons.delete_outline,
+                      size: 18,
+                      color: Color(0xFFE16C7B),
+                    ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
             _CourseInfoLine(label: '星期', value: _weekdayText(course.weekTime)),
-            _CourseInfoLine(label: '节次', value: '第${course.startTime}-${course.startTime + course.timeCount}节'),
-            _CourseInfoLine(label: '教师', value: course.teacher?.isNotEmpty == true ? course.teacher! : '未填写'),
-            _CourseInfoLine(label: '地点', value: course.classroom?.isNotEmpty == true ? course.classroom! : '未填写'),
+            _CourseInfoLine(
+              label: '节次',
+              value:
+                  '第${course.startTime}-${course.startTime + course.timeCount}节',
+            ),
+            _CourseInfoLine(
+              label: '教师',
+              value: course.teacher?.isNotEmpty == true
+                  ? course.teacher!
+                  : '未填写',
+            ),
+            _CourseInfoLine(
+              label: '地点',
+              value: course.classroom?.isNotEmpty == true
+                  ? course.classroom!
+                  : '未填写',
+            ),
             const SizedBox(height: 10),
             const Align(
               alignment: Alignment.centerLeft,
@@ -1752,7 +2104,10 @@ class _CourseActivatedModal extends StatelessWidget {
             if (linkedTodos.isEmpty)
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8F5EF),
                   borderRadius: BorderRadius.circular(12),
@@ -1768,7 +2123,10 @@ class _CourseActivatedModal extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 6),
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
@@ -1902,11 +2260,16 @@ class _SidebarGroupCard extends StatelessWidget {
                       padding: const EdgeInsets.only(right: 6),
                       child: Text(
                         trailingText!,
-                        style: const TextStyle(fontSize: 11, color: AppTokens.textMuted),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppTokens.textMuted,
+                        ),
                       ),
                     ),
                   Icon(
-                    expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                    expanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
                     size: 18,
                     color: const Color(0xFF776C60),
                   ),
@@ -1951,7 +2314,9 @@ class _StepInputRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Future<void> editValue() async {
-      final TextEditingController controller = TextEditingController(text: '$value');
+      final TextEditingController controller = TextEditingController(
+        text: '$value',
+      );
       final int? parsed = await showDialog<int>(
         context: context,
         builder: (BuildContext context) {
@@ -1990,7 +2355,11 @@ class _StepInputRow extends StatelessWidget {
         Expanded(
           child: Text(
             title,
-            style: const TextStyle(fontSize: 12, color: AppTokens.textMain, fontWeight: FontWeight.w700),
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppTokens.textMain,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
         _MiniStepButton(
@@ -2012,7 +2381,11 @@ class _StepInputRow extends StatelessWidget {
             ),
             child: Text(
               '$value',
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTokens.textMain),
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppTokens.textMain,
+              ),
             ),
           ),
         ),
@@ -2027,7 +2400,11 @@ class _StepInputRow extends StatelessWidget {
 }
 
 class _MiniStepButton extends StatelessWidget {
-  const _MiniStepButton({required this.icon, required this.color, required this.onTap});
+  const _MiniStepButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
 
   final IconData icon;
   final Color color;
@@ -2112,19 +2489,32 @@ class _ScheduleConfig {
     }
     try {
       final Map<String, dynamic> map = jsonDecode(raw) as Map<String, dynamic>;
-      final List<dynamic> sectionRaw = (map['sections'] as List<dynamic>? ?? <dynamic>[]);
+      final List<dynamic> sectionRaw =
+          (map['sections'] as List<dynamic>? ?? <dynamic>[]);
       final List<_SectionTime> sections = sectionRaw
-          .map((dynamic item) => _SectionTime(
-                start: (item as Map<String, dynamic>)['start'] as String? ?? '08:00',
-                end: item['end'] as String? ?? '08:45',
-              ))
+          .map(
+            (dynamic item) => _SectionTime(
+              start:
+                  (item as Map<String, dynamic>)['start'] as String? ?? '08:00',
+              end: item['end'] as String? ?? '08:45',
+            ),
+          )
           .toList(growable: false);
       final _ScheduleConfig defaults = _ScheduleConfig.defaults();
-      final int morning = map['morningCount'] as int? ?? (map['morningEnd'] as int? ?? defaults.morningCount);
-        final int afternoon = map['afternoonCount'] as int? ??
-          (((map['afternoonEnd'] as int? ?? defaults.afternoonEnd) - morning).clamp(1, 8).toInt());
-        final int evening = map['eveningCount'] as int? ??
-          (((map['eveningEnd'] as int? ?? defaults.eveningEnd) - (morning + afternoon)).clamp(1, 8).toInt());
+      final int morning =
+          map['morningCount'] as int? ??
+          (map['morningEnd'] as int? ?? defaults.morningCount);
+      final int afternoon =
+          map['afternoonCount'] as int? ??
+          (((map['afternoonEnd'] as int? ?? defaults.afternoonEnd) - morning)
+              .clamp(1, 8)
+              .toInt());
+      final int evening =
+          map['eveningCount'] as int? ??
+          (((map['eveningEnd'] as int? ?? defaults.eveningEnd) -
+                  (morning + afternoon))
+              .clamp(1, 8)
+              .toInt());
       return _ScheduleConfig(
         classDuration: map['classDuration'] as int? ?? defaults.classDuration,
         breakDuration: map['breakDuration'] as int? ?? defaults.breakDuration,
@@ -2133,7 +2523,8 @@ class _ScheduleConfig {
         eveningCount: evening,
         termWeeks: map['termWeeks'] as int? ?? defaults.termWeeks,
         weekStartDay: map['weekStartDay'] as int? ?? defaults.weekStartDay,
-        semesterStartDate: DateTime.tryParse(map['semesterStartDate'] as String? ?? '') ??
+        semesterStartDate:
+            DateTime.tryParse(map['semesterStartDate'] as String? ?? '') ??
             defaults.semesterStartDate,
         sections: sections.length == 10 ? sections : defaults.sections,
       )..normalizeCounts();
@@ -2156,10 +2547,7 @@ class _ScheduleConfig {
       'weekStartDay': weekStartDay,
       'semesterStartDate': DateFormat('yyyy-MM-dd').format(semesterStartDate),
       'sections': sections
-          .map((item) => <String, String>{
-                'start': item.start,
-                'end': item.end,
-              })
+          .map((item) => <String, String>{'start': item.start, 'end': item.end})
           .toList(growable: false),
     });
   }
@@ -2196,7 +2584,9 @@ class _ScheduleConfig {
     morningCount = morningCount.clamp(1, 8).toInt();
     final int maxAfternoon = (10 - morningCount - 1).clamp(1, 8).toInt();
     afternoonCount = afternoonCount.clamp(1, maxAfternoon).toInt();
-    final int maxEvening = (10 - morningCount - afternoonCount).clamp(1, 10).toInt();
+    final int maxEvening = (10 - morningCount - afternoonCount)
+        .clamp(1, 10)
+        .toInt();
     eveningCount = eveningCount.clamp(1, maxEvening).toInt();
   }
 
@@ -2240,17 +2630,24 @@ class _AddMenuItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(24),
-      elevation: 2,
-      shadowColor: const Color(0x26000000),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(24),
+    return DuckPressable(
       onTap: onTap,
-      child: SizedBox(
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
         width: 136,
         height: 48,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.96),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.78)),
+          boxShadow: const <BoxShadow>[
+            BoxShadow(
+              color: Color(0x22000000),
+              blurRadius: 18,
+              offset: Offset(0, 10),
+            ),
+          ],
+        ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: <Widget>[
@@ -2266,15 +2663,11 @@ class _AddMenuItem extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            Container(
-              width: 2,
-            ),
+            Container(width: 2),
             const SizedBox(width: 12),
           ],
         ),
       ),
-      ),
     );
   }
 }
-

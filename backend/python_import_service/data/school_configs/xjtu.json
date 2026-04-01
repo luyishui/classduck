@@ -1,6 +1,7 @@
 {
   "id": "xjtu",
   "name": "西安交通大学",
+  "level": "undergraduate",
   "system_type": "zhengfang",
   "login_url": "https://ehall.xjtu.edu.cn/login",
   "target_url": "https://ehall.xjtu.edu.cn/jwapp/sys/wdkb/*default/index.do",

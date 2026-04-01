@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/navigation/duck_page_route.dart';
+import '../../../shared/theme/app_motion.dart';
 import '../../../shared/theme/app_tokens.dart';
 import '../../../shared/widgets/duck_modal.dart';
+import '../../../shared/widgets/duck_pressable.dart';
 import '../../schedule/domain/course.dart';
 import '../../schedule/domain/course_table.dart';
 import '../../schedule/data/schedule_repository.dart';
@@ -45,7 +48,9 @@ class _ProfilePageState extends State<ProfilePage> {
     });
 
     final int courseCount = await _scheduleRepository.getDoneCourseCount();
-    final int todoDoneCount = (await _todoRepository.getTodos(completed: true)).length;
+    final int todoDoneCount = (await _todoRepository.getTodos(
+      completed: true,
+    )).length;
 
     if (!mounted) {
       return;
@@ -84,8 +89,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     Text(
                       '上课鸭',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTokens.textMuted,
-                          ),
+                        color: AppTokens.textMuted,
+                      ),
                     ),
                   ],
                 ),
@@ -137,9 +142,9 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 18),
           Text(
             '设置',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: const Color(0xFFB2A592),
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.labelLarge?.copyWith(color: const Color(0xFFB2A592)),
           ),
           const SizedBox(height: 8),
           _SettingCard(
@@ -166,7 +171,8 @@ class _ProfilePageState extends State<ProfilePage> {
     if (_loading) {
       return;
     }
-    if (_lastStatsLoadedAt != null && now.difference(_lastStatsLoadedAt!) < const Duration(seconds: 3)) {
+    if (_lastStatsLoadedAt != null &&
+        now.difference(_lastStatsLoadedAt!) < const Duration(seconds: 3)) {
       return;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -207,7 +213,9 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _openDoneTodoModal() async {
     await _loadStats();
     // 只读弹窗：按任务类型分组展示“已完成待办”。
-    final List<TodoItem> doneTodos = await _todoRepository.getTodos(completed: true);
+    final List<TodoItem> doneTodos = await _todoRepository.getTodos(
+      completed: true,
+    );
     final Map<String, List<String>> groups = <String, List<String>>{
       '作业': <String>[],
       '考试': <String>[],
@@ -275,7 +283,10 @@ class _ProfilePageState extends State<ProfilePage> {
                           });
                           Navigator.of(context).pop();
                         },
-                        icon: const Icon(Icons.close_rounded, color: Color(0xFF8F8A84)),
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          color: Color(0xFF8F8A84),
+                        ),
                       ),
                       const Expanded(
                         child: Text(
@@ -307,7 +318,11 @@ class _ProfilePageState extends State<ProfilePage> {
                       decoration: const InputDecoration(
                         border: InputBorder.none,
                         hintText: '搜索心情...',
-                        icon: Icon(Icons.search, color: AppTokens.textMuted, size: 18),
+                        icon: Icon(
+                          Icons.search,
+                          color: AppTokens.textMuted,
+                          size: 18,
+                        ),
                       ),
                     ),
                   ),
@@ -342,7 +357,9 @@ class _ProfilePageState extends State<ProfilePage> {
                           Expanded(
                             child: Container(
                               height: 50,
-                              padding: const EdgeInsets.symmetric(horizontal: 14),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFFFF6DD),
                                 borderRadius: BorderRadius.circular(18),
@@ -360,7 +377,8 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                           IconButton(
                             onPressed: () {
-                              if (custom.isEmpty || _moodOptions.contains(custom)) {
+                              if (custom.isEmpty ||
+                                  _moodOptions.contains(custom)) {
                                 return;
                               }
                               setState(() {
@@ -369,7 +387,10 @@ class _ProfilePageState extends State<ProfilePage> {
                               });
                               Navigator.of(context).pop();
                             },
-                            icon: const Icon(Icons.check_circle, color: AppTokens.duckYellow),
+                            icon: const Icon(
+                              Icons.check_circle,
+                              color: AppTokens.duckYellow,
+                            ),
                           ),
                           IconButton(
                             onPressed: () {
@@ -377,7 +398,10 @@ class _ProfilePageState extends State<ProfilePage> {
                                 creating = false;
                               });
                             },
-                            icon: const Icon(Icons.cancel, color: AppTokens.textMuted),
+                            icon: const Icon(
+                              Icons.cancel,
+                              color: AppTokens.textMuted,
+                            ),
                           ),
                         ],
                       ),
@@ -395,7 +419,9 @@ class _ProfilePageState extends State<ProfilePage> {
                       style: FilledButton.styleFrom(
                         backgroundColor: AppTokens.duckYellow,
                         foregroundColor: AppTokens.textMain,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
                       ),
                       child: const Text('新建心情'),
                     ),
@@ -411,7 +437,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<Map<String, List<String>>> _buildDoneCourseGroups() async {
     // 按“课表 -> 课程项”组织数据，便于对应 PRD 的分组抽屉结构。
-    final List<CourseTableEntity> tables = await _scheduleRepository.getCourseTables();
+    final List<CourseTableEntity> tables = await _scheduleRepository
+        .getCourseTables();
     final Map<String, List<String>> groups = <String, List<String>>{};
 
     for (final CourseTableEntity table in tables) {
@@ -419,7 +446,8 @@ class _ProfilePageState extends State<ProfilePage> {
         continue;
       }
 
-      final List<CourseEntity> courses = await _scheduleRepository.getCoursesByTableId(table.id!);
+      final List<CourseEntity> courses = await _scheduleRepository
+          .getCoursesByTableId(table.id!);
       final List<String> doneNames = courses
           .where(_isCourseDone)
           .map((CourseEntity c) => c.name)
@@ -438,7 +466,8 @@ class _ProfilePageState extends State<ProfilePage> {
     final int nowDay = now.weekday;
     final int nowPeriod = _guessCurrentPeriod(now);
     final int endPeriod = course.startTime + course.timeCount;
-    return course.weekTime < nowDay || (course.weekTime == nowDay && endPeriod < nowPeriod);
+    return course.weekTime < nowDay ||
+        (course.weekTime == nowDay && endPeriod < nowPeriod);
   }
 
   int _guessCurrentPeriod(DateTime now) {
@@ -472,9 +501,9 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _openPage(Widget page) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (BuildContext context) => page),
-    );
+    await Navigator.of(
+      context,
+    ).push(DuckPageRoute<void>(builder: (BuildContext context) => page));
     await _loadStats();
   }
 }
@@ -487,7 +516,7 @@ class _TopActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return DuckPressable(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Container(
@@ -496,6 +525,13 @@ class _TopActionButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFFFFF5D6),
           borderRadius: BorderRadius.circular(20),
+          boxShadow: const <BoxShadow>[
+            BoxShadow(
+              color: Color(0x14D19B00),
+              blurRadius: 12,
+              offset: Offset(0, 6),
+            ),
+          ],
         ),
         child: Icon(icon, color: const Color(0xFF40352A), size: 20),
       ),
@@ -508,11 +544,7 @@ class _StatDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 1,
-      height: 30,
-      color: const Color(0xFFF1E9DA),
-    );
+    return Container(width: 1, height: 30, color: const Color(0xFFF1E9DA));
   }
 }
 
@@ -531,7 +563,7 @@ class _StatBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return DuckPressable(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
@@ -571,22 +603,29 @@ class _MoodOptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: active ? const Color(0xFFFFF6DD) : Colors.white,
+    return DuckPressable(
+      onTap: onTap,
       borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: SizedBox(
-          height: 54,
-          child: Center(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppTokens.textMain,
-              ),
+      child: Container(
+        height: 54,
+        decoration: BoxDecoration(
+          color: active ? const Color(0xFFFFF6DD) : Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: const <BoxShadow>[
+            BoxShadow(
+              color: Color(0x10000000),
+              blurRadius: 12,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppTokens.textMain,
             ),
           ),
         ),
@@ -632,7 +671,9 @@ class _ReadonlyGroupedModalState extends State<_ReadonlyGroupedModal> {
       }
 
       final bool matchGroup = group.contains(_keyword);
-      final List<String> matchItems = items.where((String item) => item.contains(_keyword)).toList();
+      final List<String> matchItems = items
+          .where((String item) => item.contains(_keyword))
+          .toList();
       if (matchGroup || matchItems.isNotEmpty) {
         filtered[group] = matchGroup ? items : matchItems;
       }
@@ -654,7 +695,10 @@ class _ReadonlyGroupedModalState extends State<_ReadonlyGroupedModal> {
               children: <Widget>[
                 IconButton(
                   onPressed: () => Navigator.of(context).maybePop(),
-                  icon: const Icon(Icons.close_rounded, color: AppTokens.textMuted),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    color: AppTokens.textMuted,
+                  ),
                 ),
                 Expanded(
                   child: Text(
@@ -685,7 +729,11 @@ class _ReadonlyGroupedModalState extends State<_ReadonlyGroupedModal> {
                   });
                 },
                 decoration: const InputDecoration(
-                  icon: Icon(Icons.search, size: 18, color: AppTokens.textMuted),
+                  icon: Icon(
+                    Icons.search,
+                    size: 18,
+                    color: AppTokens.textMuted,
+                  ),
                   hintText: '搜索',
                   border: InputBorder.none,
                 ),
@@ -701,97 +749,114 @@ class _ReadonlyGroupedModalState extends State<_ReadonlyGroupedModal> {
                       ),
                     )
                   : ListView(
-                      children: filtered.entries.map((MapEntry<String, List<String>> entry) {
-                        final bool opened = _expanded.contains(entry.key);
-                        final List<String> preview = opened
-                            ? entry.value
-                            : entry.value.take(3).toList(growable: false);
+                      children: filtered.entries
+                          .map((MapEntry<String, List<String>> entry) {
+                            final bool opened = _expanded.contains(entry.key);
+                            final List<String> preview = opened
+                                ? entry.value
+                                : entry.value.take(3).toList(growable: false);
 
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: Column(
-                            children: <Widget>[
-                              Material(
-                                color: opened ? const Color(0xFFFFF6DD) : Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(16),
-                                  onTap: () {
-                                    setState(() {
-                                      if (opened) {
-                                        _expanded.remove(entry.key);
-                                      } else {
-                                        _expanded.add(entry.key);
-                                      }
-                                    });
-                                  },
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                    child: Row(
-                                      children: <Widget>[
-                                        Expanded(
-                                          child: Text(
-                                            entry.key,
-                                            style: const TextStyle(
-                                              color: AppTokens.textMain,
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w700,
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: Column(
+                                children: <Widget>[
+                                  DuckPressable(
+                                    onTap: () {
+                                      setState(() {
+                                        if (opened) {
+                                          _expanded.remove(entry.key);
+                                        } else {
+                                          _expanded.add(entry.key);
+                                        }
+                                      });
+                                    },
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: opened
+                                            ? const Color(0xFFFFF6DD)
+                                            : Colors.white,
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 12,
+                                        ),
+                                        child: Row(
+                                          children: <Widget>[
+                                            Expanded(
+                                              child: Text(
+                                                entry.key,
+                                                style: const TextStyle(
+                                                  color: AppTokens.textMain,
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
                                             ),
-                                          ),
+                                            AnimatedRotation(
+                                              turns: opened ? 0.5 : 0,
+                                              duration: AppMotion.quick,
+                                              curve: AppMotion.standard,
+                                              child: const Icon(
+                                                Icons
+                                                    .keyboard_arrow_down_rounded,
+                                                color: AppTokens.textMuted,
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        Icon(
-                                          opened
-                                              ? Icons.keyboard_arrow_up_rounded
-                                              : Icons.keyboard_arrow_down_rounded,
-                                          color: AppTokens.textMuted,
-                                        ),
-                                      ],
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ),
-                              if (opened)
-                                Container(
-                                  width: double.infinity,
-                                  margin: const EdgeInsets.only(top: 6),
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  child: Column(
-                                    children: preview
-                                        .map(
-                                          (String item) => Padding(
-                                            padding: const EdgeInsets.only(bottom: 8),
-                                            child: Row(
-                                              children: <Widget>[
-                                                const Icon(
-                                                  Icons.circle,
-                                                  size: 6,
-                                                  color: AppTokens.textMuted,
+                                  if (opened)
+                                    Container(
+                                      width: double.infinity,
+                                      margin: const EdgeInsets.only(top: 6),
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      child: Column(
+                                        children: preview
+                                            .map(
+                                              (String item) => Padding(
+                                                padding: const EdgeInsets.only(
+                                                  bottom: 8,
                                                 ),
-                                                const SizedBox(width: 8),
-                                                Expanded(
-                                                  child: Text(
-                                                    item,
-                                                    style: const TextStyle(
-                                                      fontSize: 13,
-                                                      color: AppTokens.textMain,
+                                                child: Row(
+                                                  children: <Widget>[
+                                                    const Icon(
+                                                      Icons.circle,
+                                                      size: 6,
+                                                      color:
+                                                          AppTokens.textMuted,
                                                     ),
-                                                  ),
+                                                    const SizedBox(width: 8),
+                                                    Expanded(
+                                                      child: Text(
+                                                        item,
+                                                        style: const TextStyle(
+                                                          fontSize: 13,
+                                                          color: AppTokens
+                                                              .textMain,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
-                                              ],
-                                            ),
-                                          ),
-                                        )
-                                        .toList(growable: false),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        );
-                      }).toList(growable: false),
+                                              ),
+                                            )
+                                            .toList(growable: false),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            );
+                          })
+                          .toList(growable: false),
                     ),
             ),
           ],
@@ -809,29 +874,36 @@ class _SettingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
+    return DuckPressable(
+      onTap: onTap,
       borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
-          child: Row(
-            children: <Widget>[
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF40352A),
-                  ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: const <BoxShadow>[
+            BoxShadow(
+              color: Color(0x12000000),
+              blurRadius: 14,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: <Widget>[
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF40352A),
                 ),
               ),
-              const Icon(Icons.chevron_right, color: Color(0xFFC6BBA8)),
-            ],
-          ),
+            ),
+            const Icon(Icons.chevron_right, color: Color(0xFFC6BBA8)),
+          ],
         ),
       ),
     );

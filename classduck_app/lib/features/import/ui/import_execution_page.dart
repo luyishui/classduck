@@ -7,9 +7,11 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../schedule/data/schedule_repository.dart';
 import '../../../shared/theme/app_tokens.dart';
+import '../../../shared/navigation/duck_page_route.dart';
 import '../application/import_engine.dart';
 import '../data/import_api_service.dart';
 import '../domain/school_config.dart';
+import 'doubao_import_page.dart';
 
 String normalizeImportUrl(String url) {
   final String trimmed = url.trim();
@@ -343,6 +345,14 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
       child: Row(
         children: <Widget>[
           OutlinedButton(
+            onPressed: _openDoubaoImport,
+            child: const Text(
+              '豆包导入',
+              style: TextStyle(color: Colors.black87),
+            ),
+          ),
+          const SizedBox(width: 12),
+          OutlinedButton(
             onPressed: _toggleDesktopMode,
             style: OutlinedButton.styleFrom(
               backgroundColor: _desktopMode
@@ -372,6 +382,25 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _openDoubaoImport() async {
+    final String sourceLabel = widget.config.title.trim().isEmpty
+        ? '当前教务系统'
+        : widget.config.title.trim();
+    final bool? imported = await Navigator.of(context).push<bool>(
+      DuckPageRoute<bool>(
+        builder: (BuildContext context) => DoubaoImportPage(
+          initialTableName: '$sourceLabel课表',
+          sourceLabel: sourceLabel,
+          autoCopyPrompt: true,
+        ),
+      ),
+    );
+
+    if (imported == true && mounted) {
+      Navigator.of(context).pop(true);
+    }
   }
 
   /// Web 端替代 UI：提示用户使用桌面/移动客户端，并提供浏览器打开链接
@@ -687,7 +716,7 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
       final Map<String, String> tokens = inferImportTermTokens(
         (schoolConfig['term_mapping'] as Map<String, dynamic>?) ?? <String, dynamic>{},
       );
-      String script = await _apiService.getProviderScript(widget.config.id);
+      String script = await _apiService.getProviderScriptWithFallback(widget.config);
       if (script.trim().isEmpty) {
         return;
       }

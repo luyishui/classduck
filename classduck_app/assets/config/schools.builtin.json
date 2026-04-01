@@ -11,6 +11,15 @@
                      "initialUrl":  "https://example.com/login"
                  },
                  {
+                     "id":  "sora",
+                     "delaySeconds":  1,
+                     "level":  "general",
+                     "targetUrl":  "https://sora.example.edu/schedule",
+                     "extractScriptUrl":  "local://parsers/sora_provider.js",
+                     "title":  "SORA教务",
+                     "initialUrl":  "https://sora.example.edu/login"
+                 },
+                 {
                      "id":  "generic-treew",
                      "delaySeconds":  3,
                      "level":  "general",

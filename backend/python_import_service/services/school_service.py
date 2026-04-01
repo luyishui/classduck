@@ -57,7 +57,7 @@ class SchoolService:
                 {
                     "id": config.id,
                     "delaySeconds": config.pre_extract_delay,
-                    "level": "general",
+                    "level": config.level,
                     "targetUrl": config.target_url,
                     "extractScriptUrl": f"/api/schools/{config.id}/script?script_type=provider",
                     "title": config.name,

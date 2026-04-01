@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../shared/navigation/duck_page_route.dart';
+import '../../../shared/theme/app_motion.dart';
 import '../../../shared/theme/app_tokens.dart';
 import '../../../shared/widgets/duck_modal.dart';
+import '../../../shared/widgets/duck_pressable.dart';
 import '../../schedule/domain/course.dart';
 import '../../schedule/data/schedule_repository.dart';
 import '../../schedule/domain/course_table.dart';
@@ -40,11 +43,7 @@ class _TodoPageState extends State<TodoPage>
     'contest': false,
   };
 
-  final List<String> _typeOrder = <String>[
-    'assignment',
-    'exam',
-    'contest',
-  ];
+  final List<String> _typeOrder = <String>['assignment', 'exam', 'contest'];
 
   final Map<String, String> _typeLabels = <String, String>{
     'assignment': '作业',
@@ -72,8 +71,12 @@ class _TodoPageState extends State<TodoPage>
     });
 
     try {
-      final List<TodoItem> pending = await _repository.getTodos(completed: false);
-      final List<TodoItem> completed = await _repository.getTodos(completed: true);
+      final List<TodoItem> pending = await _repository.getTodos(
+        completed: false,
+      );
+      final List<TodoItem> completed = await _repository.getTodos(
+        completed: true,
+      );
 
       setState(() {
         _pending = pending;
@@ -103,7 +106,10 @@ class _TodoPageState extends State<TodoPage>
                   children: <Widget>[
                     Row(
                       children: <Widget>[
-                        _TopActionButton(icon: Icons.menu, onTap: _openSidebarPlaceholder),
+                        _TopActionButton(
+                          icon: Icons.menu,
+                          onTap: _openSidebarPlaceholder,
+                        ),
                         const Expanded(
                           child: Text(
                             '待办',
@@ -126,8 +132,8 @@ class _TodoPageState extends State<TodoPage>
                       '今天也要把作业和考试安排得明明白白',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTokens.textMuted,
-                          ),
+                        color: AppTokens.textMuted,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Container(
@@ -147,9 +153,14 @@ class _TodoPageState extends State<TodoPage>
                         dividerColor: Colors.transparent,
                         labelColor: const Color(0xFF40352A),
                         unselectedLabelColor: const Color(0xFFB2A592),
-                        labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                        unselectedLabelStyle:
-                            const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        labelStyle: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        unselectedLabelStyle: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                         tabs: const <Widget>[
                           Tab(text: '未完成'),
                           Tab(text: '已完成'),
@@ -163,14 +174,14 @@ class _TodoPageState extends State<TodoPage>
                 child: _loading
                     ? const Center(child: CircularProgressIndicator())
                     : _error != null
-                        ? _buildError()
-                        : TabBarView(
-                            controller: _tabController,
-                            children: <Widget>[
-                              _buildTodoTab(items: _pending, completed: false),
-                              _buildTodoTab(items: _completed, completed: true),
-                            ],
-                          ),
+                    ? _buildError()
+                    : TabBarView(
+                        controller: _tabController,
+                        children: <Widget>[
+                          _buildTodoTab(items: _pending, completed: false),
+                          _buildTodoTab(items: _completed, completed: true),
+                        ],
+                      ),
               ),
             ],
           ),
@@ -205,9 +216,14 @@ class _TodoPageState extends State<TodoPage>
     );
   }
 
-  Widget _buildTodoTab({required List<TodoItem> items, required bool completed}) {
+  Widget _buildTodoTab({
+    required List<TodoItem> items,
+    required bool completed,
+  }) {
     // 未完成与已完成使用独立展开状态，避免切换分栏时抽屉状态相互污染。
-    final Map<String, bool> expandedMap = completed ? _completedExpanded : _pendingExpanded;
+    final Map<String, bool> expandedMap = completed
+        ? _completedExpanded
+        : _pendingExpanded;
 
     return RefreshIndicator(
       onRefresh: _load,
@@ -218,7 +234,9 @@ class _TodoPageState extends State<TodoPage>
             _buildGroupHeader(
               type: type,
               expanded: expandedMap[type] ?? false,
-              count: items.where((TodoItem item) => item.taskType == type).length,
+              count: items
+                  .where((TodoItem item) => item.taskType == type)
+                  .length,
               onToggle: () {
                 setState(() {
                   expandedMap[type] = !(expandedMap[type] ?? false);
@@ -253,8 +271,9 @@ class _TodoPageState extends State<TodoPage>
     required int count,
     required VoidCallback onToggle,
   }) {
-    return InkWell(
+    return DuckPressable(
       onTap: onToggle,
+      borderRadius: BorderRadius.circular(16),
       child: Padding(
         padding: const EdgeInsets.only(bottom: 4),
         child: Row(
@@ -272,14 +291,22 @@ class _TodoPageState extends State<TodoPage>
                 padding: const EdgeInsets.only(left: 6),
                 child: Text(
                   '$count',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFFB2A592)),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFFB2A592),
+                  ),
                 ),
               ),
             const Spacer(),
-            Icon(
-              expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-              size: 18,
-              color: const Color(0xFFB2A592),
+            AnimatedRotation(
+              turns: expanded ? 0.5 : 0,
+              duration: AppMotion.quick,
+              curve: AppMotion.standard,
+              child: const Icon(
+                Icons.keyboard_arrow_down,
+                size: 18,
+                color: Color(0xFFB2A592),
+              ),
             ),
           ],
         ),
@@ -301,19 +328,31 @@ class _TodoPageState extends State<TodoPage>
       return <Widget>[];
     }
 
-    final List<TodoItem> visible = expanded ? grouped : const <TodoItem>[];
-
-    return visible
-        .map((TodoItem item) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: _TodoCard(
-                item: item,
-                completed: completed,
-                onToggle: (bool value) => _toggleCompleted(item, value),
-                onDelete: () => _delete(item),
-              ),
-            ))
-        .toList(growable: false);
+    return <Widget>[
+      AnimatedSize(
+        duration: AppMotion.regular,
+        curve: AppMotion.decelerate,
+        alignment: Alignment.topCenter,
+        child: Column(
+          children: expanded
+              ? grouped
+                    .map(
+                      (TodoItem item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _TodoCard(
+                          item: item,
+                          completed: completed,
+                          onToggle: (bool value) =>
+                              _toggleCompleted(item, value),
+                          onDelete: () => _delete(item),
+                        ),
+                      ),
+                    )
+                    .toList(growable: false)
+              : const <Widget>[],
+        ),
+      ),
+    ];
   }
 
   Future<void> _openNewTodo() async {
@@ -323,7 +362,7 @@ class _TodoPageState extends State<TodoPage>
     }
 
     final bool? created = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
+      DuckPageRoute<bool>(
         builder: (BuildContext context) => NewTodoPage(
           taskTypeLabels: Map<String, String>.from(_typeLabels),
           courseOptions: List<String>.from(latestCourseOptions),
@@ -352,10 +391,12 @@ class _TodoPageState extends State<TodoPage>
   }
 
   Future<List<String>> _loadCourseOptions() async {
-    final List<CourseTableEntity> tables = await _scheduleRepository.getCourseTables();
+    final List<CourseTableEntity> tables = await _scheduleRepository
+        .getCourseTables();
     final Set<String> names = <String>{};
 
-    final List<Future<List<CourseEntity>>> tasks = <Future<List<CourseEntity>>>[];
+    final List<Future<List<CourseEntity>>> tasks =
+        <Future<List<CourseEntity>>>[];
     for (final CourseTableEntity table in tables) {
       final int? tableId = table.id;
       if (tableId == null) {
@@ -381,7 +422,9 @@ class _TodoPageState extends State<TodoPage>
     // - sidebar_open_normal: editingType=false，只展示分组与“+ 新建待办”
     // - sidebar_open_editing: editingType=true，插入输入行 + 勾叉操作
     // 关闭侧栏即销毁局部编辑态，等价于“取消临时编辑”。
-    final TextEditingController controller = TextEditingController(text: '自定义名称');
+    final TextEditingController controller = TextEditingController(
+      text: '自定义名称',
+    );
     bool editingType = false;
 
     await showGeneralDialog<void>(
@@ -390,203 +433,237 @@ class _TodoPageState extends State<TodoPage>
       barrierLabel: 'todo-sidebar',
       barrierColor: const Color(0x66000000),
       transitionDuration: const Duration(milliseconds: 180),
-      pageBuilder: (
-        BuildContext dialogContext,
-        Animation<double> animation,
-        Animation<double> secondaryAnimation,
-      ) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            Future<void> confirmCreateType() async {
-              // 对齐 PRD：确认前需做非空和重名校验。
-              final String name = controller.text.trim();
-              if (name.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('请输入类型名称')),
-                );
-                return;
-              }
-              if (_typeLabels.containsValue(name)) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('该类型已存在')),
-                );
-                return;
-              }
+      pageBuilder:
+          (
+            BuildContext dialogContext,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+          ) {
+            return StatefulBuilder(
+              builder: (BuildContext context, StateSetter setModalState) {
+                Future<void> confirmCreateType() async {
+                  // 对齐 PRD：确认前需做非空和重名校验。
+                  final String name = controller.text.trim();
+                  if (name.isEmpty) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(const SnackBar(content: Text('请输入类型名称')));
+                    return;
+                  }
+                  if (_typeLabels.containsValue(name)) {
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(const SnackBar(content: Text('该类型已存在')));
+                    return;
+                  }
 
-              final String key = name;
-              setState(() {
-                // 对齐 PRD 联动：新增类型后，同步影响主页面分组和新建待办类型集合。
-                _typeOrder.add(key);
-                _typeLabels[key] = name;
-                _pendingExpanded[key] = false;
-                _completedExpanded[key] = false;
-              });
-              setModalState(() {
-                editingType = false;
-                controller.text = '自定义名称';
-              });
-            }
+                  final String key = name;
+                  setState(() {
+                    // 对齐 PRD 联动：新增类型后，同步影响主页面分组和新建待办类型集合。
+                    _typeOrder.add(key);
+                    _typeLabels[key] = name;
+                    _pendingExpanded[key] = false;
+                    _completedExpanded[key] = false;
+                  });
+                  setModalState(() {
+                    editingType = false;
+                    controller.text = '自定义名称';
+                  });
+                }
 
-            return Align(
-              alignment: Alignment.centerLeft,
-              child: Material(
-                color: const Color(0xFFFFFDF6),
-                child: SizedBox(
-                  width: 340,
-                  child: SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: <Widget>[
-                          const CircleAvatar(
-                            radius: 20,
-                            backgroundColor: Color(0xFFFFEAB1),
-                            child: Text(
-                              '鸭',
-                              style: TextStyle(
-                                color: AppTokens.textMain,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            '上课鸭',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: AppTokens.textMain,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Expanded(
-                            child: ListView(
-                              children: <Widget>[
-                                for (final String key in _typeOrder)
-                                  Padding(
-                                    padding: const EdgeInsets.only(bottom: 12),
-                                    child: _TodoSidebarCard(
-                                      title: _typeTitle(key),
-                                      onDelete: () async {
-                                        final bool? ok = await showDialog<bool>(
-                                          context: context,
-                                          builder: (BuildContext context) {
-                                            return AlertDialog(
-                                              title: const Text('删除待办类型'),
-                                              content: Text('确认删除“${_typeTitle(key)}”以及其下所有待办吗？'),
-                                              actions: <Widget>[
-                                                TextButton(
-                                                  onPressed: () => Navigator.of(context).pop(false),
-                                                  child: const Text('取消'),
-                                                ),
-                                                FilledButton(
-                                                  onPressed: () => Navigator.of(context).pop(true),
-                                                  child: const Text('删除'),
-                                                ),
-                                              ],
-                                            );
-                                          },
-                                        );
-
-                                        if (ok != true) {
-                                          return;
-                                        }
-
-                                        await _repository.deleteTodosByTaskType(key);
-                                        setState(() {
-                                          _typeOrder.remove(key);
-                                          _typeLabels.remove(key);
-                                          _pendingExpanded.remove(key);
-                                          _completedExpanded.remove(key);
-                                        });
-                                        await _load();
-                                      },
-                                      onTap: () => Navigator.of(dialogContext).maybePop(),
-                                    ),
-                                  ),
-                                if (editingType)
-                                  Container(
-                                    margin: const EdgeInsets.only(bottom: 12),
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF2F2F2),
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                    child: Row(
-                                      children: <Widget>[
-                                        Expanded(
-                                          child: TextField(
-                                            controller: controller,
-                                            autofocus: true,
-                                            maxLength: 12,
-                                            decoration: const InputDecoration(
-                                              isDense: true,
-                                              counterText: '',
-                                              border: InputBorder.none,
-                                            ),
-                                          ),
-                                        ),
-                                        IconButton(
-                                          onPressed: confirmCreateType,
-                                          icon: const Icon(Icons.check_circle, color: AppTokens.duckYellow),
-                                        ),
-                                        IconButton(
-                                          onPressed: () {
-                                            setModalState(() {
-                                              editingType = false;
-                                              controller.text = '自定义名称';
-                                            });
-                                          },
-                                          icon: const Icon(Icons.cancel, color: AppTokens.duckYellow),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 16),
-                                  child: _TodoSidebarCard(
-                                    title: '+ 新建类型',
-                                    highlighted: true,
-                                    onTap: () {
-                                      setModalState(() {
-                                          // 普通态 -> 激活态，插入“自定义名称 + 勾叉”输入行。
-                                        editingType = true;
-                                        controller.selection = TextSelection(
-                                          baseOffset: 0,
-                                          extentOffset: controller.text.length,
-                                        );
-                                      });
-                                    },
+                return Align(
+                  alignment: Alignment.centerLeft,
+                  child: Material(
+                    color: const Color(0xFFFFFDF6),
+                    child: SizedBox(
+                      width: 340,
+                      child: SafeArea(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: <Widget>[
+                              const CircleAvatar(
+                                radius: 20,
+                                backgroundColor: Color(0xFFFFEAB1),
+                                child: Text(
+                                  '鸭',
+                                  style: TextStyle(
+                                    color: AppTokens.textMain,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                '上课鸭',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: AppTokens.textMain,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Expanded(
+                                child: ListView(
+                                  children: <Widget>[
+                                    for (final String key in _typeOrder)
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 12,
+                                        ),
+                                        child: _TodoSidebarCard(
+                                          title: _typeTitle(key),
+                                          onDelete: () async {
+                                            final bool?
+                                            ok = await showDialog<bool>(
+                                              context: context,
+                                              builder: (BuildContext context) {
+                                                return AlertDialog(
+                                                  title: const Text('删除待办类型'),
+                                                  content: Text(
+                                                    '确认删除“${_typeTitle(key)}”以及其下所有待办吗？',
+                                                  ),
+                                                  actions: <Widget>[
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.of(
+                                                            context,
+                                                          ).pop(false),
+                                                      child: const Text('取消'),
+                                                    ),
+                                                    FilledButton(
+                                                      onPressed: () =>
+                                                          Navigator.of(
+                                                            context,
+                                                          ).pop(true),
+                                                      child: const Text('删除'),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
+                                            );
+
+                                            if (ok != true) {
+                                              return;
+                                            }
+
+                                            await _repository
+                                                .deleteTodosByTaskType(key);
+                                            setState(() {
+                                              _typeOrder.remove(key);
+                                              _typeLabels.remove(key);
+                                              _pendingExpanded.remove(key);
+                                              _completedExpanded.remove(key);
+                                            });
+                                            await _load();
+                                          },
+                                          onTap: () => Navigator.of(
+                                            dialogContext,
+                                          ).maybePop(),
+                                        ),
+                                      ),
+                                    if (editingType)
+                                      Container(
+                                        margin: const EdgeInsets.only(
+                                          bottom: 12,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 10,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF2F2F2),
+                                          borderRadius: BorderRadius.circular(
+                                            14,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: <Widget>[
+                                            Expanded(
+                                              child: TextField(
+                                                controller: controller,
+                                                autofocus: true,
+                                                maxLength: 12,
+                                                decoration:
+                                                    const InputDecoration(
+                                                      isDense: true,
+                                                      counterText: '',
+                                                      border: InputBorder.none,
+                                                    ),
+                                              ),
+                                            ),
+                                            IconButton(
+                                              onPressed: confirmCreateType,
+                                              icon: const Icon(
+                                                Icons.check_circle,
+                                                color: AppTokens.duckYellow,
+                                              ),
+                                            ),
+                                            IconButton(
+                                              onPressed: () {
+                                                setModalState(() {
+                                                  editingType = false;
+                                                  controller.text = '自定义名称';
+                                                });
+                                              },
+                                              icon: const Icon(
+                                                Icons.cancel,
+                                                color: AppTokens.duckYellow,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: 16,
+                                      ),
+                                      child: _TodoSidebarCard(
+                                        title: '+ 新建类型',
+                                        highlighted: true,
+                                        onTap: () {
+                                          setModalState(() {
+                                            // 普通态 -> 激活态，插入“自定义名称 + 勾叉”输入行。
+                                            editingType = true;
+                                            controller.selection =
+                                                TextSelection(
+                                                  baseOffset: 0,
+                                                  extentOffset:
+                                                      controller.text.length,
+                                                );
+                                          });
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
+                );
+              },
             );
           },
-        );
-      },
-      transitionBuilder: (
-        BuildContext context,
-        Animation<double> animation,
-        Animation<double> secondaryAnimation,
-        Widget child,
-      ) {
-        final Animation<Offset> slide = Tween<Offset>(
-          begin: const Offset(-1, 0),
-          end: Offset.zero,
-        ).animate(animation);
-        return SlideTransition(position: slide, child: child);
-      },
+      transitionBuilder:
+          (
+            BuildContext context,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+            Widget child,
+          ) {
+            final Animation<Offset> slide = Tween<Offset>(
+              begin: const Offset(-1, 0),
+              end: Offset.zero,
+            ).animate(animation);
+            return SlideTransition(position: slide, child: child);
+          },
     );
 
     controller.dispose();
@@ -622,20 +699,30 @@ class _TodoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final DateTime? dueAt = DateTime.tryParse(item.dueAt)?.toLocal();
-    final String dueText =
-        dueAt == null ? '无截止时间' : DateFormat('M月d日 HH:mm').format(dueAt);
+    final String dueText = dueAt == null
+        ? '无截止时间'
+        : DateFormat('M月d日 HH:mm').format(dueAt);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.72)),
+        boxShadow: const <BoxShadow>[
+          BoxShadow(
+            color: Color(0x14000000),
+            blurRadius: 14,
+            offset: Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          InkWell(
+          DuckPressable(
             onTap: () => onToggle(!item.isCompleted),
+            borderRadius: BorderRadius.circular(999),
             child: Container(
               width: 18,
               height: 18,
@@ -643,10 +730,14 @@ class _TodoCard extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: item.isCompleted ? AppTokens.duckYellow : const Color(0xFFCDBFA8),
+                  color: item.isCompleted
+                      ? AppTokens.duckYellow
+                      : const Color(0xFFCDBFA8),
                   width: 1.2,
                 ),
-                color: item.isCompleted ? AppTokens.duckYellow : Colors.transparent,
+                color: item.isCompleted
+                    ? AppTokens.duckYellow
+                    : Colors.transparent,
               ),
               child: item.isCompleted
                   ? const Icon(Icons.check, size: 12, color: Colors.white)
@@ -663,19 +754,27 @@ class _TodoCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: completed ? const Color(0xFFB2A592) : const Color(0xFF2F271D),
+                    color: completed
+                        ? const Color(0xFFB2A592)
+                        : const Color(0xFF2F271D),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   dueText,
-                  style: const TextStyle(fontSize: 11, color: Color(0xFFB2A592)),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFFB2A592),
+                  ),
                 ),
                 if ((item.courseName ?? '').isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFE6F1DD),
                         borderRadius: BorderRadius.circular(12),
@@ -694,7 +793,11 @@ class _TodoCard extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline, size: 20, color: Color(0xFFC6BBA8)),
+            icon: const Icon(
+              Icons.delete_outline,
+              size: 20,
+              color: Color(0xFFC6BBA8),
+            ),
             onPressed: onDelete,
             splashRadius: 18,
           ),
@@ -719,42 +822,51 @@ class _TodoSidebarCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: highlighted ? const Color(0xFFFFF2C9) : Colors.white,
+    return DuckPressable(
+      onTap: onTap,
       borderRadius: BorderRadius.circular(24),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(24),
-        onTap: onTap,
-        child: SizedBox(
-          height: 76,
-          child: Row(
-            children: <Widget>[
-              const SizedBox(width: 18),
-              Expanded(
-                child: Text(
-                  title,
-                  textAlign: TextAlign.left,
-                  style: TextStyle(
-                    color: highlighted ? const Color(0xFFB98500) : AppTokens.textMain,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
+      child: Container(
+        height: 76,
+        decoration: BoxDecoration(
+          color: highlighted ? const Color(0xFFFFF2C9) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: const <BoxShadow>[
+            BoxShadow(
+              color: Color(0x12000000),
+              blurRadius: 14,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: <Widget>[
+            const SizedBox(width: 18),
+            Expanded(
+              child: Text(
+                title,
+                textAlign: TextAlign.left,
+                style: TextStyle(
+                  color: highlighted
+                      ? const Color(0xFFB98500)
+                      : AppTokens.textMain,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              if (onDelete != null)
-                IconButton(
-                  onPressed: onDelete,
-                  splashRadius: 18,
-                  icon: const Icon(
-                    Icons.delete,
-                    color: AppTokens.duckYellow,
-                    size: 20,
-                  ),
-                )
-              else
-                const SizedBox(width: 40),
-            ],
-          ),
+            ),
+            if (onDelete != null)
+              IconButton(
+                onPressed: onDelete,
+                splashRadius: 18,
+                icon: const Icon(
+                  Icons.delete,
+                  color: AppTokens.duckYellow,
+                  size: 20,
+                ),
+              )
+            else
+              const SizedBox(width: 40),
+          ],
         ),
       ),
     );
@@ -769,7 +881,7 @@ class _TopActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return DuckPressable(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Container(
@@ -778,6 +890,13 @@ class _TopActionButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFFFFF5D6),
           borderRadius: BorderRadius.circular(20),
+          boxShadow: const <BoxShadow>[
+            BoxShadow(
+              color: Color(0x14D19B00),
+              blurRadius: 12,
+              offset: Offset(0, 6),
+            ),
+          ],
         ),
         child: Icon(icon, color: const Color(0xFF40352A), size: 20),
       ),

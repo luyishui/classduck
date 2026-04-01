@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../../schedule/data/schedule_repository.dart';
+import 'doubao_import_parser.dart';
 import '../../schedule/domain/course.dart';
 import '../data/import_api_service.dart';
 import '../domain/import_course.dart';
@@ -34,6 +35,18 @@ class ImportEngine {
 
   final ScheduleRepository _scheduleRepository;
   final ImportApiService _apiService;
+
+  Future<ImportExecutionResult> importFromDoubaoText(
+    String content, {
+    String tableName = '豆包导入课表',
+    ImportConflictMode mode = ImportConflictMode.createNew,
+  }) async {
+    final ImportTable parsed = DoubaoImportParser.parse(
+      content,
+      fallbackTableName: tableName,
+    );
+    return _storeParsedTable(parsed, mode: mode);
+  }
 
   // ────────────────────────────────────────────
   // 新通路：WebView 中 JS 拿到原始 JSON → 后端校验

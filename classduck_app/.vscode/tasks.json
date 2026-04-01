@@ -13,6 +13,18 @@
 				"4088"
 			],
 			"isBackground": true
+		},
+		{
+			"label": "run-classduck-web",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"run",
+				"-d",
+				"web-server",
+				"--web-port=8080"
+			],
+			"isBackground": true
 		}
 	]
 }
