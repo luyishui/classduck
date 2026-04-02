@@ -13,6 +13,17 @@
 				"4088"
 			],
 			"isBackground": true
+		},
+		{
+			"label": "run-classduck-on-emulator",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"run",
+				"-d",
+				"emulator-5554"
+			],
+			"isBackground": true
 		}
 	]
 }

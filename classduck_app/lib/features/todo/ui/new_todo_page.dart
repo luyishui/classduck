@@ -590,7 +590,7 @@ class _NewTodoPageState extends State<NewTodoPage> {
                                 ),
                               );
                             },
-                            separatorBuilder: (_, __) => const SizedBox(height: 6),
+                            separatorBuilder: (_, _) => const SizedBox(height: 6),
                           ),
                         ),
                       const SizedBox(height: 10),
@@ -725,7 +725,7 @@ class _CourseSelectPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color background = active ? color : color.withOpacity(0.18);
+    final Color background = active ? color : color.withValues(alpha: 0.18);
     final Color textColor = active ? Colors.white : AppTokens.textMain;
 
     return Material(

@@ -2589,6 +2589,7 @@ class _SchedulePageState extends State<SchedulePage> {
     }
   }
 
+  // ignore: unused_element
   Map<String, Color> _buildAdjacentAwareColorMap(List<CourseEntity> courses) {
     const List<Color> palette = <Color>[
       Color(0xFFD45E6A),
@@ -3713,7 +3714,7 @@ class _CourseActivatedModalState extends State<_CourseActivatedModal> {
                       ),
                     );
                   },
-                  separatorBuilder: (_, __) => const SizedBox(height: 6),
+                  separatorBuilder: (_, _) => const SizedBox(height: 6),
                 ),
               ),
             const SizedBox(height: 6),

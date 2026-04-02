@@ -562,9 +562,38 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
     await showDialog<void>(
       context: context,
       builder: (BuildContext context) {
-        return const AlertDialog(
-          title: Text('导入帮助'),
-          content: Text('1. 先选择学校\n2. 进入教务系统登录\n3. 进入课表页后执行导入'),
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text(
+            '导入帮助',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: Colors.black87,
+            ),
+          ),
+          content: const Text(
+            '1. 先选择学校\n2. 进入教务系统登录\n3. 进入课表页后执行导入',
+            style: TextStyle(
+              fontSize: 15,
+              height: 1.5,
+              color: Colors.black87,
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.black87,
+                textStyle: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              child: const Text('我已了解'),
+            ),
+          ],
         );
       },
     );
