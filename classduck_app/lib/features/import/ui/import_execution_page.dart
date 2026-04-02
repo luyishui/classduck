@@ -56,8 +56,6 @@ Map<String, String> inferImportTermTokens(
 /// │                                     │
 /// │         全屏 WebView                │  ← 教务系统网页
 /// │                                     │
-/// ├─────────────────────────────────────┤
-/// │  [电脑模式]    [密码一直错误？]       │  ← 底部工具栏
 /// └─────────────────────────────────────┘
 ///                                  [?]    ← 右下角浮动按钮
 ///                                  [↓]
@@ -126,18 +124,66 @@ class ImportConflictDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('导入冲突处理'),
-      content: const Text('检测到当前已有课表，选择导入方式：'),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(ImportConflictMode.createNew),
-          child: const Text('新建课表导入'),
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: const Text(
+        '课表导入冲突处理',
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          color: Colors.black87,
         ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(ImportConflictMode.overwriteExisting),
-          child: const Text('覆盖当前课表'),
-        ),
-      ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          const Text(
+            '检测到您当前已存在课表数据，请选择本次导入的处理方式：',
+            style: TextStyle(
+              fontSize: 15,
+              height: 1.5,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: SizedBox(
+                  height: 44,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(ImportConflictMode.createNew),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTokens.duckYellow,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    child: const Text('新增为独立课表'),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: SizedBox(
+                  height: 44,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).pop(ImportConflictMode.overwriteExisting),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTokens.duckYellow,
+                      side: const BorderSide(color: AppTokens.duckYellow, width: 1.4),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    child: const Text('覆盖原有课表'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -155,9 +201,6 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
   bool _cacheMissRecovering = false;
   bool _cacheMissRecoveredHintShown = false;
   String _currentUrl = '';
-
-  // 是否启用桌面模式（修改 User-Agent 为桌面浏览器）——仅原生端有效
-  bool _desktopMode = false;
 
   // 导入相关状态
   bool _importing = false;
@@ -355,7 +398,7 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
                   // ── 右下角浮动按钮 ──
                   Positioned(
                     right: 20,
-                    bottom: 78,
+                    bottom: 20,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
@@ -376,8 +419,6 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
                 ],
               ),
             ),
-            // ── 底部工具栏 ──
-            _buildBottomToolbar(context),
           ],
         ),
       ),
@@ -456,45 +497,6 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
     );
   }
 
-  /// 底部工具栏：电脑模式 + 密码帮助
-  Widget _buildBottomToolbar(BuildContext context) {
-    return Container(
-      color: Colors.grey.shade50,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: <Widget>[
-          OutlinedButton(
-            onPressed: _toggleDesktopMode,
-            style: OutlinedButton.styleFrom(
-              backgroundColor: _desktopMode
-                  ? AppTokens.duckYellow.withAlpha(40)
-                  : null,
-              side: BorderSide(
-                color: _desktopMode
-                    ? AppTokens.duckYellow
-                    : Colors.grey.shade400,
-              ),
-            ),
-            child: Text(
-              '电脑模式',
-              style: TextStyle(
-                color: _desktopMode ? AppTokens.duckYellow : Colors.black87,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          OutlinedButton(
-            onPressed: _showPasswordHelp,
-            child: const Text(
-              '密码一直错误？',
-              style: TextStyle(color: Colors.black87),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   /// Web 端替代 UI：提示用户使用桌面/移动客户端，并提供浏览器打开链接
   Widget _buildWebFallback() {
     return ImportWebFallbackPanel(onOpen: () => _openInBrowser(_currentUrl));
@@ -533,92 +535,98 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
     }
   }
 
-  /// 切换电脑模式（修改 User-Agent）——仅原生端支持
-  void _toggleDesktopMode() {
-    setState(() {
-      _desktopMode = !_desktopMode;
-    });
-
-    // Web 端 iframe 不支持 setUserAgent，跳过
-    if (kIsWeb) return;
-
-    // 设置桌面/移动 User-Agent 并重新加载
-    if (_desktopMode) {
-      _webController?.setUserAgent(
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-        '(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      );
-    } else {
-      _webController?.setUserAgent(null); // 恢复默认
-    }
-
-    final String reloadUrl = _currentUrl.trim().isEmpty || _currentUrl == 'about:blank'
-      ? _effectiveInitialUrl()
-      : normalizeImportUrl(_currentUrl);
-    _loadUrlDirect(reloadUrl);
-  }
-
-  /// 密码帮助
-  void _showPasswordHelp() {
-    showDialog<void>(
-      context: context,
-      builder: (BuildContext context) => AlertDialog(
-        title: const Text('密码一直错误？'),
-        content: const Text(
-          '1. 确认是否使用了正确的教务系统账号密码\n'
-          '2. 部分学校初始密码为身份证后6位\n'
-          '3. 如忘记密码，请联系学校教务处重置\n'
-          '4. 部分学校需要连接校园网才能访问',
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('我知道啦'),
-          ),
-        ],
-      ),
-    );
-  }
-
   /// 首次进入的注意事项对话框
   void _showNoticeDialog() {
     showDialog<void>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
-        title: const Text('注意事项'),
-        content: const Text.rich(
-          TextSpan(
-            children: <TextSpan>[
-              TextSpan(text: '1. 在上方输入教务网址，部分学校需要连接校园网。\n\n'),
-              TextSpan(text: '2. 登录后点击到'),
-              TextSpan(
-                text: '个人课表',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          '操作注意事项',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: Colors.black87,
+          ),
+        ),
+        content: const SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                '1. 请在页面上方输入对应教务系统的网址，部分院校需连接校园内网方可正常访问。',
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.55,
+                  color: Colors.black87,
+                ),
               ),
-              TextSpan(text: '的页面，注意选择自己需要导入的学期，'),
-              TextSpan(
-                text: '一般首页的课表都是不可导入的！',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+              SizedBox(height: 12),
+              Text(
+                '2. 登录成功后，请进入个人课表页面，选择需要导入的对应学期。',
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.55,
+                  color: Colors.black87,
+                ),
               ),
-              TextSpan(text: ' 另外不会导入调课、'),
-              TextSpan(
-                text: '停课的信息',
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+              SizedBox(height: 10),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: AppTokens.duckYellowSoft,
+                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                  border: Border.fromBorderSide(
+                    BorderSide(color: AppTokens.duckYellow, width: 1.2),
+                  ),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  child: Text(
+                    '▶ 首页展示的课表通常无法直接导入；系统暂不支持自动导入调课、停课相关信息，导入完成后请您自行核对修改。',
+                    style: TextStyle(
+                      fontSize: 14,
+                      height: 1.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF6E4F00),
+                    ),
+                  ),
+                ),
               ),
-              TextSpan(text: '，请导入后自行修改！\n\n'),
-              TextSpan(text: '3. 点击右下角的按钮完成导入。\n\n'),
-              TextSpan(text: '4. 如果遇到网页错位等问题，可以尝试取消底栏的「电脑模式」或者调节字体缩放。'),
+              SizedBox(height: 12),
+              Text(
+                '3. 确认课表信息无误后，点击页面右下角按钮即可完成课表导入。',
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.55,
+                  color: Colors.black87,
+                ),
+              ),
+              SizedBox(height: 12),
+              Text(
+                '4. 若出现网页错位、显示异常等问题，可尝试调整页面字体缩放比例解决。',
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.55,
+                  color: Colors.black87,
+                ),
+              ),
             ],
           ),
         ),
+        actionsAlignment: MainAxisAlignment.end,
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('如何正确选择教务？'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('我知道啦'),
+            style: TextButton.styleFrom(
+              foregroundColor: AppTokens.duckYellow,
+              textStyle: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+              ),
+            ),
+            child: const Text('我已了解'),
           ),
         ],
       ),
