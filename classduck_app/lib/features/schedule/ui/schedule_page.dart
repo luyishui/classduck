@@ -11,6 +11,7 @@ import 'package:vibration/vibration.dart';
 import '../../import/data/school_config_repository.dart';
 import '../../import/domain/school_config.dart';
 import '../../import/ui/import_school_list_page.dart';
+import '../../import/ui/doubao_import_page.dart';
 import '../../settings/data/appearance_state.dart';
 import '../../todo/data/todo_repository.dart';
 import '../../todo/domain/todo_item.dart';
@@ -336,6 +337,13 @@ class _SchedulePageState extends State<SchedulePage> {
                           title: '拍照添加',
                           onTap: () => _handleAddMenuAction('camera'),
                         ),
+                        const SizedBox(height: 10),
+                        _AddMenuItem(
+                          icon: Icons.auto_awesome_rounded,
+                          iconColor: const Color(0xFFFFD966),
+                          title: '豆包AI识别',
+                          onTap: () => _handleAddMenuAction('doubao'),
+                        ),
                       ],
                     ),
                   ),
@@ -410,6 +418,15 @@ class _SchedulePageState extends State<SchedulePage> {
       }
     } else if (action == 'camera') {
       await _handleCameraAdd();
+    } else if (action == 'doubao') {
+      final bool? imported = await Navigator.of(context).push<bool>(
+        MaterialPageRoute<bool>(
+          builder: (BuildContext context) => const DoubaoImportPage(),
+        ),
+      );
+      if (imported == true) {
+        await _loadScheduleData();
+      }
     }
   }
 

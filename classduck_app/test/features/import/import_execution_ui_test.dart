@@ -81,9 +81,9 @@ void main() {
 
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
-    expect(find.text('导入冲突处理'), findsOneWidget);
+    expect(find.text('课表导入冲突处理'), findsOneWidget);
 
-    await tester.tap(find.text('覆盖当前课表'));
+    await tester.tap(find.text('覆盖原有课表'));
     await tester.pumpAndSettle();
 
     expect(result, ImportConflictMode.overwriteExisting);
