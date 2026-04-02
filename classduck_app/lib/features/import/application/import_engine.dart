@@ -6,6 +6,7 @@ import '../data/import_api_service.dart';
 import '../domain/import_course.dart';
 import '../domain/import_table.dart';
 import '../domain/school_config.dart';
+import 'doubao_import_parser.dart';
 import 'xjtu_schedule_html_parser.dart';
 
 class ImportExecutionResult {
@@ -132,6 +133,29 @@ class ImportEngine {
       throw StateError('未解析到课程，请确认已进入课表页面。');
     }
 
+    return _storeParsedTable(parsed, mode: mode);
+  }
+
+  // ────────────────────────────────────────────
+  // 豆包 AI 导入通路：用户粘贴豆包返回的 JSON 文本 → 本地解析 → 存库
+  //
+  // 【实现思路】
+  // 1. 调用 DoubaoImportParser.parse() 对用户粘贴的原始文本进行 JSON 提取与结构化解析。
+  // 2. 解析器能容忍 markdown 代码块包裹、多种字段命名风格、中文星期/周次等。
+  // 3. 解析成功后得到 ImportTable（含课表名 + ImportCourse 列表），
+  //    交由 _storeParsedTable() 写入 SQLite。
+  // 4. 此通路完全离线，不依赖后端。
+  // ────────────────────────────────────────────
+
+  Future<ImportExecutionResult> importFromDoubaoText(
+    String text, {
+    String tableName = '豆包导入课表',
+    ImportConflictMode mode = ImportConflictMode.createNew,
+  }) async {
+    final ImportTable parsed = DoubaoImportParser.parse(
+      text,
+      fallbackTableName: tableName,
+    );
     return _storeParsedTable(parsed, mode: mode);
   }
 
