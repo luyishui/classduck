@@ -330,6 +330,44 @@ class ScheduleRepository {
     await db.delete(DbHelper.tableCourseTable);
   }
 
+  /// 重命名课表。
+  ///
+  /// 【实现思路】
+  /// 仅更新 course_table 表中指定 tableId 行的 name 字段，
+  /// Web 端则直接替换内存列表中的对应记录。
+  Future<void> renameCourseTable({
+    required int tableId,
+    required String newName,
+  }) async {
+    if (kIsWeb) {
+      final int index = _webTables.indexWhere(
+        (CourseTableEntity item) => item.id == tableId,
+      );
+      if (index < 0) return;
+      final CourseTableEntity current = _webTables[index];
+      _webTables[index] = CourseTableEntity(
+        id: current.id,
+        name: newName,
+        semesterStartMonday: current.semesterStartMonday,
+        classTimeListJson: current.classTimeListJson,
+        createdAt: current.createdAt,
+        updatedAt: DateTime.now().toUtc().toIso8601String(),
+      );
+      return;
+    }
+
+    final Database db = await _dbHelper.open();
+    await db.update(
+      DbHelper.tableCourseTable,
+      <String, Object?>{
+        'name': newName,
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      },
+      where: 'id = ?',
+      whereArgs: <Object>[tableId],
+    );
+  }
+
   Future<void> updateCourseTableConfig({
     required int tableId,
     String? semesterStartMonday,
