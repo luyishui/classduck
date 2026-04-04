@@ -46,4 +46,33 @@ void main() {
 
     await repository.clearAllCourseTables();
   });
+
+  test('custom table creation rejects duplicated names', () async {
+    final ScheduleRepository repository = ScheduleRepository();
+    await repository.clearAllCourseTables();
+
+    await repository.createCourseTable(name: '我的课表', enforceUniqueName: true);
+
+    expect(
+      repository.createCourseTable(name: '  我的课表  ', enforceUniqueName: true),
+      throwsA(isA<StateError>()),
+    );
+
+    await repository.clearAllCourseTables();
+  });
+
+  test('renameCourseTable rejects duplicated names', () async {
+    final ScheduleRepository repository = ScheduleRepository();
+    await repository.clearAllCourseTables();
+
+    final tableA = await repository.createCourseTable(name: '课表A');
+    final tableB = await repository.createCourseTable(name: '课表B');
+
+    expect(
+      repository.renameCourseTable(tableId: tableB.id!, newName: tableA.name),
+      throwsA(isA<StateError>()),
+    );
+
+    await repository.clearAllCourseTables();
+  });
 }

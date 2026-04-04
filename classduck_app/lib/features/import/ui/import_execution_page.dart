@@ -74,10 +74,14 @@ class GeneralImportSurveyDialog extends StatelessWidget {
       content: Text(
         _success
             ? '你已通过通用教务成功导入课程，欢迎填写问卷中的“导入上报”部分。\n\n'
-                '你的反馈会帮助更多同学一键导入；审核通过后可获得项目参与证明，并可按你的意愿在学校适配列表署名。'
+                  '你的反馈会帮助更多同学一键导入；审核通过后可获得项目参与证明，并可按你的意愿在学校适配列表署名。'
             : '暂未匹配到可导入课程。若你找不到学校且通用教务导入失败，欢迎填写问卷中的“适配申请”部分。\n\n'
-                '适配成功后你将成为项目贡献者，可获得参与证明，并帮助后续同学更快完成导入。',
-        style: const TextStyle(fontSize: 15, height: 1.5, color: Colors.black87),
+                  '适配成功后你将成为项目贡献者，可获得参与证明，并帮助后续同学更快完成导入。',
+        style: const TextStyle(
+          fontSize: 15,
+          height: 1.5,
+          color: Colors.black87,
+        ),
       ),
       actions: <Widget>[
         TextButton(
@@ -202,18 +206,52 @@ class ImportConflictDialog extends StatelessWidget {
             '检测到您当前已存在课表数据，请选择本次导入的处理方式：',
             style: TextStyle(fontSize: 15, height: 1.5, color: Colors.black87),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTokens.duckYellowSoft,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFFFD66E), width: 1),
+            ),
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Icon(
+                  Icons.auto_awesome_rounded,
+                  size: 16,
+                  color: Color(0xFFB98500),
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '推荐分批导入用“新增课程”：保留当前课表，仅把本次识别课程批量追加进去。',
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.45,
+                      color: Color(0xFF8F6A00),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
           Row(
             children: <Widget>[
               Expanded(
                 child: SizedBox(
                   height: 44,
-                  child: ElevatedButton(
+                  child: OutlinedButton(
                     onPressed: () =>
                         Navigator.of(context).pop(ImportConflictMode.createNew),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTokens.duckYellow,
-                      foregroundColor: Colors.white,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTokens.textMain,
+                      side: const BorderSide(
+                        color: Color(0xFFD9D3C8),
+                        width: 1,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -223,7 +261,7 @@ class ImportConflictDialog extends StatelessWidget {
                       ),
                     ),
                     child: const Text(
-                      '新增课表',
+                      '新建课表',
                       maxLines: 1,
                       softWrap: false,
                       overflow: TextOverflow.fade,
@@ -241,9 +279,9 @@ class ImportConflictDialog extends StatelessWidget {
                       context,
                     ).pop(ImportConflictMode.overwriteExisting),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTokens.duckYellow,
+                      foregroundColor: const Color(0xFFB98500),
                       side: const BorderSide(
-                        color: AppTokens.duckYellow,
+                        color: Color(0xFFFFC93C),
                         width: 1.4,
                       ),
                       shape: RoundedRectangleBorder(
@@ -256,6 +294,27 @@ class ImportConflictDialog extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 46,
+            child: ElevatedButton.icon(
+              onPressed: () =>
+                  Navigator.of(context).pop(ImportConflictMode.appendToCurrent),
+              icon: const Icon(Icons.add_task_rounded, size: 18),
+              label: const Text('新增课程（追加到当前课表）'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTokens.duckYellow,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                textStyle: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -912,9 +971,8 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
     // 检查冲突
     ImportConflictMode mode = ImportConflictMode.createNew;
     final int parsedCourseCount = _capturedCourseCount();
-    final int tableCount = (await _scheduleRepository.getCourseTables()).length;
-    final bool hasActiveScheduleContext = ScheduleRepository.activeTableId != null;
-    if (parsedCourseCount > 0 && tableCount > 0 && hasActiveScheduleContext) {
+    final bool hasNonEmptyActiveTable = await _hasNonEmptyActiveTable();
+    if (parsedCourseCount > 0 && hasNonEmptyActiveTable) {
       if (!mounted) return;
       final ImportConflictMode? selected = await showDialog<ImportConflictMode>(
         context: context,
@@ -1020,7 +1078,8 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
         return decoded.length;
       }
       if (decoded is Map<String, dynamic>) {
-        final dynamic data = decoded['courses'] ?? decoded['courseInfos'] ?? decoded['data'];
+        final dynamic data =
+            decoded['courses'] ?? decoded['courseInfos'] ?? decoded['data'];
         if (data is List<dynamic>) {
           return data.length;
         }
@@ -1030,6 +1089,18 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
     }
 
     return 0;
+  }
+
+  Future<bool> _hasNonEmptyActiveTable() async {
+    final int? activeTableId = ScheduleRepository.activeTableId;
+    if (activeTableId == null) {
+      return false;
+    }
+
+    final int count = (await _scheduleRepository.getCoursesByTableId(
+      activeTableId,
+    )).length;
+    return count > 0;
   }
 
   /// 将 WebView JS 执行结果规范化为 Dart 字符串。
@@ -1067,7 +1138,9 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
     }
 
     final String lower = message.toLowerCase();
-    if (message.contains('系统维护') || message.contains('维护中') || lower.contains('maintenance')) {
+    if (message.contains('系统维护') ||
+        message.contains('维护中') ||
+        lower.contains('maintenance')) {
       return '系统维护中，请稍后再试';
     }
 
@@ -1206,7 +1279,10 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
               '(async function()',
               '__classduckDirectResult = await (async function()',
             )
-            .replaceFirst('(function()', '__classduckDirectResult = (function()');
+            .replaceFirst(
+              '(function()',
+              '__classduckDirectResult = (function()',
+            );
 
         final Object rawResult = await _webController!
             .runJavaScriptReturningResult('''
@@ -1281,7 +1357,9 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
             decoded['courses'] == null &&
             decoded['courseInfos'] == null) {
           final String error =
-              (decoded['error'] as String? ?? decoded['message'] as String? ?? '')
+              (decoded['error'] as String? ??
+                      decoded['message'] as String? ??
+                      '')
                   .trim();
           if (error.isNotEmpty) {
             lastProviderError = error;
@@ -1289,7 +1367,8 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
           continue;
         }
 
-        dynamic data = decoded['data'] ?? decoded['courses'] ?? decoded['courseInfos'];
+        dynamic data =
+            decoded['data'] ?? decoded['courses'] ?? decoded['courseInfos'];
         if (data == null) {
           lastProviderError ??= '规则返回空数据，请确认已进入课表页并完成查询';
           continue;
