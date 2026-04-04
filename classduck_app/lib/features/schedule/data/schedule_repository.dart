@@ -24,9 +24,62 @@ class ScheduleRepository {
   static int _webCourseIdSeed = 1;
   static final List<CourseTableEntity> _webTables = <CourseTableEntity>[];
   static final List<CourseEntity> _webCourses = <CourseEntity>[];
-  static final ValueNotifier<int?> activeTableIdNotifier = ValueNotifier<int?>(null);
+  static final ValueNotifier<int?> activeTableIdNotifier = ValueNotifier<int?>(
+    null,
+  );
 
   static int? get activeTableId => activeTableIdNotifier.value;
+
+  static String _normalizeTableName(String raw) {
+    return raw.trim().toLowerCase();
+  }
+
+  bool _hasWebTableNameConflict(String normalizedName, {int? excludeTableId}) {
+    for (final CourseTableEntity table in _webTables) {
+      if (excludeTableId != null && table.id == excludeTableId) {
+        continue;
+      }
+      if (_normalizeTableName(table.name) == normalizedName) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  Future<bool> isCourseTableNameTaken(
+    String name, {
+    int? excludeTableId,
+  }) async {
+    final String normalizedName = _normalizeTableName(name);
+    if (normalizedName.isEmpty) {
+      return false;
+    }
+
+    if (kIsWeb) {
+      return _hasWebTableNameConflict(
+        normalizedName,
+        excludeTableId: excludeTableId,
+      );
+    }
+
+    final Database db = await _dbHelper.open();
+    final List<Map<String, Object?>> rows = await db.query(
+      DbHelper.tableCourseTable,
+      columns: <String>['id'],
+      where: 'LOWER(TRIM(name)) = ?',
+      whereArgs: <Object>[normalizedName],
+    );
+
+    for (final Map<String, Object?> row in rows) {
+      final int? rowId = row['id'] as int?;
+      if (excludeTableId != null && rowId == excludeTableId) {
+        continue;
+      }
+      return true;
+    }
+
+    return false;
+  }
 
   void setActiveTableId(int? tableId) {
     activeTableIdNotifier.value = tableId;
@@ -37,14 +90,25 @@ class ScheduleRepository {
     required String name,
     String? semesterStartMonday,
     List<Map<String, String>>? classTimeList,
+    bool enforceUniqueName = false,
   }) async {
+    final String trimmedName = name.trim();
+    if (trimmedName.isEmpty) {
+      throw StateError('课表名称不能为空');
+    }
+    if (enforceUniqueName && await isCourseTableNameTaken(trimmedName)) {
+      throw StateError('自定义名称和现有课表名称冲突');
+    }
+
     if (kIsWeb) {
       final String now = DateTime.now().toUtc().toIso8601String();
       final CourseTableEntity entity = CourseTableEntity(
         id: _webTableIdSeed++,
-        name: name,
+        name: trimmedName,
         semesterStartMonday: semesterStartMonday,
-        classTimeListJson: classTimeList == null ? null : jsonEncode(classTimeList),
+        classTimeListJson: classTimeList == null
+            ? null
+            : jsonEncode(classTimeList),
         createdAt: now,
         updatedAt: now,
       );
@@ -56,9 +120,11 @@ class ScheduleRepository {
     final String now = DateTime.now().toUtc().toIso8601String();
 
     final CourseTableEntity entity = CourseTableEntity(
-      name: name,
+      name: trimmedName,
       semesterStartMonday: semesterStartMonday,
-      classTimeListJson: classTimeList == null ? null : jsonEncode(classTimeList),
+      classTimeListJson: classTimeList == null
+          ? null
+          : jsonEncode(classTimeList),
       createdAt: now,
       updatedAt: now,
     );
@@ -93,7 +159,9 @@ class ScheduleRepository {
           ),
         );
       }
-      final List<CourseTableEntity> tables = _webTables.reversed.toList(growable: false);
+      final List<CourseTableEntity> tables = _webTables.reversed.toList(
+        growable: false,
+      );
       if (activeTableIdNotifier.value == null && tables.isNotEmpty) {
         activeTableIdNotifier.value = tables.first.id;
       }
@@ -107,7 +175,9 @@ class ScheduleRepository {
       orderBy: 'id DESC',
     );
 
-    final List<CourseTableEntity> tables = rows.map(CourseTableEntity.fromMap).toList(growable: false);
+    final List<CourseTableEntity> tables = rows
+        .map(CourseTableEntity.fromMap)
+        .toList(growable: false);
     if (activeTableIdNotifier.value == null && tables.isNotEmpty) {
       activeTableIdNotifier.value = tables.first.id;
     }
@@ -195,13 +265,17 @@ class ScheduleRepository {
     }
 
     final Database db = await _dbHelper.open();
-    final List<Map<String, Object?>> rows = await db.query(DbHelper.tableCourse);
+    final List<Map<String, Object?>> rows = await db.query(
+      DbHelper.tableCourse,
+    );
     return rows.map(CourseEntity.fromMap).toList(growable: false);
   }
 
   Future<List<CourseEntity>> getAllManualCourses() async {
     final List<CourseEntity> courses = await getAllCourses();
-    return courses.where((CourseEntity course) => course.importType == 0).toList(growable: false);
+    return courses
+        .where((CourseEntity course) => course.importType == 0)
+        .toList(growable: false);
   }
 
   Future<String?> getManualCourseBaseColor(String exactCourseName) async {
@@ -256,7 +330,9 @@ class ScheduleRepository {
     final String now = DateTime.now().toUtc().toIso8601String();
 
     if (kIsWeb) {
-      final int index = _webCourses.indexWhere((CourseEntity item) => item.id == courseId);
+      final int index = _webCourses.indexWhere(
+        (CourseEntity item) => item.id == courseId,
+      );
       if (index < 0) {
         return;
       }
@@ -339,6 +415,14 @@ class ScheduleRepository {
     required int tableId,
     required String newName,
   }) async {
+    final String trimmedName = newName.trim();
+    if (trimmedName.isEmpty) {
+      throw StateError('课表名称不能为空');
+    }
+    if (await isCourseTableNameTaken(trimmedName, excludeTableId: tableId)) {
+      throw StateError('自定义名称和现有课表名称冲突');
+    }
+
     if (kIsWeb) {
       final int index = _webTables.indexWhere(
         (CourseTableEntity item) => item.id == tableId,
@@ -347,7 +431,7 @@ class ScheduleRepository {
       final CourseTableEntity current = _webTables[index];
       _webTables[index] = CourseTableEntity(
         id: current.id,
-        name: newName,
+        name: trimmedName,
         semesterStartMonday: current.semesterStartMonday,
         classTimeListJson: current.classTimeListJson,
         createdAt: current.createdAt,
@@ -360,7 +444,7 @@ class ScheduleRepository {
     await db.update(
       DbHelper.tableCourseTable,
       <String, Object?>{
-        'name': newName,
+        'name': trimmedName,
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       },
       where: 'id = ?',
@@ -374,7 +458,9 @@ class ScheduleRepository {
     String? classTimeListJson,
   }) async {
     if (kIsWeb) {
-      final int index = _webTables.indexWhere((CourseTableEntity item) => item.id == tableId);
+      final int index = _webTables.indexWhere(
+        (CourseTableEntity item) => item.id == tableId,
+      );
       if (index < 0) {
         return;
       }
@@ -427,7 +513,9 @@ class ScheduleRepository {
       source = _webCourses;
     } else {
       final Database db = await _dbHelper.open();
-      final List<Map<String, Object?>> rows = await db.query(DbHelper.tableCourse);
+      final List<Map<String, Object?>> rows = await db.query(
+        DbHelper.tableCourse,
+      );
       source = rows.map(CourseEntity.fromMap).toList(growable: false);
     }
     for (final CourseEntity course in source) {

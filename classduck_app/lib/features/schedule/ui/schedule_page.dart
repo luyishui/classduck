@@ -808,6 +808,25 @@ class _SchedulePageState extends State<SchedulePage> {
 
     final TextEditingController tableNameController = TextEditingController();
     bool creatingTable = false;
+    String? tableNameConflictText;
+
+    String normalizeTableName(String raw) {
+      return raw.trim().toLowerCase();
+    }
+
+    String? resolveTableNameConflictText(String raw) {
+      final String trimmed = raw.trim();
+      if (trimmed.isEmpty) {
+        return null;
+      }
+      final String normalized = normalizeTableName(trimmed);
+      for (final CourseTableEntity table in tables) {
+        if (normalizeTableName(table.name) == normalized) {
+          return '自定义名称和现有课表名称冲突';
+        }
+      }
+      return null;
+    }
 
     const String morningAfternoonConflictText = '您的操作会导致上午课程与下午课程时间冲突，无法完成该操作';
     const String afternoonEveningConflictText = '您的操作会导致下午课程与晚上课程时间冲突，无法完成该操作';
@@ -973,28 +992,63 @@ class _SchedulePageState extends State<SchedulePage> {
       if (trimmed.isEmpty || trimmed.length > 20) {
         return;
       }
+      final String? localConflict = resolveTableNameConflictText(trimmed);
+      if (localConflict != null) {
+        setModalState(() {
+          tableNameConflictText = localConflict;
+        });
+        return;
+      }
+
+      final bool exists = await _scheduleRepository.isCourseTableNameTaken(
+        trimmed,
+      );
+      if (exists) {
+        setModalState(() {
+          tableNameConflictText = '自定义名称和现有课表名称冲突';
+        });
+        return;
+      }
+
       final _ScheduleConfig defaults = _ScheduleConfig.defaults();
       final String defaultSemesterStart = DateFormat(
         'yyyy-MM-dd',
       ).format(defaults.semesterStartDate);
-      final CourseTableEntity table = await _scheduleRepository
-          .createCourseTable(
-            name: trimmed,
-            semesterStartMonday: defaultSemesterStart,
-            classTimeList: const <Map<String, String>>[],
-          );
-      _tableConfigs[table.id!] = defaults;
-      await _scheduleRepository.updateCourseTableConfig(
-        tableId: table.id!,
-        classTimeListJson: defaults.toJson(),
-        semesterStartMonday: defaultSemesterStart,
-      );
-      tables = await _scheduleRepository.getCourseTables();
-      await _switchCourseTable(table.id!, table.name);
-      setModalState(() {
-        creatingTable = false;
-        tableNameController.clear();
-      });
+      try {
+        final CourseTableEntity table = await _scheduleRepository
+            .createCourseTable(
+              name: trimmed,
+              semesterStartMonday: defaultSemesterStart,
+              classTimeList: const <Map<String, String>>[],
+              enforceUniqueName: true,
+            );
+        _tableConfigs[table.id!] = defaults;
+        await _scheduleRepository.updateCourseTableConfig(
+          tableId: table.id!,
+          classTimeListJson: defaults.toJson(),
+          semesterStartMonday: defaultSemesterStart,
+        );
+        tables = await _scheduleRepository.getCourseTables();
+        await _switchCourseTable(table.id!, table.name);
+        setModalState(() {
+          creatingTable = false;
+          tableNameController.clear();
+          tableNameConflictText = null;
+        });
+      } catch (error) {
+        final String message = error.toString();
+        if (message.contains('自定义名称和现有课表名称冲突')) {
+          setModalState(() {
+            tableNameConflictText = '自定义名称和现有课表名称冲突';
+          });
+          return;
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('新建课表失败：$error')));
+        }
+      }
     }
 
     Future<void> pickTime({
@@ -1372,6 +1426,14 @@ class _SchedulePageState extends State<SchedulePage> {
                                                   controller:
                                                       tableNameController,
                                                   maxLength: 20,
+                                                  onChanged: (String value) {
+                                                    setModalState(() {
+                                                      tableNameConflictText =
+                                                          resolveTableNameConflictText(
+                                                            value,
+                                                          );
+                                                    });
+                                                  },
                                                   decoration:
                                                       const InputDecoration(
                                                         counterText: '',
@@ -1397,6 +1459,8 @@ class _SchedulePageState extends State<SchedulePage> {
                                                   () {
                                                     creatingTable = false;
                                                     tableNameController.clear();
+                                                    tableNameConflictText =
+                                                        null;
                                                   },
                                                 ),
                                                 icon: const Icon(
@@ -1408,6 +1472,27 @@ class _SchedulePageState extends State<SchedulePage> {
                                           ),
                                         )
                                       else
+                                        const SizedBox.shrink(),
+                                      if (creatingTable &&
+                                          tableNameConflictText != null)
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            top: 4,
+                                            left: 12,
+                                          ),
+                                          child: Align(
+                                            alignment: Alignment.centerLeft,
+                                            child: Text(
+                                              tableNameConflictText!,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: Color(0xFFD14545),
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      if (!creatingTable)
                                         Align(
                                           alignment: Alignment.centerLeft,
                                           child: Padding(
@@ -1415,10 +1500,13 @@ class _SchedulePageState extends State<SchedulePage> {
                                               left: 10,
                                             ),
                                             child: TextButton(
-                                              onPressed: () =>
-                                                  setModalState(() {
-                                                    creatingTable = true;
-                                                  }),
+                                              onPressed: () => setModalState(() {
+                                                creatingTable = true;
+                                                tableNameConflictText =
+                                                    resolveTableNameConflictText(
+                                                      tableNameController.text,
+                                                    );
+                                              }),
                                               child: const Text('+ 新建课表'),
                                             ),
                                           ),

@@ -13,37 +13,35 @@ void main() {
     });
 
     test('inferImportTermTokens picks first semester in autumn', () {
-      final tokens = inferImportTermTokens(
-        <String, dynamic>{'first': '3', 'second': '12'},
-        now: DateTime(2026, 9, 1),
-      );
+      final tokens = inferImportTermTokens(<String, dynamic>{
+        'first': '3',
+        'second': '12',
+      }, now: DateTime(2026, 9, 1));
 
       expect(tokens['year'], '2026');
       expect(tokens['term'], '3');
     });
 
     test('inferImportTermTokens picks second semester in spring', () {
-      final tokens = inferImportTermTokens(
-        <String, dynamic>{'first': '3', 'second': '12'},
-        now: DateTime(2026, 3, 1),
-      );
+      final tokens = inferImportTermTokens(<String, dynamic>{
+        'first': '3',
+        'second': '12',
+      }, now: DateTime(2026, 3, 1));
 
       expect(tokens['year'], '2025');
       expect(tokens['term'], '12');
     });
 
     test('shouldEnableGeneralSurveyFlow covers all general-level systems', () {
-      final SchoolConfig generalConfig = SchoolConfig.fromMap(
-        <String, dynamic>{
-          'id': 'custom_general_system_01',
-          'level': 'general',
-          'title': '自定义通用教务',
-          'initialUrl': 'https://example.com/login',
-          'targetUrl': '',
-          'extractScriptUrl': '/api/schools/custom/script?script_type=provider',
-          'delaySeconds': 0,
-        },
-      );
+      final SchoolConfig generalConfig = SchoolConfig.fromMap(<String, dynamic>{
+        'id': 'custom_general_system_01',
+        'level': 'general',
+        'title': '自定义通用教务',
+        'initialUrl': 'https://example.com/login',
+        'targetUrl': '',
+        'extractScriptUrl': '/api/schools/custom/script?script_type=provider',
+        'delaySeconds': 0,
+      });
 
       expect(shouldEnableGeneralSurveyFlow(generalConfig), isTrue);
     });
@@ -125,7 +123,9 @@ void main() {
     expect(result, isTrue);
   });
 
-  testWidgets('ImportWebFallbackPanel renders message and button', (WidgetTester tester) async {
+  testWidgets('ImportWebFallbackPanel renders message and button', (
+    WidgetTester tester,
+  ) async {
     var tapped = false;
 
     await tester.pumpWidget(
@@ -149,7 +149,9 @@ void main() {
     expect(tapped, isTrue);
   });
 
-  testWidgets('ImportConflictDialog exposes both import choices', (WidgetTester tester) async {
+  testWidgets('ImportConflictDialog exposes three import choices', (
+    WidgetTester tester,
+  ) async {
     ImportConflictMode? result;
 
     await tester.pumpWidget(
@@ -161,7 +163,8 @@ void main() {
                 onPressed: () async {
                   result = await showDialog<ImportConflictMode>(
                     context: context,
-                    builder: (BuildContext context) => const ImportConflictDialog(),
+                    builder: (BuildContext context) =>
+                        const ImportConflictDialog(),
                   );
                 },
                 child: const Text('open'),
@@ -175,6 +178,44 @@ void main() {
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
     expect(find.text('课表导入冲突处理'), findsOneWidget);
+    expect(find.text('新建课表'), findsOneWidget);
+    expect(find.text('覆盖原有课表'), findsOneWidget);
+    expect(find.text('新增课程（追加到当前课表）'), findsOneWidget);
+
+    await tester.tap(find.text('新增课程（追加到当前课表）'));
+    await tester.pumpAndSettle();
+
+    expect(result, ImportConflictMode.appendToCurrent);
+  });
+
+  testWidgets('ImportConflictDialog keeps overwrite action behavior', (
+    WidgetTester tester,
+  ) async {
+    ImportConflictMode? result;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (BuildContext context) {
+            return Scaffold(
+              body: ElevatedButton(
+                onPressed: () async {
+                  result = await showDialog<ImportConflictMode>(
+                    context: context,
+                    builder: (BuildContext context) =>
+                        const ImportConflictDialog(),
+                  );
+                },
+                child: const Text('open-overwrite'),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open-overwrite'));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('覆盖原有课表'));
     await tester.pumpAndSettle();

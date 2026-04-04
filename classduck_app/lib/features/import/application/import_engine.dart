@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../../schedule/data/schedule_repository.dart';
 import '../../schedule/domain/course.dart';
+import '../../schedule/domain/course_table.dart';
 import '../data/import_api_service.dart';
 import '../domain/import_course.dart';
 import '../domain/import_table.dart';
@@ -21,7 +22,7 @@ class ImportExecutionResult {
   final int importedCount;
 }
 
-enum ImportConflictMode { createNew, overwriteExisting }
+enum ImportConflictMode { createNew, overwriteExisting, appendToCurrent }
 
 class ImportEngine {
   ImportEngine({
@@ -181,42 +182,103 @@ class ImportEngine {
     ImportTable parsed, {
     ImportConflictMode mode = ImportConflictMode.createNew,
   }) async {
+    final String now = DateTime.now().toUtc().toIso8601String();
+    if (mode == ImportConflictMode.appendToCurrent) {
+      final int? activeTableId = ScheduleRepository.activeTableId;
+      if (activeTableId != null) {
+        await _scheduleRepository.addCourses(
+          tableId: activeTableId,
+          courses: _buildCourseEntities(
+            parsed: parsed,
+            tableId: activeTableId,
+            now: now,
+          ),
+        );
+
+        String tableName = '当前课表';
+        final List<CourseTableEntity> tables = await _scheduleRepository
+            .getCourseTables();
+        for (final CourseTableEntity table in tables) {
+          if (table.id == activeTableId) {
+            tableName = table.name;
+            break;
+          }
+        }
+
+        return ImportExecutionResult(
+          courseTableId: activeTableId,
+          tableName: tableName,
+          importedCount: parsed.courses.length,
+        );
+      }
+    }
+
     if (mode == ImportConflictMode.overwriteExisting) {
       await _scheduleRepository.clearAllCourseTables();
     }
 
+    final String uniqueTableName = await _resolveUniqueTableName(parsed.name);
+
     final created = await _scheduleRepository.createCourseTable(
-      name: parsed.name,
+      name: uniqueTableName,
+      enforceUniqueName: true,
     );
-    final String now = DateTime.now().toUtc().toIso8601String();
 
     await _scheduleRepository.addCourses(
       tableId: created.id!,
-      courses: parsed.courses
-          .map((ImportCourse item) {
-            return CourseEntity(
-              tableId: created.id!,
-              name: item.name,
-              classroom: item.classroom,
-              classNumber: item.classNumber,
-              teacher: item.teacher,
-              weeksJson: jsonEncode(item.weeks),
-              weekTime: item.weekTime,
-              startTime: item.startTime,
-              timeCount: item.timeCount,
-              importType: 1,
-              createdAt: now,
-              updatedAt: now,
-            );
-          })
-          .toList(growable: false),
+      courses: _buildCourseEntities(
+        parsed: parsed,
+        tableId: created.id!,
+        now: now,
+      ),
     );
 
     return ImportExecutionResult(
       courseTableId: created.id!,
-      tableName: parsed.name,
+      tableName: uniqueTableName,
       importedCount: parsed.courses.length,
     );
+  }
+
+  Future<String> _resolveUniqueTableName(String rawName) async {
+    final String baseName = rawName.trim().isEmpty ? '导入课表' : rawName.trim();
+    if (!await _scheduleRepository.isCourseTableNameTaken(baseName)) {
+      return baseName;
+    }
+
+    int suffix = 2;
+    while (true) {
+      final String candidate = '$baseName($suffix)';
+      if (!await _scheduleRepository.isCourseTableNameTaken(candidate)) {
+        return candidate;
+      }
+      suffix++;
+    }
+  }
+
+  List<CourseEntity> _buildCourseEntities({
+    required ImportTable parsed,
+    required int tableId,
+    required String now,
+  }) {
+    return parsed.courses
+        .map((ImportCourse item) {
+          return CourseEntity(
+            tableId: tableId,
+            name: item.name,
+            classroom: item.classroom,
+            classNumber: item.classNumber,
+            teacher: item.teacher,
+            weeksJson: jsonEncode(item.weeks),
+            weekTime: item.weekTime,
+            startTime: item.startTime,
+            timeCount: item.timeCount,
+            importType: 1,
+            createdAt: now,
+            updatedAt: now,
+          );
+        })
+        .toList(growable: false);
   }
 
   Future<ImportTable> _executeParser(SchoolConfig config) async {

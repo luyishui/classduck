@@ -6,6 +6,7 @@ import '../../../shared/theme/app_motion.dart';
 import '../../../shared/theme/app_tokens.dart';
 import '../../../shared/widgets/duck_pressable.dart';
 import '../../schedule/data/schedule_repository.dart';
+import '../../schedule/domain/course_table.dart';
 import '../application/import_engine.dart';
 import 'import_execution_page.dart';
 
@@ -248,8 +249,8 @@ class _AiImportPageState extends State<AiImportPage>
 
     // 冲突检测
     ImportConflictMode mode = ImportConflictMode.createNew;
-    final int tableCount = (await _scheduleRepository.getCourseTables()).length;
-    if (tableCount > 0 && mounted) {
+    final bool shouldShowConflictDialog = await _hasNonEmptyActiveTable();
+    if (shouldShowConflictDialog && mounted) {
       final ImportConflictMode? selected = await showDialog<ImportConflictMode>(
         context: context,
         builder: (BuildContext ctx) => const ImportConflictDialog(),
@@ -270,7 +271,10 @@ class _AiImportPageState extends State<AiImportPage>
       if (!mounted) return;
 
       // 导入成功 → 弹出命名对话框
-      final String? customName = await _showNamingDialog(result.importedCount);
+      final String? customName = await _showNamingDialog(
+        result.importedCount,
+        currentTableId: result.courseTableId,
+      );
       if (customName != null && customName.trim().isNotEmpty) {
         await _scheduleRepository.renameCourseTable(
           tableId: result.courseTableId,
@@ -299,92 +303,167 @@ class _AiImportPageState extends State<AiImportPage>
     }
   }
 
+  Future<bool> _hasNonEmptyActiveTable() async {
+    final int? activeTableId = ScheduleRepository.activeTableId;
+    if (activeTableId == null) {
+      return false;
+    }
+
+    final int count = (await _scheduleRepository.getCoursesByTableId(
+      activeTableId,
+    )).length;
+    return count > 0;
+  }
+
   // ────────────────────────────────────────────
   // 导入成功命名对话框
   // 显示成功图标 + 课程数 + 课表名称输入框 + 完成按钮。
   // 用户填写名称后点击完成，返回名称字符串。
   // ────────────────────────────────────────────
-  Future<String?> _showNamingDialog(int count) async {
+  Future<String?> _showNamingDialog(
+    int count, {
+    required int currentTableId,
+  }) async {
     final TextEditingController nameCtrl = TextEditingController(text: '我的课表');
-    return showDialog<String>(
+    final List<CourseTableEntity> tables = await _scheduleRepository
+        .getCourseTables();
+    final Set<String> existingNames = tables
+        .where((CourseTableEntity table) => table.id != currentTableId)
+        .map((CourseTableEntity table) => table.name.trim().toLowerCase())
+        .toSet();
+
+    String? conflictTextFor(String raw) {
+      final String trimmed = raw.trim();
+      if (trimmed.isEmpty) {
+        return null;
+      }
+      if (existingNames.contains(trimmed.toLowerCase())) {
+        return '自定义名称和现有课表名称冲突';
+      }
+      return null;
+    }
+
+    String? conflictText = conflictTextFor(nameCtrl.text);
+
+    final String? chosen = await showDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext ctx) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          backgroundColor: Colors.white,
-          title: Column(
-            children: <Widget>[
-              // 成功图标
-              Container(
-                width: 56,
-                height: 56,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE8F9ED),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.check_rounded,
-                  color: Color(0xFF4A9960),
-                  size: 32,
-                ),
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            final bool canSubmit =
+                nameCtrl.text.trim().isNotEmpty && conflictText == null;
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
               ),
-              const SizedBox(height: 12),
-              Text(
-                '导入成功！共 $count 节课',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: AppTokens.textMain,
-                ),
+              backgroundColor: Colors.white,
+              title: Column(
+                children: <Widget>[
+                  // 成功图标
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE8F9ED),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check_rounded,
+                      color: Color(0xFF4A9960),
+                      size: 32,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '导入成功！共 $count 节课',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: AppTokens.textMain,
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-          content: TextField(
-            controller: nameCtrl,
-            autofocus: true,
-            textAlign: TextAlign.center,
-            decoration: InputDecoration(
-              hintText: '给课表起个名字',
-              hintStyle: const TextStyle(color: AppTokens.textMuted),
-              filled: true,
-              fillColor: const Color(0xFFF7F5F2),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  TextField(
+                    controller: nameCtrl,
+                    autofocus: true,
+                    textAlign: TextAlign.center,
+                    onChanged: (String value) {
+                      setModalState(() {
+                        conflictText = conflictTextFor(value);
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: '给课表起个名字',
+                      hintStyle: const TextStyle(color: AppTokens.textMuted),
+                      filled: true,
+                      fillColor: const Color(0xFFF7F5F2),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                    ),
+                  ),
+                  if (conflictText != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8, left: 4),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          conflictText!,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFFD14545),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
-            ),
-          ),
-          actions: <Widget>[
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(nameCtrl.text),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppTokens.duckYellow,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+              actions: <Widget>[
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: FilledButton(
+                    onPressed: canSubmit
+                        ? () => Navigator.of(ctx).pop(nameCtrl.text.trim())
+                        : null,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTokens.duckYellow,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text(
+                      '完成',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
                   ),
                 ),
-                child: const Text(
-                  '完成',
-                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-                ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         );
       },
     );
+
+    nameCtrl.dispose();
+    return chosen;
   }
 
   Future<void> _showPostImportCheckDialog() {
