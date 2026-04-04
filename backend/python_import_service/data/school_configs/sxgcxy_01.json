@@ -1,0 +1,41 @@
+{
+  "id": "sxgcxy_01",
+  "name": "山西工程职业学院超星教务适配",
+  "level": "undergraduate",
+  "system_type": "sxgcxy",
+  "login_url": "https://sxevc.jw.chaoxing.com/admin/login",
+  "target_url": "",
+  "fetch_config": {
+    "url": "",
+    "method": "POST",
+    "headers": {},
+    "body_template": "",
+    "credentials": "include"
+  },
+  "term_mapping": {
+    "first": "1",
+    "second": "2",
+    "short": ""
+  },
+  "data_path": "",
+  "field_mapping": {
+    "name": "name",
+    "position": "position",
+    "teacher": "teacher",
+    "weeks": "weeks",
+    "day": "day",
+    "sections": "sections"
+  },
+  "timer_config": {
+    "total_week": 20,
+    "start_semester": "2026-02-24",
+    "start_with_sunday": false,
+    "forenoon": 5,
+    "afternoon": 4,
+    "night": 3,
+    "sections": []
+  },
+  "script_version": "1.0.0",
+  "pre_extract_delay": 0,
+  "notes": "Imported from shiguang_warehouse/SXGCXY/SXGCXY_01 | 山西工程职业学院适配教务,支持唐槐校区、龙潭校区作息时间,非本校开发者适配如果有误建议提交issues"
+}

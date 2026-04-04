@@ -1,0 +1,84 @@
+{
+  "id": "xjtu",
+  "level": "undergraduate",
+  "title": "西安交通大学",
+  "import_url": "https://ehall.xjtu.edu.cn/new/index.html",
+  "target_url": "https://ehall.xjtu.edu.cn/new/index.html",
+  "system_type": "zhengfang",
+  "delay_seconds": 0,
+  "source": "classduck_runtime",
+  "source_path": "data/school_configs/xjtu.json",
+  "license": "INTERNAL",
+  "runtime": {
+    "id": "xjtu",
+    "name": "西安交通大学",
+    "level": "undergraduate",
+    "system_type": "zhengfang",
+    "login_url": "https://ehall.xjtu.edu.cn/new/index.html",
+    "target_url": "https://ehall.xjtu.edu.cn/new/index.html",
+    "fetch_config": {
+      "url": "",
+      "method": "POST",
+      "headers": {},
+      "body_template": "",
+      "credentials": "include"
+    },
+    "term_mapping": {
+      "first": "3",
+      "second": "12",
+      "short": "16"
+    },
+    "data_path": "kbList",
+    "field_mapping": {
+      "name": "kcmc",
+      "position": "cdmc",
+      "teacher": "xm",
+      "weeks": "zcd",
+      "day": "xqj",
+      "sections": "jcs"
+    },
+    "timer_config": {
+      "total_week": 20,
+      "start_semester": "2026-02-24",
+      "start_with_sunday": false,
+      "forenoon": 5,
+      "afternoon": 4,
+      "night": 3,
+      "sections": [
+        {
+          "section": 1,
+          "start_time": "08:00",
+          "end_time": "08:45"
+        },
+        {
+          "section": 2,
+          "start_time": "08:55",
+          "end_time": "09:40"
+        },
+        {
+          "section": 3,
+          "start_time": "10:10",
+          "end_time": "10:55"
+        },
+        {
+          "section": 4,
+          "start_time": "11:05",
+          "end_time": "11:50"
+        },
+        {
+          "section": 5,
+          "start_time": "14:00",
+          "end_time": "14:45"
+        },
+        {
+          "section": 6,
+          "start_time": "14:55",
+          "end_time": "15:40"
+        }
+      ]
+    },
+    "script_version": "1.0.0",
+    "pre_extract_delay": 0,
+    "notes": "XJTU 本科入口使用 ehall，按原接口拉取课表数据。"
+  }
+}

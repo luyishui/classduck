@@ -22,9 +22,7 @@ class ManualMoreColorsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTokens.pageBackground,
-      appBar: AppBar(
-        title: const Text('更多颜色'),
-      ),
+      appBar: AppBar(title: const Text('更多颜色')),
       body: GridView.builder(
         padding: const EdgeInsets.all(20),
         itemCount: palette.length,
@@ -43,11 +41,15 @@ class ManualMoreColorsPage extends StatelessWidget {
             onTap: () => Navigator.of(context).pop(colorHex),
             child: Container(
               decoration: BoxDecoration(
-                color: Color(int.parse('FF${colorHex.replaceAll('#', '')}', radix: 16)),
+                color: Color(
+                  int.parse('FF${colorHex.replaceAll('#', '')}', radix: 16),
+                ),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   width: selected ? 2 : 1,
-                  color: selected ? const Color(0xFFD89B00) : const Color(0xFFE8DFD2),
+                  color: selected
+                      ? const Color(0xFFD89B00)
+                      : const Color(0xFFE8DFD2),
                 ),
               ),
             ),

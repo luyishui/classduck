@@ -13,13 +13,16 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  int _tabIndex = 0;
+  int _tabIndex = 1;
+  final Set<int> _loadedTabs = <int>{1};
 
-  final List<Widget> _pages = const <Widget>[
-    SchedulePage(),
-    TodoPage(),
-    ProfilePage(),
-  ];
+  List<Widget> _buildPages() {
+    return <Widget>[
+      _loadedTabs.contains(0) ? const TodoPage() : const SizedBox.shrink(),
+      _loadedTabs.contains(1) ? const SchedulePage() : const SizedBox.shrink(),
+      _loadedTabs.contains(2) ? const ProfilePage() : const SizedBox.shrink(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +31,7 @@ class _AppShellState extends State<AppShell> {
     return Scaffold(
       body: Stack(
         children: <Widget>[
-          IndexedStack(index: _tabIndex, children: _pages),
+          IndexedStack(index: _tabIndex, children: _buildPages()),
           Positioned(
             left: 28,
             right: 28,
@@ -51,18 +54,18 @@ class _AppShellState extends State<AppShell> {
                   Expanded(
                     child: _NavItem(
                       active: _tabIndex == 0,
-                      icon: Icons.calendar_today_outlined,
-                      activeIcon: Icons.calendar_today,
-                      label: '课表',
+                      icon: Icons.fact_check_outlined,
+                      activeIcon: Icons.fact_check,
+                      label: '待办',
                       onTap: () => _onTapTab(0),
                     ),
                   ),
                   Expanded(
                     child: _NavItem(
                       active: _tabIndex == 1,
-                      icon: Icons.fact_check_outlined,
-                      activeIcon: Icons.fact_check,
-                      label: '待办',
+                      icon: Icons.calendar_today_outlined,
+                      activeIcon: Icons.calendar_today,
+                      label: '课表',
                       onTap: () => _onTapTab(1),
                     ),
                   ),
@@ -90,6 +93,7 @@ class _AppShellState extends State<AppShell> {
     }
     setState(() {
       _tabIndex = index;
+      _loadedTabs.add(index);
     });
   }
 }
@@ -142,11 +146,15 @@ class _NavItem extends StatelessWidget {
           child: Center(
             child: DefaultTextStyle(
               style: TextStyle(
-                color: active ? const Color(0xFFD19B00) : const Color(0xFF8A7C6C),
+                color: active
+                    ? const Color(0xFFD19B00)
+                    : const Color(0xFF8A7C6C),
               ),
               child: IconTheme(
                 data: IconThemeData(
-                  color: active ? const Color(0xFFD19B00) : const Color(0xFF8A7C6C),
+                  color: active
+                      ? const Color(0xFFD19B00)
+                      : const Color(0xFF8A7C6C),
                 ),
                 child: content,
               ),

@@ -1,18 +1,15 @@
 {
   "id": "xjtu",
   "name": "西安交通大学",
+  "level": "undergraduate",
   "system_type": "zhengfang",
-  "login_url": "https://ehall.xjtu.edu.cn/login",
-  "target_url": "https://ehall.xjtu.edu.cn/jwapp/sys/wdkb/*default/index.do",
+  "login_url": "https://ehall.xjtu.edu.cn/new/index.html",
+  "target_url": "https://ehall.xjtu.edu.cn/new/index.html",
   "fetch_config": {
-    "url": "https://ehall.xjtu.edu.cn/jwapp/sys/wdkb/modules/xskcb/cxxszhxqkb.do",
+    "url": "",
     "method": "POST",
-    "headers": {
-      "Accept": "application/json, text/javascript, */*; q=0.01",
-      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-      "X-Requested-With": "XMLHttpRequest"
-    },
-    "body_template": "XNXQDM={term}&XH={studentNo}&XNM={year}",
+    "headers": {},
+    "body_template": "",
     "credentials": "include"
   },
   "term_mapping": {
@@ -37,15 +34,39 @@
     "afternoon": 4,
     "night": 3,
     "sections": [
-      {"section": 1, "start_time": "08:00", "end_time": "08:45"},
-      {"section": 2, "start_time": "08:55", "end_time": "09:40"},
-      {"section": 3, "start_time": "10:10", "end_time": "10:55"},
-      {"section": 4, "start_time": "11:05", "end_time": "11:50"},
-      {"section": 5, "start_time": "14:00", "end_time": "14:45"},
-      {"section": 6, "start_time": "14:55", "end_time": "15:40"}
+      {
+        "section": 1,
+        "start_time": "08:00",
+        "end_time": "08:45"
+      },
+      {
+        "section": 2,
+        "start_time": "08:55",
+        "end_time": "09:40"
+      },
+      {
+        "section": 3,
+        "start_time": "10:10",
+        "end_time": "10:55"
+      },
+      {
+        "section": 4,
+        "start_time": "11:05",
+        "end_time": "11:50"
+      },
+      {
+        "section": 5,
+        "start_time": "14:00",
+        "end_time": "14:45"
+      },
+      {
+        "section": 6,
+        "start_time": "14:55",
+        "end_time": "15:40"
+      }
     ]
   },
   "script_version": "1.0.0",
-  "pre_extract_delay": 2,
-  "notes": "XJTU 样例配置，用于课堂导入链路联调。"
+  "pre_extract_delay": 0,
+  "notes": "XJTU 本科入口使用 ehall，按原接口拉取课表数据。"
 }

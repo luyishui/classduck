@@ -1,0 +1,58 @@
+{
+  "id": "ynufe_01",
+  "level": "undergraduate",
+  "title": "云南财经大学本科教务系统",
+  "import_url": "https://xjwis.ynufe.edu.cn/jsxsd/",
+  "target_url": "",
+  "system_type": "ynufe",
+  "delay_seconds": 0,
+  "source": "shiguang_warehouse",
+  "source_path": "shiguang_warehouse/resources/YNUFE/adapters.yaml#YNUFE_01",
+  "source_adapter_id": "YNUFE_01",
+  "source_school_id": "YNUFE",
+  "resource_folder": "YNUFE",
+  "license": "MIT",
+  "maintainer": "AxelPLN",
+  "asset_js_path": "ynufe.js",
+  "runtime": {
+    "id": "ynufe_01",
+    "name": "云南财经大学本科教务系统",
+    "level": "undergraduate",
+    "system_type": "ynufe",
+    "login_url": "https://xjwis.ynufe.edu.cn/jsxsd/",
+    "target_url": "",
+    "fetch_config": {
+      "url": "",
+      "method": "POST",
+      "headers": {},
+      "body_template": "",
+      "credentials": "include"
+    },
+    "term_mapping": {
+      "first": "1",
+      "second": "2",
+      "short": ""
+    },
+    "data_path": "",
+    "field_mapping": {
+      "name": "name",
+      "position": "position",
+      "teacher": "teacher",
+      "weeks": "weeks",
+      "day": "day",
+      "sections": "sections"
+    },
+    "timer_config": {
+      "total_week": 20,
+      "start_semester": "2026-02-24",
+      "start_with_sunday": false,
+      "forenoon": 5,
+      "afternoon": 4,
+      "night": 3,
+      "sections": []
+    },
+    "script_version": "1.0.0",
+    "pre_extract_delay": 0,
+    "notes": "Imported from shiguang_warehouse/YNUFE/YNUFE_01 | 云南财经大学强智教务适配，登录教务系统账号后直接导入即可。"
+  }
+}

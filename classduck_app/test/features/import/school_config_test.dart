@@ -38,5 +38,68 @@ void main() {
 
       expect(config.level, 'master');
     });
+
+    test('normalizes display title from AIS suffix', () {
+      final SchoolConfig config = SchoolConfig.fromMap(<String, dynamic>{
+        'id': 'ais_whu',
+        'level': 'undergraduate',
+        'title': '武汉大学（AIShedule）',
+      });
+
+      expect(config.displayTitle, '武汉大学');
+    });
+
+    test('normalizes display title from system suffix', () {
+      final SchoolConfig config = SchoolConfig.fromMap(<String, dynamic>{
+        'id': 'ruc',
+        'level': 'master',
+        'title': '中国人民大学研究生教育信息系统',
+      });
+
+      expect(config.displayTitle, '中国人民大学');
+    });
+
+    test('keeps jiaowu suffix for general entries', () {
+      final SchoolConfig config = SchoolConfig.fromMap(<String, dynamic>{
+        'id': 'generic-zhengfang',
+        'level': 'general',
+        'title': '正方教务',
+      });
+
+      expect(config.displayTitle, '正方教务');
+    });
+
+    test('preserves campus qualifier for branch campuses', () {
+      final SchoolConfig config = SchoolConfig.fromMap(<String, dynamic>{
+        'id': 'neuq',
+        'level': 'undergraduate',
+        'title': '东北大学秦皇岛分校树维教务',
+      });
+
+      expect(config.displayTitle, '东北大学秦皇岛分校');
+    });
+
+    test('parses execution school ids and exposes executable chain', () {
+      final SchoolConfig config = SchoolConfig.fromMap(<String, dynamic>{
+        'id': 'wakeup_type_zf',
+        'level': 'general',
+        'title': '正方教务',
+        'executionSchoolIds': <String>['zhengfang_01', 'zhengfang_01', ''],
+      });
+
+      expect(config.executionSchoolIds, <String>['zhengfang_01']);
+      expect(config.executableSchoolIds, <String>['zhengfang_01']);
+    });
+
+    test('falls back executable chain to self id when not configured', () {
+      final SchoolConfig config = SchoolConfig.fromMap(<String, dynamic>{
+        'id': 'zhengfang_01',
+        'level': 'general',
+        'title': '正方教务html通用获取',
+      });
+
+      expect(config.executionSchoolIds, isEmpty);
+      expect(config.executableSchoolIds, <String>['zhengfang_01']);
+    });
   });
 }

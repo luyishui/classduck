@@ -1,0 +1,41 @@
+{
+  "id": "hbguhx",
+  "name": "河北地质大学华信学院强智教务",
+  "level": "undergraduate",
+  "system_type": "hbguhx",
+  "login_url": "http://61.182.88.214:8090",
+  "target_url": "",
+  "fetch_config": {
+    "url": "",
+    "method": "POST",
+    "headers": {},
+    "body_template": "",
+    "credentials": "include"
+  },
+  "term_mapping": {
+    "first": "1",
+    "second": "2",
+    "short": ""
+  },
+  "data_path": "",
+  "field_mapping": {
+    "name": "name",
+    "position": "position",
+    "teacher": "teacher",
+    "weeks": "weeks",
+    "day": "day",
+    "sections": "sections"
+  },
+  "timer_config": {
+    "total_week": 20,
+    "start_semester": "2026-02-24",
+    "start_with_sunday": false,
+    "forenoon": 5,
+    "afternoon": 4,
+    "night": 3,
+    "sections": []
+  },
+  "script_version": "1.0.0",
+  "pre_extract_delay": 0,
+  "notes": "Imported from shiguang_warehouse/HBGUHX/HBGUHX | 河北地质大学华信学院强智教务,本校25届开发者适配如果有误请联系4831884790@qq.com"
+}

@@ -1,0 +1,41 @@
+{
+  "id": "scut_master_01",
+  "name": "华南理工大学研究生教务系统",
+  "level": "master",
+  "system_type": "scut_peoplesoft",
+  "login_url": "https://yjsjw.scut.edu.cn/psp/ps_4/EMPLOYEE/SA/",
+  "target_url": "https://yjsjw.scut.edu.cn/psc/ps_4/EMPLOYEE/SA/c/SA_LEARNER_SERVICES.SSR_SSENRL_LIST.GBL",
+  "fetch_config": {
+    "url": "",
+    "method": "POST",
+    "headers": {},
+    "body_template": "",
+    "credentials": "include"
+  },
+  "term_mapping": {
+    "first": "1",
+    "second": "2",
+    "short": ""
+  },
+  "data_path": "",
+  "field_mapping": {
+    "name": "name",
+    "position": "position",
+    "teacher": "teacher",
+    "weeks": "weeks",
+    "day": "day",
+    "sections": "sections"
+  },
+  "timer_config": {
+    "total_week": 20,
+    "start_semester": "2026-02-24",
+    "start_with_sunday": false,
+    "forenoon": 5,
+    "afternoon": 4,
+    "night": 4,
+    "sections": []
+  },
+  "script_version": "1.0.0",
+  "pre_extract_delay": 0,
+  "notes": "SCUT 研究生课表适配：PeopleSoft 课程卡+日期区间解析。"
+}

@@ -22,6 +22,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+import uvicorn
 
 from api import import_handler, logs, release, schools
 
@@ -76,3 +77,8 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
             "message": str(exc),
         },
     )
+
+
+if __name__ == "__main__":
+    # 兼容直接运行 `python main.py` 的开发习惯，避免服务未起导致连接拒绝。
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)

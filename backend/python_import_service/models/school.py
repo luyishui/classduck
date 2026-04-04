@@ -43,6 +43,7 @@ class TimerConfig(BaseModel):
 class SchoolConfig(BaseModel):
     id: str
     name: str
+    level: str = "general"
     system_type: str
     login_url: str
     target_url: str = ""

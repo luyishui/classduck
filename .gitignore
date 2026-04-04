@@ -1,2 +1,12 @@
 # Local tooling artifacts
 .github/skills/
+
+# Keep folder structure but do not track content
+项目文件/*
+!项目文件/.gitkeep
+
+参考文件/*
+!参考文件/.gitkeep
+
+artifacts/*
+!artifacts/.gitkeep

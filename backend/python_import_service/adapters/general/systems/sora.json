@@ -1,0 +1,86 @@
+{
+  "id": "sora",
+  "level": "general",
+  "title": "SORA教务",
+  "import_url": "https://sora.example.edu/login",
+  "target_url": "https://sora.example.edu/schedule",
+  "system_type": "sora",
+  "delay_seconds": 1,
+  "source": "classduck_runtime",
+  "source_path": "data/school_configs/sora.json",
+  "license": "INTERNAL",
+  "runtime": {
+    "id": "sora",
+    "name": "SORA教务",
+    "level": "general",
+    "system_type": "sora",
+    "login_url": "https://sora.example.edu/login",
+    "target_url": "https://sora.example.edu/schedule",
+    "fetch_config": {
+      "url": "https://sora.example.edu/api/schedule",
+      "method": "GET",
+      "headers": {
+        "Accept": "application/json"
+      },
+      "body_template": "",
+      "credentials": "include"
+    },
+    "term_mapping": {
+      "first": "1",
+      "second": "2",
+      "short": ""
+    },
+    "data_path": "courses",
+    "field_mapping": {
+      "name": "name",
+      "position": "position",
+      "teacher": "teacher",
+      "weeks": "weeks",
+      "day": "day",
+      "sections": "sections"
+    },
+    "timer_config": {
+      "total_week": 20,
+      "start_semester": "2026-02-24",
+      "start_with_sunday": false,
+      "forenoon": 5,
+      "afternoon": 4,
+      "night": 3,
+      "sections": [
+        {
+          "section": 1,
+          "start_time": "08:00",
+          "end_time": "08:45"
+        },
+        {
+          "section": 2,
+          "start_time": "08:55",
+          "end_time": "09:40"
+        },
+        {
+          "section": 3,
+          "start_time": "10:10",
+          "end_time": "10:55"
+        },
+        {
+          "section": 4,
+          "start_time": "11:05",
+          "end_time": "11:50"
+        },
+        {
+          "section": 5,
+          "start_time": "14:00",
+          "end_time": "14:45"
+        },
+        {
+          "section": 6,
+          "start_time": "14:55",
+          "end_time": "15:40"
+        }
+      ]
+    },
+    "script_version": "1.0.0",
+    "pre_extract_delay": 1,
+    "notes": "SORA 页面插件适配样例。"
+  }
+}

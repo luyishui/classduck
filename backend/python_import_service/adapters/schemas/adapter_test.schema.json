@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "adapter_test.schema.json",
+  "title": "AdapterTestCase",
+  "type": "object",
+  "properties": {
+    "adapter_id": {"type": "string"},
+    "input_file": {"type": "string"},
+    "expected_file": {"type": "string"}
+  },
+  "required": ["adapter_id", "input_file", "expected_file"],
+  "additionalProperties": false
+}

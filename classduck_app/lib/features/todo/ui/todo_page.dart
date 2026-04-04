@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../shared/theme/app_tokens.dart';
+import '../../../shared/theme/course_color_adapter.dart';
+import '../../../shared/widgets/app_share_dialog.dart';
 import '../../../shared/widgets/duck_modal.dart';
 import '../../schedule/domain/course.dart';
 import '../../schedule/domain/course_table.dart';
@@ -18,7 +20,7 @@ class TodoPage extends StatefulWidget {
 }
 
 class _TodoPageState extends State<TodoPage>
-  with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final TodoRepository _repository = TodoRepository();
   final ScheduleRepository _scheduleRepository = ScheduleRepository();
   late final TabController _tabController;
@@ -42,11 +44,7 @@ class _TodoPageState extends State<TodoPage>
     'contest': false,
   };
 
-  final List<String> _typeOrder = <String>[
-    'assignment',
-    'exam',
-    'contest',
-  ];
+  final List<String> _typeOrder = <String>['assignment', 'exam', 'contest'];
 
   final Map<String, String> _typeLabels = <String, String>{
     'assignment': '作业',
@@ -67,7 +65,9 @@ class _TodoPageState extends State<TodoPage>
   @override
   void dispose() {
     TodoRepository.dataVersion.removeListener(_onTodoDataChanged);
-    ScheduleRepository.activeTableIdNotifier.removeListener(_onActiveTableChanged);
+    ScheduleRepository.activeTableIdNotifier.removeListener(
+      _onActiveTableChanged,
+    );
     WidgetsBinding.instance.removeObserver(this);
     _tabController.dispose();
     super.dispose();
@@ -100,7 +100,8 @@ class _TodoPageState extends State<TodoPage>
     if (current != null) {
       return current;
     }
-    final List<CourseTableEntity> tables = await _scheduleRepository.getCourseTables();
+    final List<CourseTableEntity> tables = await _scheduleRepository
+        .getCourseTables();
     if (tables.isEmpty || tables.first.id == null) {
       return null;
     }
@@ -123,9 +124,11 @@ class _TodoPageState extends State<TodoPage>
       final List<TodoItem> completed = tableId == null
           ? const <TodoItem>[]
           : await _repository.getTodos(completed: true, tableId: tableId);
-      final List<CourseSelectorOption> options = await _loadCourseSelectorOptions();
+      final List<CourseSelectorOption> options =
+          await _loadCourseSelectorOptions();
       final Map<String, Color> courseThemeByName = <String, Color>{
-        for (final CourseSelectorOption option in options) option.name: option.themeColor,
+        for (final CourseSelectorOption option in options)
+          option.name: option.themeColor,
       };
 
       setState(() {
@@ -147,38 +150,65 @@ class _TodoPageState extends State<TodoPage>
 
   @override
   Widget build(BuildContext context) {
-    const double horizontalPadding = 5;
+    const double horizontalPadding = 12;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color textMain = isDark
+        ? const Color(0xFFF2ECE2)
+        : AppTokens.textMain;
+    final Color textMuted = isDark
+        ? const Color(0xFFADB5C0)
+        : AppTokens.textMuted;
+    final Color tabContainerColor = isDark
+        ? const Color(0xFF1A1F24)
+        : Colors.white;
+    final Color tabIndicatorColor = isDark
+        ? const Color(0xFF2A3139)
+        : const Color(0xFFFFF0C9);
+    final Color tabLabelColor = isDark
+        ? const Color(0xFFFFD26B)
+        : const Color(0xFF40352A);
+    final Color tabUnselectedColor = isDark
+        ? const Color(0xFF97A0AB)
+        : const Color(0xFFB2A592);
+
     return SafeArea(
       child: Stack(
         children: <Widget>[
           Column(
             children: <Widget>[
               Padding(
-                padding: const EdgeInsets.fromLTRB(horizontalPadding, 5, horizontalPadding, 8),
+                padding: const EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  5,
+                  horizontalPadding,
+                  8,
+                ),
                 child: Column(
                   children: <Widget>[
                     Row(
                       children: <Widget>[
-                        _TopActionButton(icon: Icons.menu, onTap: _openSidebarPlaceholder),
+                        _TopActionButton(
+                          icon: Icons.menu,
+                          onTap: _openSidebarPlaceholder,
+                        ),
                         Expanded(
                           child: Column(
                             children: <Widget>[
-                              const Text(
+                              Text(
                                 '待办',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 24,
                                   fontWeight: FontWeight.w700,
-                                  color: AppTokens.textMain,
+                                  color: textMain,
                                 ),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 '今天也要把作业和考试安排得明明白白',
                                 textAlign: TextAlign.center,
-                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: AppTokens.textMuted,
-                                    ),
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(color: textMuted),
                               ),
                             ],
                           ),
@@ -194,22 +224,27 @@ class _TodoPageState extends State<TodoPage>
                       height: 44,
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: tabContainerColor,
                         borderRadius: BorderRadius.circular(22),
                       ),
                       child: TabBar(
                         controller: _tabController,
                         indicator: BoxDecoration(
-                          color: const Color(0xFFFFF0C9),
+                          color: tabIndicatorColor,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         indicatorSize: TabBarIndicatorSize.tab,
                         dividerColor: Colors.transparent,
-                        labelColor: const Color(0xFF40352A),
-                        unselectedLabelColor: const Color(0xFFB2A592),
-                        labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                        unselectedLabelStyle:
-                            const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        labelColor: tabLabelColor,
+                        unselectedLabelColor: tabUnselectedColor,
+                        labelStyle: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        unselectedLabelStyle: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                         tabs: const <Widget>[
                           Tab(text: '未完成'),
                           Tab(text: '已完成'),
@@ -223,14 +258,14 @@ class _TodoPageState extends State<TodoPage>
                 child: _loading
                     ? const Center(child: CircularProgressIndicator())
                     : _error != null
-                        ? _buildError()
-                        : TabBarView(
-                            controller: _tabController,
-                            children: <Widget>[
-                              _buildTodoTab(items: _pending, completed: false),
-                              _buildTodoTab(items: _completed, completed: true),
-                            ],
-                          ),
+                    ? _buildError()
+                    : TabBarView(
+                        controller: _tabController,
+                        children: <Widget>[
+                          _buildTodoTab(items: _pending, completed: false),
+                          _buildTodoTab(items: _completed, completed: true),
+                        ],
+                      ),
               ),
             ],
           ),
@@ -246,7 +281,6 @@ class _TodoPageState extends State<TodoPage>
       ),
     );
   }
-
 
   Widget _buildError() {
     return Center(
@@ -264,9 +298,24 @@ class _TodoPageState extends State<TodoPage>
     );
   }
 
-  Widget _buildTodoTab({required List<TodoItem> items, required bool completed}) {
+  Widget _buildTodoTab({
+    required List<TodoItem> items,
+    required bool completed,
+  }) {
     // 未完成与已完成使用独立展开状态，避免切换分栏时抽屉状态相互污染。
-    final Map<String, bool> expandedMap = completed ? _completedExpanded : _pendingExpanded;
+    final Map<String, bool> expandedMap = completed
+        ? _completedExpanded
+        : _pendingExpanded;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color groupBackground = isDark
+        ? const Color(0xFF1A1F24)
+        : Colors.white;
+    final Color groupBorder = isDark
+        ? const Color(0xFF2A3139)
+        : const Color(0xFFF3EBDD);
+    final Color emptyTextColor = isDark
+        ? const Color(0xFF9EA6B2)
+        : const Color(0xFFB2A592);
 
     return RefreshIndicator(
       onRefresh: _load,
@@ -277,16 +326,18 @@ class _TodoPageState extends State<TodoPage>
             Container(
               padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: groupBackground,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFF3EBDD)),
+                border: Border.all(color: groupBorder),
               ),
               child: Column(
                 children: <Widget>[
                   _buildGroupHeader(
                     type: type,
                     expanded: expandedMap[type] ?? false,
-                    count: items.where((TodoItem item) => item.taskType == type).length,
+                    count: items
+                        .where((TodoItem item) => item.taskType == type)
+                        .length,
                     onToggle: () {
                       setState(() {
                         expandedMap[type] = !(expandedMap[type] ?? false);
@@ -305,12 +356,12 @@ class _TodoPageState extends State<TodoPage>
             const SizedBox(height: 12),
           ],
           if (items.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
               child: Text(
                 '暂无待办',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Color(0xFFB2A592)),
+                style: TextStyle(color: emptyTextColor),
               ),
             ),
         ],
@@ -343,7 +394,10 @@ class _TodoPageState extends State<TodoPage>
                 padding: const EdgeInsets.only(left: 6),
                 child: Text(
                   '$count',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFFB2A592)),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFFB2A592),
+                  ),
                 ),
               ),
             const Spacer(),
@@ -375,30 +429,23 @@ class _TodoPageState extends State<TodoPage>
     final List<TodoItem> visible = expanded ? grouped : const <TodoItem>[];
 
     return visible
-        .map((TodoItem item) => Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: _TodoCard(
-                item: item,
-                completed: completed,
-                courseThemeByName: _courseThemeByName,
-                onToggle: (bool value) => _toggleCompleted(item, value),
-                onDelete: () => _delete(item),
-              ),
-            ))
+        .map(
+          (TodoItem item) => Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: _TodoCard(
+              item: item,
+              completed: completed,
+              courseThemeByName: _courseThemeByName,
+              onToggle: (bool value) => _toggleCompleted(item, value),
+              onDelete: () => _delete(item),
+            ),
+          ),
+        )
         .toList(growable: false);
   }
 
   Color _colorForCourseName(String name) {
-    const List<Color> palette = <Color>[
-      Color(0xFFD45E6A),
-      Color(0xFFCBA42F),
-      Color(0xFF4A88D2),
-      Color(0xFFB6C223),
-      Color(0xFF896ED8),
-      Color(0xFF2AA4A2),
-      Color(0xFFD68152),
-      Color(0xFFA19586),
-    ];
+    const List<Color> palette = CourseColorAdapter.basePalette;
     final int hash = name.runes.fold<int>(0, (int v, int e) => v * 31 + e);
     return palette[hash.abs() % palette.length];
   }
@@ -408,7 +455,8 @@ class _TodoPageState extends State<TodoPage>
     if (tableId == null || !mounted) {
       return;
     }
-    final List<CourseSelectorOption> latestCourseOptions = await _loadCourseSelectorOptions();
+    final List<CourseSelectorOption> latestCourseOptions =
+        await _loadCourseSelectorOptions();
     if (!mounted) {
       return;
     }
@@ -448,13 +496,13 @@ class _TodoPageState extends State<TodoPage>
     if (tableId == null) {
       return const <CourseSelectorOption>[];
     }
-    final List<CourseEntity> tableCourses = await _scheduleRepository.getCoursesByTableId(tableId);
-    final List<CourseEntity> manualCourses = tableCourses
-        .where((CourseEntity item) => item.importType == 0)
-        .toList(growable: false);
-    final Map<String, _ManualCourseSummary> grouped = <String, _ManualCourseSummary>{};
+    final List<CourseEntity> tableCourses = await _scheduleRepository
+        .getCoursesByTableId(tableId);
+    final Map<String, _ManualCourseSummary> grouped =
+        <String, _ManualCourseSummary>{};
 
-    for (final CourseEntity course in manualCourses) {
+    // 方案A：关联课程覆盖当前激活课表的全部课程（不再限制 importType）。
+    for (final CourseEntity course in tableCourses) {
       final String name = course.name;
       if (name.trim().isEmpty) {
         continue;
@@ -473,32 +521,40 @@ class _TodoPageState extends State<TodoPage>
         ),
       );
 
-      final bool isEarlier = createdAt.isBefore(summary.earliestAt) ||
-          (createdAt.isAtSameMomentAs(summary.earliestAt) && idForCompare < summary.earliestId);
+      final bool isEarlier =
+          createdAt.isBefore(summary.earliestAt) ||
+          (createdAt.isAtSameMomentAs(summary.earliestAt) &&
+              idForCompare < summary.earliestId);
       if (isEarlier) {
         summary.earliestAt = createdAt;
         summary.earliestId = idForCompare;
         summary.baselineColorHex = course.colorHex;
       }
 
-      final bool isLater = createdAt.isAfter(summary.latestAt) ||
-          (createdAt.isAtSameMomentAs(summary.latestAt) && idForCompare > summary.latestId);
+      final bool isLater =
+          createdAt.isAfter(summary.latestAt) ||
+          (createdAt.isAtSameMomentAs(summary.latestAt) &&
+              idForCompare > summary.latestId);
       if (isLater) {
         summary.latestAt = createdAt;
         summary.latestId = idForCompare;
       }
     }
 
-    final List<CourseSelectorOption> options = grouped.entries.map((MapEntry<String, _ManualCourseSummary> entry) {
-      final String name = entry.key;
-      final _ManualCourseSummary summary = entry.value;
-      final Color color = _parseCourseHex(summary.baselineColorHex) ?? _colorForCourseName(name);
-      return CourseSelectorOption(
-        name: name,
-        themeColor: color,
-        latestCreatedAt: summary.latestAt,
-      );
-    }).toList(growable: false);
+    final List<CourseSelectorOption> options = grouped.entries
+        .map((MapEntry<String, _ManualCourseSummary> entry) {
+          final String name = entry.key;
+          final _ManualCourseSummary summary = entry.value;
+          final Color color =
+              _parseCourseHex(summary.baselineColorHex) ??
+              _colorForCourseName(name);
+          return CourseSelectorOption(
+            name: name,
+            themeColor: color,
+            latestCreatedAt: summary.latestAt,
+          );
+        })
+        .toList(growable: false);
 
     options.sort((CourseSelectorOption a, CourseSelectorOption b) {
       final int cmp = b.latestCreatedAt.compareTo(a.latestCreatedAt);
@@ -532,231 +588,267 @@ class _TodoPageState extends State<TodoPage>
     // - sidebar_open_normal: editingType=false，只展示分组与“+ 新建待办”
     // - sidebar_open_editing: editingType=true，插入输入行 + 勾叉操作
     // 关闭侧栏即销毁局部编辑态，等价于“取消临时编辑”。
-    final TextEditingController controller = TextEditingController(text: '自定义名称');
+    final TextEditingController controller = TextEditingController(
+      text: '自定义名称',
+    );
     bool editingType = false;
+    const Duration sidebarTransitionDuration = Duration(milliseconds: 180);
 
-    await showGeneralDialog<void>(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: 'todo-sidebar',
-      barrierColor: const Color(0x66000000),
-      transitionDuration: const Duration(milliseconds: 180),
-      pageBuilder: (
-        BuildContext dialogContext,
-        Animation<double> animation,
-        Animation<double> secondaryAnimation,
-      ) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            Future<void> confirmCreateType() async {
-              // 对齐 PRD：确认前需做非空和重名校验。
-              final String name = controller.text.trim();
-              if (name.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('请输入类型名称')),
-                );
-                return;
-              }
-              if (_typeLabels.containsValue(name)) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('该类型已存在')),
-                );
-                return;
-              }
+    try {
+      await showGeneralDialog<void>(
+        context: context,
+        barrierDismissible: true,
+        barrierLabel: 'todo-sidebar',
+        barrierColor: const Color(0x66000000),
+        transitionDuration: sidebarTransitionDuration,
+        pageBuilder:
+            (
+              BuildContext dialogContext,
+              Animation<double> animation,
+              Animation<double> secondaryAnimation,
+            ) {
+              return StatefulBuilder(
+                builder: (BuildContext context, StateSetter setModalState) {
+                  Future<void> confirmCreateType() async {
+                    // 对齐 PRD：确认前需做非空和重名校验。
+                    final String name = controller.text.trim();
+                    if (name.isEmpty) {
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(const SnackBar(content: Text('请输入类型名称')));
+                      return;
+                    }
+                    if (_typeLabels.containsValue(name)) {
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(const SnackBar(content: Text('该类型已存在')));
+                      return;
+                    }
 
-              final String key = name;
-              setState(() {
-                // 对齐 PRD 联动：新增类型后，同步影响主页面分组和新建待办类型集合。
-                _typeOrder.add(key);
-                _typeLabels[key] = name;
-                _pendingExpanded[key] = false;
-                _completedExpanded[key] = false;
-              });
-              setModalState(() {
-                editingType = false;
-                controller.text = '自定义名称';
-              });
-            }
+                    final String key = name;
+                    setState(() {
+                      // 对齐 PRD 联动：新增类型后，同步影响主页面分组和新建待办类型集合。
+                      _typeOrder.add(key);
+                      _typeLabels[key] = name;
+                      _pendingExpanded[key] = false;
+                      _completedExpanded[key] = false;
+                    });
+                    setModalState(() {
+                      editingType = false;
+                      controller.text = '自定义名称';
+                    });
+                  }
 
-            return Align(
-              alignment: Alignment.centerLeft,
-              child: Material(
-                color: const Color(0xFFFFFDF6),
-                child: SizedBox(
-                  width: 340,
-                  child: SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: <Widget>[
-                          const CircleAvatar(
-                            radius: 20,
-                            backgroundColor: Color(0xFFFFEAB1),
-                            child: Text(
-                              '鸭',
-                              style: TextStyle(
-                                color: AppTokens.textMain,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            '上课鸭',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: AppTokens.textMain,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Expanded(
-                            child: ListView(
+                  return Align(
+                    alignment: Alignment.centerLeft,
+                    child: Material(
+                      color: const Color(0xFFFFFDF6),
+                      child: SizedBox(
+                        width: 340,
+                        child: SafeArea(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: <Widget>[
-                                for (final String key in _typeOrder)
-                                  Padding(
-                                    padding: const EdgeInsets.only(bottom: 12),
-                                    child: _TodoSidebarCard(
-                                      title: _typeTitle(key),
-                                      onDelete: () async {
-                                        final bool? ok = await showDialog<bool>(
-                                          context: context,
-                                          builder: (BuildContext context) {
-                                            return AlertDialog(
-                                              title: const Text('删除待办类型'),
-                                              content: Text('确认删除“${_typeTitle(key)}”以及其下所有待办吗？'),
-                                              actions: <Widget>[
-                                                TextButton(
-                                                  onPressed: () => Navigator.of(context).pop(false),
-                                                  child: const Text('取消'),
-                                                ),
-                                                FilledButton(
-                                                  onPressed: () => Navigator.of(context).pop(true),
-                                                  child: const Text('删除'),
-                                                ),
-                                              ],
-                                            );
-                                          },
-                                        );
-
-                                        if (ok != true) {
-                                          return;
-                                        }
-
-                                        await _repository.deleteTodosByTaskType(
-                                          key,
-                                          tableId: _activeTableId,
-                                        );
-                                        setState(() {
-                                          _typeOrder.remove(key);
-                                          _typeLabels.remove(key);
-                                          _pendingExpanded.remove(key);
-                                          _completedExpanded.remove(key);
-                                        });
-                                        await _load();
-                                      },
-                                      onTap: () => Navigator.of(dialogContext).maybePop(),
+                                const CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor: Color(0xFFFFEAB1),
+                                  child: Text(
+                                    '鸭',
+                                    style: TextStyle(
+                                      color: AppTokens.textMain,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
-                                if (editingType)
-                                  Container(
-                                    margin: const EdgeInsets.only(bottom: 12),
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF2F2F2),
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                    child: Row(
-                                      children: <Widget>[
-                                        Expanded(
-                                          child: TextField(
-                                            controller: controller,
-                                            autofocus: true,
-                                            maxLength: 12,
-                                            decoration: const InputDecoration(
-                                              isDense: true,
-                                              counterText: '',
-                                              border: InputBorder.none,
-                                            ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  '上课鸭',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: AppTokens.textMain,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Expanded(
+                                  child: ListView(
+                                    children: <Widget>[
+                                      for (final String key in _typeOrder)
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 12,
+                                          ),
+                                          child: _TodoSidebarCard(
+                                            title: _typeTitle(key),
+                                            onDelete: () async {
+                                              final bool?
+                                              ok = await showDialog<bool>(
+                                                context: context,
+                                                builder: (BuildContext context) {
+                                                  return AlertDialog(
+                                                    title: const Text('删除待办类型'),
+                                                    content: Text(
+                                                      '确认删除“${_typeTitle(key)}”以及其下所有待办吗？',
+                                                    ),
+                                                    actions: <Widget>[
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.of(
+                                                              context,
+                                                            ).pop(false),
+                                                        child: const Text('取消'),
+                                                      ),
+                                                      FilledButton(
+                                                        onPressed: () =>
+                                                            Navigator.of(
+                                                              context,
+                                                            ).pop(true),
+                                                        child: const Text('删除'),
+                                                      ),
+                                                    ],
+                                                  );
+                                                },
+                                              );
+
+                                              if (ok != true) {
+                                                return;
+                                              }
+
+                                              await _repository
+                                                  .deleteTodosByTaskType(
+                                                    key,
+                                                    tableId: _activeTableId,
+                                                  );
+                                              setState(() {
+                                                _typeOrder.remove(key);
+                                                _typeLabels.remove(key);
+                                                _pendingExpanded.remove(key);
+                                                _completedExpanded.remove(key);
+                                              });
+                                              await _load();
+                                            },
+                                            onTap: () => Navigator.of(
+                                              dialogContext,
+                                            ).maybePop(),
                                           ),
                                         ),
-                                        IconButton(
-                                          onPressed: confirmCreateType,
-                                          icon: const Icon(Icons.check_circle, color: AppTokens.duckYellow),
+                                      if (editingType)
+                                        Container(
+                                          margin: const EdgeInsets.only(
+                                            bottom: 12,
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 10,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFF2F2F2),
+                                            borderRadius: BorderRadius.circular(
+                                              14,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            children: <Widget>[
+                                              Expanded(
+                                                child: TextField(
+                                                  controller: controller,
+                                                  autofocus: true,
+                                                  maxLength: 12,
+                                                  decoration:
+                                                      const InputDecoration(
+                                                        isDense: true,
+                                                        counterText: '',
+                                                        border:
+                                                            InputBorder.none,
+                                                      ),
+                                                ),
+                                              ),
+                                              IconButton(
+                                                onPressed: confirmCreateType,
+                                                icon: const Icon(
+                                                  Icons.check_circle,
+                                                  color: AppTokens.duckYellow,
+                                                ),
+                                              ),
+                                              IconButton(
+                                                onPressed: () {
+                                                  setModalState(() {
+                                                    editingType = false;
+                                                    controller.text = '自定义名称';
+                                                  });
+                                                },
+                                                icon: const Icon(
+                                                  Icons.cancel,
+                                                  color: AppTokens.duckYellow,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                        IconButton(
-                                          onPressed: () {
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 16,
+                                        ),
+                                        child: _TodoSidebarCard(
+                                          title: '+ 新建类型',
+                                          highlighted: true,
+                                          onTap: () {
                                             setModalState(() {
-                                              editingType = false;
-                                              controller.text = '自定义名称';
+                                              // 普通态 -> 激活态，插入“自定义名称 + 勾叉”输入行。
+                                              editingType = true;
+                                              controller.selection =
+                                                  TextSelection(
+                                                    baseOffset: 0,
+                                                    extentOffset:
+                                                        controller.text.length,
+                                                  );
                                             });
                                           },
-                                          icon: const Icon(Icons.cancel, color: AppTokens.duckYellow),
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 16),
-                                  child: _TodoSidebarCard(
-                                    title: '+ 新建类型',
-                                    highlighted: true,
-                                    onTap: () {
-                                      setModalState(() {
-                                          // 普通态 -> 激活态，插入“自定义名称 + 勾叉”输入行。
-                                        editingType = true;
-                                        controller.selection = TextSelection(
-                                          baseOffset: 0,
-                                          extentOffset: controller.text.length,
-                                        );
-                                      });
-                                    },
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-      transitionBuilder: (
-        BuildContext context,
-        Animation<double> animation,
-        Animation<double> secondaryAnimation,
-        Widget child,
-      ) {
-        final Animation<Offset> slide = Tween<Offset>(
-          begin: const Offset(-1, 0),
-          end: Offset.zero,
-        ).animate(animation);
-        return SlideTransition(position: slide, child: child);
-      },
-    );
-
-    controller.dispose();
+                  );
+                },
+              );
+            },
+        transitionBuilder:
+            (
+              BuildContext context,
+              Animation<double> animation,
+              Animation<double> secondaryAnimation,
+              Widget child,
+            ) {
+              final Animation<Offset> slide = Tween<Offset>(
+                begin: const Offset(-1, 0),
+                end: Offset.zero,
+              ).animate(animation);
+              return SlideTransition(position: slide, child: child);
+            },
+      );
+    } finally {
+      FocusManager.instance.primaryFocus?.unfocus();
+      // Wait for reverse transition frames before disposing the TextField controller.
+      await Future<void>.delayed(
+        sidebarTransitionDuration + const Duration(milliseconds: 40),
+      );
+      controller.dispose();
+    }
   }
 
   Future<void> _openSharePlaceholder() async {
-    await DuckModal.show<void>(
-      context: context,
-      child: const DuckModalFrame(
-        title: '分享待办',
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: AppTokens.space12),
-          child: Text('待办分享能力会在后续任务接入。'),
-        ),
-      ),
-    );
+    await AppShareDialog.show(context);
   }
 }
 
@@ -793,16 +885,35 @@ class _TodoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final DateTime? dueAt = DateTime.tryParse(item.dueAt)?.toLocal();
-    final String dueText =
-        dueAt == null ? '无截止时间' : DateFormat('M月d日 HH:mm').format(dueAt);
-    final Color courseTagColor = courseThemeByName[item.courseName] ?? const Color(0xFFE6F1DD);
-    const Color courseTagTextColor = Colors.white;
+    final String dueText = dueAt == null
+        ? '无截止时间'
+        : DateFormat('M月d日 HH:mm').format(dueAt);
+    final Color baseTagColor =
+        courseThemeByName[item.courseName] ?? const Color(0xFFE6F1DD);
+    final Color courseTagColor = CourseColorAdapter.adaptive(
+      baseTagColor,
+      Theme.of(context).brightness,
+    );
+    final Color courseTagTextColor = CourseColorAdapter.onColor(courseTagColor);
+    final Color cardBackground = isDark
+        ? const Color(0xFF1A1F24)
+        : Colors.white;
+    final Color titleColor = completed
+        ? (isDark ? const Color(0xFF8F98A4) : const Color(0xFFB2A592))
+        : (isDark ? const Color(0xFFE8E3DB) : const Color(0xFF2F271D));
+    final Color dueColor = isDark
+        ? const Color(0xFF98A1AD)
+        : const Color(0xFFB2A592);
+    final Color deleteColor = isDark
+        ? const Color(0xFF8B94A1)
+        : const Color(0xFFC6BBA8);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBackground,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -817,10 +928,14 @@ class _TodoCard extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: item.isCompleted ? AppTokens.duckYellow : const Color(0xFFCDBFA8),
+                  color: item.isCompleted
+                      ? AppTokens.duckYellow
+                      : const Color(0xFFCDBFA8),
                   width: 1.2,
                 ),
-                color: item.isCompleted ? AppTokens.duckYellow : Colors.transparent,
+                color: item.isCompleted
+                    ? AppTokens.duckYellow
+                    : Colors.transparent,
               ),
               child: item.isCompleted
                   ? const Icon(Icons.check, size: 12, color: Colors.white)
@@ -837,19 +952,19 @@ class _TodoCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
-                    color: completed ? const Color(0xFFB2A592) : const Color(0xFF2F271D),
+                    color: titleColor,
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  dueText,
-                  style: const TextStyle(fontSize: 11, color: Color(0xFFB2A592)),
-                ),
+                Text(dueText, style: TextStyle(fontSize: 11, color: dueColor)),
                 if ((item.courseName ?? '').isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: courseTagColor,
                         borderRadius: BorderRadius.circular(12),
@@ -868,7 +983,7 @@ class _TodoCard extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline, size: 20, color: Color(0xFFC6BBA8)),
+            icon: Icon(Icons.delete_outline, size: 20, color: deleteColor),
             onPressed: onDelete,
             splashRadius: 18,
           ),
@@ -893,8 +1008,16 @@ class _TodoSidebarCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color cardBg = highlighted
+        ? (isDark ? const Color(0xFF2A3139) : const Color(0xFFFFF2C9))
+        : (isDark ? const Color(0xFF1A1F24) : Colors.white);
+    final Color titleColor = highlighted
+        ? (isDark ? const Color(0xFFFFD26B) : const Color(0xFFB98500))
+        : (isDark ? const Color(0xFFE6DFD3) : AppTokens.textMain);
+
     return Material(
-      color: highlighted ? const Color(0xFFFFF2C9) : Colors.white,
+      color: cardBg,
       borderRadius: BorderRadius.circular(24),
       child: InkWell(
         borderRadius: BorderRadius.circular(24),
@@ -909,7 +1032,7 @@ class _TodoSidebarCard extends StatelessWidget {
                   title,
                   textAlign: TextAlign.left,
                   style: TextStyle(
-                    color: highlighted ? const Color(0xFFB98500) : AppTokens.textMain,
+                    color: titleColor,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
@@ -943,6 +1066,14 @@ class _TopActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color bgColor = isDark
+        ? const Color(0xFF2A3139)
+        : const Color(0xFFFFF0C9);
+    final Color iconColor = isDark
+        ? const Color(0xFFECE6DB)
+        : AppTokens.textMain;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
@@ -950,20 +1081,17 @@ class _TopActionButton extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: const Color(0xFFFFF0C9),
+          color: bgColor,
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Icon(icon, color: AppTokens.textMain, size: 20),
+        child: Icon(icon, color: iconColor, size: 20),
       ),
     );
   }
 }
 
 class _RoundAddButton extends StatelessWidget {
-  const _RoundAddButton({
-    required this.onTap,
-    required this.child,
-  });
+  const _RoundAddButton({required this.onTap, required this.child});
 
   final VoidCallback onTap;
   final Widget child;

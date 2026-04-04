@@ -2,6 +2,7 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/shiguang_warehouse" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/参考文件/Class-Shedule-Flutter" vcs="Git" />
   </component>
 </project>

@@ -1,0 +1,57 @@
+{
+  "id": "ais_system_9e51ef",
+  "level": "undergraduate",
+  "title": "安徽医学高等专科学校（AIShedule）",
+  "import_url": "https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE",
+  "target_url": "",
+  "system_type": "金智教务",
+  "delay_seconds": 0,
+  "source": "aishedule_master",
+  "source_path": "参考文件/aishedule-master/金智教务/安徽医学高等专科学校/provider.js",
+  "source_adapter_id": "安徽医学高等专科学校",
+  "resource_folder": "金智教务",
+  "license": "MIT",
+  "maintainer": "xiaoxiao",
+  "asset_js_path": "provider.js",
+  "runtime": {
+    "id": "ais_system_9e51ef",
+    "name": "安徽医学高等专科学校（AIShedule）",
+    "level": "undergraduate",
+    "system_type": "金智教务",
+    "login_url": "https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE",
+    "target_url": "",
+    "fetch_config": {
+      "url": "",
+      "method": "POST",
+      "headers": {},
+      "body_template": "",
+      "credentials": "include"
+    },
+    "term_mapping": {
+      "first": "1",
+      "second": "2",
+      "short": ""
+    },
+    "data_path": "",
+    "field_mapping": {
+      "name": "name",
+      "position": "position",
+      "teacher": "teacher",
+      "weeks": "weeks",
+      "day": "day",
+      "sections": "sections"
+    },
+    "timer_config": {
+      "total_week": 20,
+      "start_semester": "2026-02-24",
+      "start_with_sunday": false,
+      "forenoon": 5,
+      "afternoon": 4,
+      "night": 3,
+      "sections": []
+    },
+    "script_version": "1.0.0",
+    "pre_extract_delay": 0,
+    "notes": "Imported from AIShedule (金智教务/安徽医学高等专科学校/provider.js)"
+  }
+}

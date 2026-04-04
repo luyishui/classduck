@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "school_config.schema.json",
+  "title": "AdapterSchoolConfig",
+  "type": "object",
+  "properties": {
+    "id": {"type": "string"},
+    "level": {
+      "type": "string",
+      "enum": ["undergraduate", "master", "general", "junior"]
+    },
+    "title": {"type": "string"},
+    "import_url": {"type": "string"},
+    "target_url": {"type": "string"},
+    "system_type": {"type": "string"},
+    "delay_seconds": {"type": "integer", "minimum": 0},
+    "source": {"type": "string"},
+    "source_path": {"type": "string"},
+    "license": {"type": "string"}
+  },
+  "required": ["id", "level", "title", "import_url"],
+  "additionalProperties": true
+}

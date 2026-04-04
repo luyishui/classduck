@@ -101,9 +101,7 @@ class _ManualAddCoursePageState extends State<ManualAddCoursePage> {
       return;
     }
 
-    _sessions.addAll(
-      prefill.map(_SessionDraft.fromPrefill),
-    );
+    _sessions.addAll(prefill.map(_SessionDraft.fromPrefill));
   }
 
   void _onCourseNameChanged() {
@@ -122,7 +120,10 @@ class _ManualAddCoursePageState extends State<ManualAddCoursePage> {
 
     final int ticket = ++_colorLookupToken;
     final String? baseColor = await _repository.getManualCourseBaseColor(name);
-    if (!mounted || ticket != _colorLookupToken || baseColor == null || baseColor.isEmpty) {
+    if (!mounted ||
+        ticket != _colorLookupToken ||
+        baseColor == null ||
+        baseColor.isEmpty) {
       return;
     }
 
@@ -181,7 +182,9 @@ class _ManualAddCoursePageState extends State<ManualAddCoursePage> {
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
             child: Column(
@@ -199,27 +202,29 @@ class _ManualAddCoursePageState extends State<ManualAddCoursePage> {
                 Wrap(
                   spacing: 10,
                   runSpacing: 10,
-                  children: ManualMoreColorsPage.palette.map((String colorHex) {
-                    final bool selected = colorHex == current;
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () => Navigator.of(context).pop(colorHex),
-                      child: Container(
-                        width: 42,
-                        height: 42,
-                        decoration: BoxDecoration(
-                          color: _parseColor(colorHex),
+                  children: ManualMoreColorsPage.palette
+                      .map((String colorHex) {
+                        final bool selected = colorHex == current;
+                        return InkWell(
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            width: selected ? 2 : 1,
-                            color: selected
-                                ? const Color(0xFFD89B00)
-                                : const Color(0xFFE8DFD2),
+                          onTap: () => Navigator.of(context).pop(colorHex),
+                          child: Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: _parseColor(colorHex),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                width: selected ? 2 : 1,
+                                color: selected
+                                    ? const Color(0xFFD89B00)
+                                    : const Color(0xFFE8DFD2),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    );
-                  }).toList(growable: false),
+                        );
+                      })
+                      .toList(growable: false),
                 ),
               ],
             ),
@@ -245,7 +250,8 @@ class _ManualAddCoursePageState extends State<ManualAddCoursePage> {
     }
 
     final int? activeTableId = ScheduleRepository.activeTableId;
-    if (activeTableId != null && tables.any((CourseTableEntity item) => item.id == activeTableId)) {
+    if (activeTableId != null &&
+        tables.any((CourseTableEntity item) => item.id == activeTableId)) {
       return activeTableId;
     }
 
@@ -302,10 +308,7 @@ class _ManualAddCoursePageState extends State<ManualAddCoursePage> {
           ),
       ];
 
-      await _repository.addCourses(
-        tableId: tableId,
-        courses: courses,
-      );
+      await _repository.addCourses(tableId: tableId, courses: courses);
 
       if (!mounted) {
         return;
@@ -324,16 +327,18 @@ class _ManualAddCoursePageState extends State<ManualAddCoursePage> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     final double bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final double safeBottom = MediaQuery.of(context).padding.bottom;
-    final double actionBottom = bottomInset > 0 ? bottomInset + 12 : safeBottom + 12;
+    final double actionBottom = bottomInset > 0
+        ? bottomInset + 12
+        : safeBottom + 12;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
@@ -404,7 +409,9 @@ class _ManualAddCoursePageState extends State<ManualAddCoursePage> {
                   style: OutlinedButton.styleFrom(
                     backgroundColor: Colors.white,
                     side: const BorderSide(color: AppTokens.duckYellow),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -416,7 +423,11 @@ class _ManualAddCoursePageState extends State<ManualAddCoursePage> {
                           color: AppTokens.duckYellow,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.add, size: 14, color: Colors.white),
+                        child: const Icon(
+                          Icons.add,
+                          size: 14,
+                          color: Colors.white,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       const Text(
@@ -444,7 +455,9 @@ class _ManualAddCoursePageState extends State<ManualAddCoursePage> {
                 style: FilledButton.styleFrom(
                   backgroundColor: AppTokens.duckYellow,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 onPressed: _saving ? null : _saveCourses,
                 child: _saving
@@ -453,7 +466,10 @@ class _ManualAddCoursePageState extends State<ManualAddCoursePage> {
                         height: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('新建课程', style: TextStyle(fontWeight: FontWeight.w700)),
+                    : const Text(
+                        '新建课程',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
               ),
             ),
           ),
@@ -462,459 +478,480 @@ class _ManualAddCoursePageState extends State<ManualAddCoursePage> {
     );
   }
 
-    static String _weekdayText(int day) {
-      switch (day) {
-        case 1:
-          return '一';
-        case 2:
-          return '二';
-        case 3:
-          return '三';
-        case 4:
-          return '四';
-        case 5:
-          return '五';
-        case 6:
-          return '六';
-        default:
-          return '日';
-      }
-    }
-
-    static Color _parseColor(String hex) {
-      return Color(int.parse('FF${hex.replaceAll('#', '')}', radix: 16));
+  static String _weekdayText(int day) {
+    switch (day) {
+      case 1:
+        return '一';
+      case 2:
+        return '二';
+      case 3:
+        return '三';
+      case 4:
+        return '四';
+      case 5:
+        return '五';
+      case 6:
+        return '六';
+      default:
+        return '日';
     }
   }
 
-  class _SessionDraft {
-    _SessionDraft({
-      required this.weekday,
-      required this.startPeriodController,
-      required this.endPeriodController,
-      required this.startWeekController,
-      required this.endWeekController,
-      required this.quickColors,
-      required this.selectedColor,
-      required this.userSelectedColor,
-    });
+  static Color _parseColor(String hex) {
+    return Color(int.parse('FF${hex.replaceAll('#', '')}', radix: 16));
+  }
+}
 
-    factory _SessionDraft.fromPrefill(ManualCourseSessionPrefill prefill) {
-      final String initialColor = prefill.colorHex ?? _ManualAddCoursePageState._baseQuickColors.first;
-      final List<String> quickColors = _promoteColor(
-        List<String>.from(_ManualAddCoursePageState._baseQuickColors),
-        initialColor,
-      );
+class _SessionDraft {
+  _SessionDraft({
+    required this.weekday,
+    required this.startPeriodController,
+    required this.endPeriodController,
+    required this.startWeekController,
+    required this.endWeekController,
+    required this.quickColors,
+    required this.selectedColor,
+    required this.userSelectedColor,
+  });
 
-      return _SessionDraft(
-        weekday: prefill.weekday.clamp(1, 7).toInt(),
-        startPeriodController: TextEditingController(text: prefill.startPeriod.toString()),
-        endPeriodController: TextEditingController(text: prefill.endPeriod.toString()),
-        startWeekController: TextEditingController(text: prefill.startWeek.toString()),
-        endWeekController: TextEditingController(text: prefill.endWeek.toString()),
-        quickColors: quickColors,
-        selectedColor: initialColor,
-        userSelectedColor: prefill.colorHex != null,
-      );
+  factory _SessionDraft.fromPrefill(ManualCourseSessionPrefill prefill) {
+    final String initialColor =
+        prefill.colorHex ?? _ManualAddCoursePageState._baseQuickColors.first;
+    final List<String> quickColors = _promoteColor(
+      List<String>.from(_ManualAddCoursePageState._baseQuickColors),
+      initialColor,
+    );
+
+    return _SessionDraft(
+      weekday: prefill.weekday.clamp(1, 7).toInt(),
+      startPeriodController: TextEditingController(
+        text: prefill.startPeriod.toString(),
+      ),
+      endPeriodController: TextEditingController(
+        text: prefill.endPeriod.toString(),
+      ),
+      startWeekController: TextEditingController(
+        text: prefill.startWeek.toString(),
+      ),
+      endWeekController: TextEditingController(
+        text: prefill.endWeek.toString(),
+      ),
+      quickColors: quickColors,
+      selectedColor: initialColor,
+      userSelectedColor: prefill.colorHex != null,
+    );
+  }
+
+  int weekday;
+  final TextEditingController startPeriodController;
+  final TextEditingController endPeriodController;
+  final TextEditingController startWeekController;
+  final TextEditingController endWeekController;
+  List<String> quickColors;
+  String selectedColor;
+  bool userSelectedColor;
+
+  int get startPeriod => int.tryParse(startPeriodController.text.trim()) ?? 1;
+  int get endPeriod =>
+      int.tryParse(endPeriodController.text.trim()) ?? startPeriod;
+  int get startWeek => int.tryParse(startWeekController.text.trim()) ?? 1;
+  int get endWeek => int.tryParse(endWeekController.text.trim()) ?? startWeek;
+
+  List<int> get weeks => <int>[for (int i = startWeek; i <= endWeek; i++) i];
+
+  bool applyAutoColor(String colorHex) {
+    if (userSelectedColor) {
+      return false;
     }
+    final bool changed = selectedColor != colorHex;
+    selectedColor = colorHex;
+    quickColors = _promoteColor(quickColors, colorHex);
+    return changed;
+  }
 
-    int weekday;
-    final TextEditingController startPeriodController;
-    final TextEditingController endPeriodController;
-    final TextEditingController startWeekController;
-    final TextEditingController endWeekController;
-    List<String> quickColors;
-    String selectedColor;
-    bool userSelectedColor;
-
-    int get startPeriod => int.tryParse(startPeriodController.text.trim()) ?? 1;
-    int get endPeriod => int.tryParse(endPeriodController.text.trim()) ?? startPeriod;
-    int get startWeek => int.tryParse(startWeekController.text.trim()) ?? 1;
-    int get endWeek => int.tryParse(endWeekController.text.trim()) ?? startWeek;
-
-    List<int> get weeks => <int>[for (int i = startWeek; i <= endWeek; i++) i];
-
-    bool applyAutoColor(String colorHex) {
-      if (userSelectedColor) {
-        return false;
-      }
-      final bool changed = selectedColor != colorHex;
-      selectedColor = colorHex;
-      quickColors = _promoteColor(quickColors, colorHex);
-      return changed;
-    }
-
-    void selectColor(String colorHex, {required bool markUserSelected}) {
-      selectedColor = colorHex;
-      quickColors = _promoteColor(quickColors, colorHex);
-      if (markUserSelected) {
-        userSelectedColor = true;
-      }
-    }
-
-    _SessionDraft copyForAppend() {
-      return _SessionDraft(
-        weekday: weekday,
-        startPeriodController: TextEditingController(text: startPeriodController.text.trim()),
-        endPeriodController: TextEditingController(text: endPeriodController.text.trim()),
-        startWeekController: TextEditingController(text: startWeekController.text.trim()),
-        endWeekController: TextEditingController(text: endWeekController.text.trim()),
-        quickColors: List<String>.from(quickColors),
-        selectedColor: selectedColor,
-        userSelectedColor: userSelectedColor,
-      );
-    }
-
-    void dispose() {
-      startPeriodController.dispose();
-      endPeriodController.dispose();
-      startWeekController.dispose();
-      endWeekController.dispose();
-    }
-
-    static List<String> _promoteColor(List<String> source, String colorHex) {
-      final List<String> next = <String>[...source];
-      next.remove(colorHex);
-      next.insert(0, colorHex);
-      return next.take(5).toList(growable: true);
+  void selectColor(String colorHex, {required bool markUserSelected}) {
+    selectedColor = colorHex;
+    quickColors = _promoteColor(quickColors, colorHex);
+    if (markUserSelected) {
+      userSelectedColor = true;
     }
   }
 
-  class _SessionCard extends StatelessWidget {
-    const _SessionCard({
-      required this.index,
-      required this.draft,
-      required this.deletable,
-      required this.periodError,
-      required this.weekError,
-      required this.onWeekdayChanged,
-      required this.onDelete,
-      required this.onQuickColorTap,
-      required this.onMoreColorTap,
-    });
-
-    final int index;
-    final _SessionDraft draft;
-    final bool deletable;
-    final bool periodError;
-    final bool weekError;
-    final ValueChanged<int> onWeekdayChanged;
-    final VoidCallback onDelete;
-    final ValueChanged<String> onQuickColorTap;
-    final VoidCallback onMoreColorTap;
-
-    @override
-    Widget build(BuildContext context) {
-      return Container(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Row(
-              children: <Widget>[
-                Text(
-                  '节次配置 ${index + 1}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppTokens.textMain,
-                  ),
-                ),
-                const Spacer(),
-                if (deletable)
-                  InkWell(
-                    onTap: onDelete,
-                    borderRadius: BorderRadius.circular(10),
-                    child: const Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Icon(
-                        Icons.delete_outline_rounded,
-                        size: 18,
-                        color: Color(0xFFE16C7B),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            const Text('星期', style: TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 6),
-            _WeekdaySingleLine(
-              value: draft.weekday,
-              onChanged: onWeekdayChanged,
-            ),
-            const SizedBox(height: 10),
-            _RangeInputRow(
-              title: '上课节次',
-              startController: draft.startPeriodController,
-              endController: draft.endPeriodController,
-              error: periodError,
-            ),
-            if (periodError)
-              const Padding(
-                padding: EdgeInsets.only(top: 6),
-                child: Text(
-                  '节次不合法或超出当日总节次上限',
-                  style: TextStyle(color: Color(0xFFE16C7B), fontSize: 12),
-                ),
-              ),
-            const SizedBox(height: 10),
-            _RangeInputRow(
-              title: '上课周数',
-              startController: draft.startWeekController,
-              endController: draft.endWeekController,
-              error: weekError,
-            ),
-            if (weekError)
-              const Padding(
-                padding: EdgeInsets.only(top: 6),
-                child: Text(
-                  '周数不合法或超出学期周数上限',
-                  style: TextStyle(color: Color(0xFFE16C7B), fontSize: 12),
-                ),
-              ),
-            const SizedBox(height: 10),
-            const Text('卡片颜色', style: TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            Row(
-              children: <Widget>[
-                for (final String colorHex in draft.quickColors) ...<Widget>[
-                  _ColorChip(
-                    colorHex: colorHex,
-                    selected: colorHex == draft.selectedColor,
-                    onTap: () => onQuickColorTap(colorHex),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                _MoreColorChip(onTap: onMoreColorTap),
-              ],
-            ),
-          ],
-        ),
-      );
-    }
+  _SessionDraft copyForAppend() {
+    return _SessionDraft(
+      weekday: weekday,
+      startPeriodController: TextEditingController(
+        text: startPeriodController.text.trim(),
+      ),
+      endPeriodController: TextEditingController(
+        text: endPeriodController.text.trim(),
+      ),
+      startWeekController: TextEditingController(
+        text: startWeekController.text.trim(),
+      ),
+      endWeekController: TextEditingController(
+        text: endWeekController.text.trim(),
+      ),
+      quickColors: List<String>.from(quickColors),
+      selectedColor: selectedColor,
+      userSelectedColor: userSelectedColor,
+    );
   }
 
-  class _WeekdaySingleLine extends StatelessWidget {
-    const _WeekdaySingleLine({
-      required this.value,
-      required this.onChanged,
-    });
-
-    final int value;
-    final ValueChanged<int> onChanged;
-
-    @override
-    Widget build(BuildContext context) {
-      return Row(
-        children: List<Widget>.generate(7, (int index) {
-          final int day = index + 1;
-          final bool active = value == day;
-          return Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(right: index == 6 ? 0 : 4),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () => onChanged(day),
-                child: Container(
-                  height: 34,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: active ? AppTokens.duckYellowSoft : const Color(0xFFF5F1E8),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: active ? const Color(0xFFD89B00) : const Color(0xFFE8DFD2),
-                    ),
-                  ),
-                  child: Text(
-                    '周${_ManualAddCoursePageState._weekdayText(day)}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: active ? const Color(0xFFD89B00) : AppTokens.textMain,
-                      fontWeight: active ? FontWeight.w700 : FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        }),
-      );
-    }
+  void dispose() {
+    startPeriodController.dispose();
+    endPeriodController.dispose();
+    startWeekController.dispose();
+    endWeekController.dispose();
   }
 
-  class _ColorChip extends StatelessWidget {
-    const _ColorChip({
-      required this.colorHex,
-      required this.selected,
-      required this.onTap,
-    });
-
-    final String colorHex;
-    final bool selected;
-    final VoidCallback onTap;
-
-    @override
-    Widget build(BuildContext context) {
-      return InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: _ManualAddCoursePageState._parseColor(colorHex),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              width: selected ? 2 : 1,
-              color: selected ? const Color(0xFFD89B00) : const Color(0xFFE8DFD2),
-            ),
-          ),
-        ),
-      );
-    }
+  static List<String> _promoteColor(List<String> source, String colorHex) {
+    final List<String> next = <String>[...source];
+    next.remove(colorHex);
+    next.insert(0, colorHex);
+    return next.take(5).toList(growable: true);
   }
+}
 
-  class _MoreColorChip extends StatelessWidget {
-    const _MoreColorChip({required this.onTap});
+class _SessionCard extends StatelessWidget {
+  const _SessionCard({
+    required this.index,
+    required this.draft,
+    required this.deletable,
+    required this.periodError,
+    required this.weekError,
+    required this.onWeekdayChanged,
+    required this.onDelete,
+    required this.onQuickColorTap,
+    required this.onMoreColorTap,
+  });
 
-    final VoidCallback onTap;
+  final int index;
+  final _SessionDraft draft;
+  final bool deletable;
+  final bool periodError;
+  final bool weekError;
+  final ValueChanged<int> onWeekdayChanged;
+  final VoidCallback onDelete;
+  final ValueChanged<String> onQuickColorTap;
+  final VoidCallback onMoreColorTap;
 
-    @override
-    Widget build(BuildContext context) {
-      return InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: 52,
-          height: 36,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF5F1E8),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE8DFD2)),
-          ),
-          child: const Text(
-            '更多',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: AppTokens.textMain,
-            ),
-          ),
-        ),
-      );
-    }
-  }
-
-  class _InputCard extends StatelessWidget {
-    const _InputCard({
-      required this.title,
-      required this.controller,
-      required this.hintText,
-    });
-
-    final String title;
-    final TextEditingController controller;
-    final String hintText;
-
-    @override
-    Widget build(BuildContext context) {
-      return Container(
-        padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(title, style: const TextStyle(fontSize: 12, color: AppTokens.textMuted)),
-            TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                hintText: hintText,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-  }
-
-  class _RangeInputRow extends StatelessWidget {
-    const _RangeInputRow({
-      required this.title,
-      required this.startController,
-      required this.endController,
-      required this.error,
-    });
-
-    final String title;
-    final TextEditingController startController;
-    final TextEditingController endController;
-    final bool error;
-
-    @override
-    Widget build(BuildContext context) {
-      final Border border = Border.all(
-        color: error ? const Color(0xFFE16C7B) : const Color(0xFFE8DFD2),
-      );
-
-      return Column(
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+          Row(
+            children: <Widget>[
+              Text(
+                '节次配置 ${index + 1}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppTokens.textMain,
+                ),
+              ),
+              const Spacer(),
+              if (deletable)
+                InkWell(
+                  onTap: onDelete,
+                  borderRadius: BorderRadius.circular(10),
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.delete_outline_rounded,
+                      size: 18,
+                      color: Color(0xFFE16C7B),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const Text('星期', style: TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 6),
+          _WeekdaySingleLine(value: draft.weekday, onChanged: onWeekdayChanged),
+          const SizedBox(height: 10),
+          _RangeInputRow(
+            title: '上课节次',
+            startController: draft.startPeriodController,
+            endController: draft.endPeriodController,
+            error: periodError,
+          ),
+          if (periodError)
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text(
+                '节次不合法或超出当日总节次上限',
+                style: TextStyle(color: Color(0xFFE16C7B), fontSize: 12),
+              ),
+            ),
+          const SizedBox(height: 10),
+          _RangeInputRow(
+            title: '上课周数',
+            startController: draft.startWeekController,
+            endController: draft.endWeekController,
+            error: weekError,
+          ),
+          if (weekError)
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text(
+                '周数不合法或超出学期周数上限',
+                style: TextStyle(color: Color(0xFFE16C7B), fontSize: 12),
+              ),
+            ),
+          const SizedBox(height: 10),
+          const Text('卡片颜色', style: TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           Row(
             children: <Widget>[
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: border,
-                  ),
-                  child: TextField(
-                    controller: startController,
-                    textAlign: TextAlign.center,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
+              for (final String colorHex in draft.quickColors) ...<Widget>[
+                _ColorChip(
+                  colorHex: colorHex,
+                  selected: colorHex == draft.selectedColor,
+                  onTap: () => onQuickColorTap(colorHex),
                 ),
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10),
-                child: Text('-'),
-              ),
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: border,
-                  ),
-                  child: TextField(
-                    controller: endController,
-                    textAlign: TextAlign.center,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-              ),
+                const SizedBox(width: 8),
+              ],
+              _MoreColorChip(onTap: onMoreColorTap),
             ],
           ),
         ],
-      );
-    }
+      ),
+    );
   }
+}
+
+class _WeekdaySingleLine extends StatelessWidget {
+  const _WeekdaySingleLine({required this.value, required this.onChanged});
+
+  final int value;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: List<Widget>.generate(7, (int index) {
+        final int day = index + 1;
+        final bool active = value == day;
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(right: index == 6 ? 0 : 4),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => onChanged(day),
+              child: Container(
+                height: 34,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: active
+                      ? AppTokens.duckYellowSoft
+                      : const Color(0xFFF5F1E8),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: active
+                        ? const Color(0xFFD89B00)
+                        : const Color(0xFFE8DFD2),
+                  ),
+                ),
+                child: Text(
+                  '周${_ManualAddCoursePageState._weekdayText(day)}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: active
+                        ? const Color(0xFFD89B00)
+                        : AppTokens.textMain,
+                    fontWeight: active ? FontWeight.w700 : FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class _ColorChip extends StatelessWidget {
+  const _ColorChip({
+    required this.colorHex,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String colorHex;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: _ManualAddCoursePageState._parseColor(colorHex),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            width: selected ? 2 : 1,
+            color: selected ? const Color(0xFFD89B00) : const Color(0xFFE8DFD2),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MoreColorChip extends StatelessWidget {
+  const _MoreColorChip({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 52,
+        height: 36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F1E8),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE8DFD2)),
+        ),
+        child: const Text(
+          '更多',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: AppTokens.textMain,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InputCard extends StatelessWidget {
+  const _InputCard({
+    required this.title,
+    required this.controller,
+    required this.hintText,
+  });
+
+  final String title;
+  final TextEditingController controller;
+  final String hintText;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            title,
+            style: const TextStyle(fontSize: 12, color: AppTokens.textMuted),
+          ),
+          TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              hintText: hintText,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RangeInputRow extends StatelessWidget {
+  const _RangeInputRow({
+    required this.title,
+    required this.startController,
+    required this.endController,
+    required this.error,
+  });
+
+  final String title;
+  final TextEditingController startController;
+  final TextEditingController endController;
+  final bool error;
+
+  @override
+  Widget build(BuildContext context) {
+    final Border border = Border.all(
+      color: error ? const Color(0xFFE16C7B) : const Color(0xFFE8DFD2),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: border,
+                ),
+                child: TextField(
+                  controller: startController,
+                  textAlign: TextAlign.center,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10),
+              child: Text('-'),
+            ),
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: border,
+                ),
+                child: TextField(
+                  controller: endController,
+                  textAlign: TextAlign.center,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}

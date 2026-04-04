@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/foundation.dart';
 import 'package:lpinyin/lpinyin.dart';
 
 import '../../../shared/theme/app_tokens.dart';
@@ -19,17 +20,17 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
 
-  static const List<String> _schoolLevelTabs = <String>[
-    '本/专科',
-    '硕士',
-    '通用',
-  ];
+  static const List<String> _schoolLevelTabs = <String>['本/专科', '硕士', '通用'];
 
   static const List<String> _schoolLevelKeys = <String>[
     'undergraduate',
     'master',
     'general',
   ];
+
+  static const String _defaultLevelHintText = '找不到学校？试试搜索或使用通用教务。';
+  static const String _generalLevelHintText =
+      '请先确认学校教务系统类型；如不确定，可咨询豆包等 AI 助手获取帮助。';
 
   bool _loading = false;
   String? _error;
@@ -39,13 +40,18 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
   int _activeLevelIndex = 0;
   Map<String, double> _letterOffsets = <String, double>{};
   List<String> _orderedLetters = const <String>[];
+  final Map<String, String> _initialLetterCache = <String, String>{};
 
   List<SchoolConfig> _allConfigs = const <SchoolConfig>[];
+  List<SchoolConfig> _visibleConfigs = const <SchoolConfig>[];
+  Map<String, List<SchoolConfig>> _visibleGrouped =
+      const <String, List<SchoolConfig>>{};
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _refreshVisibleData();
     _load();
   }
 
@@ -57,40 +63,102 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
     super.dispose();
   }
 
+  void _logPerf(
+    String stage,
+    Stopwatch stopwatch, {
+    Map<String, Object?> extras = const <String, Object?>{},
+  }) {
+    if (!kDebugMode) {
+      return;
+    }
+    final String detail = extras.entries
+        .map((MapEntry<String, Object?> item) => '${item.key}=${item.value}')
+        .join(', ');
+    debugPrint(
+      '[perf][import-school] $stage ${stopwatch.elapsedMilliseconds}ms'
+      '${detail.isEmpty ? '' : ' | $detail'}',
+    );
+  }
+
   Future<void> _load() async {
+    final Stopwatch totalWatch = Stopwatch()..start();
+    final Stopwatch builtinWatch = Stopwatch()..start();
+    int builtinCount = 0;
+    int remoteCount = 0;
     setState(() {
       _loading = true;
       _error = null;
     });
 
+    bool hasLocalFallback = false;
     try {
-      final List<SchoolConfig> data = await _repository.fetchSchoolConfigs();
-      data.sort((SchoolConfig a, SchoolConfig b) => a.title.compareTo(b.title));
-      setState(() {
-        _allConfigs = data;
-      });
+      final List<SchoolConfig> builtin = _normalizeConfigs(
+        await _repository.loadBuiltinConfigs(),
+      );
+      builtinWatch.stop();
+      builtinCount = builtin.length;
+      if (builtin.isNotEmpty) {
+        hasLocalFallback = true;
+        if (mounted) {
+          setState(() {
+            _applyConfigs(builtin);
+            _loading = false;
+          });
+        }
+      }
+
+      final List<SchoolConfig> data = _normalizeConfigs(
+        await _repository.fetchSchoolConfigs(builtinSeed: builtin),
+      );
+      remoteCount = data.length;
+      if (!mounted) {
+        return;
+      }
+      if (!_isSameConfigList(_allConfigs, data)) {
+        setState(() {
+          _applyConfigs(data);
+        });
+      }
     } catch (error) {
-      setState(() {
-        _error = error.toString();
-      });
+      if (!mounted) {
+        return;
+      }
+      if (!hasLocalFallback && _allConfigs.isEmpty) {
+        setState(() {
+          _error = error.toString();
+        });
+      }
     } finally {
-      setState(() {
-        _loading = false;
-      });
+      if (!mounted) {
+        return;
+      }
+      if (_loading) {
+        setState(() {
+          _loading = false;
+        });
+      }
+      _logPerf(
+        '_load',
+        totalWatch,
+        extras: <String, Object?>{
+          'builtinMs': builtinWatch.elapsedMilliseconds,
+          'builtinCount': builtinCount,
+          'remoteCount': remoteCount,
+          'visible': _visibleConfigs.length,
+          'error': _error != null,
+        },
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // 数据过滤顺序：先关键字过滤，再按首字母分组渲染。
-    final List<SchoolConfig> filtered = _filteredConfigs();
-    final Map<String, List<SchoolConfig>> grouped = _groupByLetter(filtered);
-    final List<String> letters = grouped.keys.toList(growable: false);
-    _orderedLetters = letters;
-    _letterOffsets = _computeLetterOffsets(grouped);
+    final List<SchoolConfig> filtered = _visibleConfigs;
+    final Map<String, List<SchoolConfig>> grouped = _visibleGrouped;
+    final List<String> letters = _orderedLetters;
     final String effectiveActiveLetter = letters.isEmpty
-      ? '#'
-      : (letters.contains(_activeLetter) ? _activeLetter : letters.first);
+        ? '#'
+        : (letters.contains(_activeLetter) ? _activeLetter : letters.first);
 
     return Scaffold(
       backgroundColor: AppTokens.pageBackground,
@@ -112,12 +180,16 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
                   onChanged: (String value) {
                     setState(() {
                       _keyword = value.trim();
+                      _refreshVisibleData();
                     });
                   },
                   decoration: const InputDecoration(
                     hintText: '搜索学校',
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
                   ),
                 ),
               )
@@ -138,6 +210,7 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
                 if (!_searchActive) {
                   _searchController.clear();
                   _keyword = '';
+                  _refreshVisibleData();
                 }
               });
             },
@@ -156,11 +229,13 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
                   return;
                 }
                 setState(() {
-                  if (velocity < 0 && _activeLevelIndex < _schoolLevelTabs.length - 1) {
+                  if (velocity < 0 &&
+                      _activeLevelIndex < _schoolLevelTabs.length - 1) {
                     _activeLevelIndex++;
                   } else if (velocity > 0 && _activeLevelIndex > 0) {
                     _activeLevelIndex--;
                   }
+                  _refreshVisibleData();
                 });
               },
               child: Container(
@@ -175,13 +250,16 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
                     for (int i = 0; i < _schoolLevelTabs.length; i++)
                       Expanded(
                         child: Padding(
-                          padding: EdgeInsets.only(right: i == _schoolLevelTabs.length - 1 ? 0 : 4),
+                          padding: EdgeInsets.only(
+                            right: i == _schoolLevelTabs.length - 1 ? 0 : 4,
+                          ),
                           child: _SchoolLevelTab(
                             label: _schoolLevelTabs[i],
                             active: _activeLevelIndex == i,
                             onTap: () {
                               setState(() {
                                 _activeLevelIndex = i;
+                                _refreshVisibleData();
                               });
                             },
                           ),
@@ -192,13 +270,18 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
               ),
             ),
           ),
-          const Padding(
+          Padding(
             padding: EdgeInsets.fromLTRB(20, 2, 20, 8),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                '找不到学校？试试搜索或使用通用教务',
-                style: TextStyle(fontSize: 12, color: AppTokens.textMuted),
+                _activeLevelIndex == 2
+                    ? _generalLevelHintText
+                    : _defaultLevelHintText,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppTokens.textMuted,
+                ),
               ),
             ),
           ),
@@ -216,9 +299,12 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: AppTokens.duckYellowSoft,
+                    color: AppTokens.duckYellow,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
@@ -226,7 +312,7 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
                     style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
-                      color: AppTokens.textMain,
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -237,59 +323,61 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
                 : _error != null
-                    ? _buildError()
-                    : filtered.isEmpty
-                        ? const Center(child: Text('未找到该学校'))
-                        : Stack(
-                            children: <Widget>[
-                              NotificationListener<ScrollNotification>(
-                                onNotification: (ScrollNotification notification) {
-                                  _onScroll();
-                                  return false;
-                                },
-                                child: ListView(
-                                  controller: _scrollController,
-                                  padding: const EdgeInsets.fromLTRB(20, 4, 44, 100),
-                                  children: _buildGroupedList(grouped),
-                                ),
-                              ),
-                              Positioned(
-                                right: 8,
-                                top: 8,
-                                bottom: 24,
-                                child: _LetterBar(
-                                  letters: letters,
-                                  activeLetter: effectiveActiveLetter,
-                                  onTapLetter: (String letter) {
-                                    _jumpToLetter(letter, grouped);
-                                  },
-                                ),
-                              ),
-                              Positioned(
-                                right: 20,
-                                bottom: 78,
-                                child: Column(
-                                  children: <Widget>[
-                                    _ToolButton(
-                                      icon: Icons.download,
-                                      onTap: () {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('请先点击学校后进入导入流程。')),
-                                        );
-                                      },
-                                    ),
-                                    const SizedBox(height: 20),
-                                    _ToolButton(
-                                      icon: Icons.question_mark,
-                                      onTap: () {
-                                        _showHelp();
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
+                ? _buildError()
+                : filtered.isEmpty
+                ? const Center(child: Text('未找到该学校'))
+                : Stack(
+                    children: <Widget>[
+                      NotificationListener<ScrollNotification>(
+                        onNotification: (ScrollNotification notification) {
+                          _onScroll();
+                          return false;
+                        },
+                        child: ListView(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.fromLTRB(20, 4, 44, 100),
+                          children: _buildGroupedList(grouped),
+                        ),
+                      ),
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        bottom: 24,
+                        child: _LetterBar(
+                          letters: letters,
+                          activeLetter: effectiveActiveLetter,
+                          onTapLetter: (String letter) {
+                            _jumpToLetter(letter, grouped);
+                          },
+                        ),
+                      ),
+                      Positioned(
+                        right: 20,
+                        bottom: 78,
+                        child: Column(
+                          children: <Widget>[
+                            _ToolButton(
+                              icon: Icons.download,
+                              onTap: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('请先点击学校后进入导入流程。'),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 20),
+                            _ToolButton(
+                              icon: Icons.question_mark,
+                              onTap: () {
+                                _showHelp();
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
           ),
         ],
       ),
@@ -307,6 +395,57 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
         ],
       ),
     );
+  }
+
+  List<SchoolConfig> _normalizeConfigs(List<SchoolConfig> source) {
+    final List<SchoolConfig> fused =
+        SchoolConfigRepository.fuseGeneralWakeupRules(source);
+    final List<SchoolConfig> deduped =
+        SchoolConfigRepository.dedupeByDisplayTitle(fused);
+    deduped.sort(
+      (SchoolConfig a, SchoolConfig b) =>
+          a.displayTitle.compareTo(b.displayTitle),
+    );
+    return deduped;
+  }
+
+  void _applyConfigs(List<SchoolConfig> configs) {
+    _allConfigs = configs;
+    _initialLetterCache.clear();
+    _refreshVisibleData();
+  }
+
+  bool _isSameConfigList(List<SchoolConfig> left, List<SchoolConfig> right) {
+    if (left.length != right.length) {
+      return false;
+    }
+
+    for (int i = 0; i < left.length; i++) {
+      final SchoolConfig a = left[i];
+      final SchoolConfig b = right[i];
+      if (a.id != b.id ||
+          a.level != b.level ||
+          a.displayTitle != b.displayTitle) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void _refreshVisibleData() {
+    final List<SchoolConfig> filtered = _filteredConfigs();
+    final Map<String, List<SchoolConfig>> grouped = _groupByLetter(filtered);
+
+    _visibleConfigs = filtered;
+    _visibleGrouped = grouped;
+    _orderedLetters = grouped.keys.toList(growable: false);
+    _letterOffsets = _computeLetterOffsets(grouped);
+
+    if (_orderedLetters.isEmpty) {
+      _activeLetter = '#';
+    } else if (!_orderedLetters.contains(_activeLetter)) {
+      _activeLetter = _orderedLetters.first;
+    }
   }
 
   List<Widget> _buildGroupedList(Map<String, List<SchoolConfig>> grouped) {
@@ -339,7 +478,10 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
                 onTap: () => _openExecutionPage(config),
                 onLongPress: () => _showConfigPreview(config),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 14,
+                  ),
                   child: Row(
                     children: <Widget>[
                       Expanded(
@@ -347,7 +489,7 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
                             Text(
-                              config.title,
+                              config.displayTitle,
                               style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
@@ -376,10 +518,13 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
     final String keyword = _keyword.trim().toLowerCase();
 
     if (keyword.isNotEmpty) {
-      return _allConfigs.where((SchoolConfig config) {
-        return config.title.toLowerCase().contains(keyword) ||
-            config.id.toLowerCase().contains(keyword);
-      }).toList(growable: false);
+      return _allConfigs
+          .where((SchoolConfig config) {
+            return config.displayTitle.toLowerCase().contains(keyword) ||
+                config.title.toLowerCase().contains(keyword) ||
+                config.id.toLowerCase().contains(keyword);
+          })
+          .toList(growable: false);
     }
 
     final String activeLevel = _schoolLevelKeys[_activeLevelIndex];
@@ -391,15 +536,21 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
     if (levelMatched.isEmpty && _allConfigs.isNotEmpty) {
       return _allConfigs;
     }
+
     return levelMatched;
   }
 
   Map<String, List<SchoolConfig>> _groupByLetter(List<SchoolConfig> configs) {
     // 分组策略：A-Z + #，并将无法归类项统一归到 #。
-    final Map<String, List<SchoolConfig>> grouped = <String, List<SchoolConfig>>{};
+    final Map<String, List<SchoolConfig>> grouped =
+        <String, List<SchoolConfig>>{};
 
     for (final SchoolConfig config in configs) {
-      final String letter = _initialLetter(config.title);
+      final String cacheKey = '${config.id}|${config.displayTitle}';
+      final String letter = _initialLetterCache.putIfAbsent(
+        cacheKey,
+        () => _initialLetter(config.displayTitle),
+      );
       grouped.putIfAbsent(letter, () => <SchoolConfig>[]).add(config);
     }
 
@@ -419,8 +570,13 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
     }
 
     // 中文学校名按拼音首字母分组，保证本/专科和硕士分栏也可走 A-Z 导航。
-    final String pinyin = PinyinHelper.getPinyinE(text, defPinyin: '#', separator: '');
-    final String c = (pinyin.isNotEmpty ? pinyin.substring(0, 1) : '#').toUpperCase();
+    final String pinyin = PinyinHelper.getPinyinE(
+      text,
+      defPinyin: '#',
+      separator: '',
+    );
+    final String c = (pinyin.isNotEmpty ? pinyin.substring(0, 1) : '#')
+        .toUpperCase();
     final RegExp az = RegExp(r'^[A-Z]$');
     if (az.hasMatch(c)) {
       return c;
@@ -442,8 +598,12 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
     for (int i = 0; i < _orderedLetters.length; i++) {
       final String current = _orderedLetters[i];
       final double currentOffset = _letterOffsets[current] ?? 0;
-      final String? next = i + 1 < _orderedLetters.length ? _orderedLetters[i + 1] : null;
-      final double nextOffset = next == null ? double.infinity : (_letterOffsets[next] ?? double.infinity);
+      final String? next = i + 1 < _orderedLetters.length
+          ? _orderedLetters[i + 1]
+          : null;
+      final double nextOffset = next == null
+          ? double.infinity
+          : (_letterOffsets[next] ?? double.infinity);
       if (offset >= currentOffset && offset < nextOffset) {
         letter = current;
         break;
@@ -470,7 +630,9 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
     }
   }
 
-  Map<String, double> _computeLetterOffsets(Map<String, List<SchoolConfig>> grouped) {
+  Map<String, double> _computeLetterOffsets(
+    Map<String, List<SchoolConfig>> grouped,
+  ) {
     double offset = 0;
     final Map<String, double> result = <String, double>{};
     grouped.forEach((String letter, List<SchoolConfig> schools) {
@@ -512,7 +674,7 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(config.title),
+          title: Text(config.displayTitle),
           content: SingleChildScrollView(
             child: Text(
               'schoolId: ${config.id}\n'
@@ -534,15 +696,16 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
 
   Future<void> _openExecutionPage(SchoolConfig config) async {
     final bool isGeneralPortal =
-        config.level == 'general' || config.title.contains('通用');
+        config.level == 'general' || config.displayTitle.contains('通用');
 
     // 保护：未适配学校（example.com 占位 URL）给出友好提示；
     // 通用入口允许空链接，进入后由用户手动输入。
     if (!isGeneralPortal &&
-        (config.initialUrl.contains('example.com') || config.initialUrl.isEmpty)) {
+        (config.initialUrl.contains('example.com') ||
+            config.initialUrl.isEmpty)) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('${config.title} 暂未适配教务系统，敬请期待')),
+        SnackBar(content: Text('${config.displayTitle} 暂未适配教务系统，敬请期待')),
       );
       return;
     }
@@ -564,7 +727,9 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: const Text(
             '导入帮助',
             style: TextStyle(
@@ -574,12 +739,11 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
             ),
           ),
           content: const Text(
-            '1. 先选择学校\n2. 进入教务系统登录\n3. 进入课表页后执行导入',
-            style: TextStyle(
-              fontSize: 15,
-              height: 1.5,
-              color: Colors.black87,
-            ),
+            '1. 先选择学校\n'
+            '2. 进入教务系统登录\n'
+            '3. 进入课表页后执行导入\n'
+            '4. 若找不到学校且通用教务导入失败，请在问卷中提交“适配申请”。',
+            style: TextStyle(fontSize: 15, height: 1.5, color: Colors.black87),
           ),
           actions: <Widget>[
             TextButton(
@@ -626,35 +790,39 @@ class _LetterBar extends StatelessWidget {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onVerticalDragStart: (DragStartDetails details) => selectByDy(details.localPosition.dy),
-      onVerticalDragUpdate: (DragUpdateDetails details) => selectByDy(details.localPosition.dy),
+      onVerticalDragStart: (DragStartDetails details) =>
+          selectByDy(details.localPosition.dy),
+      onVerticalDragUpdate: (DragUpdateDetails details) =>
+          selectByDy(details.localPosition.dy),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
-        children: letters.map((String letter) {
-          final bool active = letter == activeLetter;
-          return GestureDetector(
-            onTap: () => onTapLetter(letter),
-            child: Container(
-              width: 24,
-              height: itemExtent,
-              margin: const EdgeInsets.symmetric(vertical: 1),
-              decoration: BoxDecoration(
-                color: active ? AppTokens.duckYellow : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Text(
-                  letter,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: active ? Colors.white : AppTokens.textMuted,
-                    fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+        children: letters
+            .map((String letter) {
+              final bool active = letter == activeLetter;
+              return GestureDetector(
+                onTap: () => onTapLetter(letter),
+                child: Container(
+                  width: 24,
+                  height: itemExtent,
+                  margin: const EdgeInsets.symmetric(vertical: 1),
+                  decoration: BoxDecoration(
+                    color: active ? AppTokens.duckYellow : Colors.transparent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Text(
+                      letter,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: active ? Colors.white : AppTokens.textMuted,
+                        fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-          );
-        }).toList(growable: false),
+              );
+            })
+            .toList(growable: false),
       ),
     );
   }
