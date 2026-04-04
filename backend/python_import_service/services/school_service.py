@@ -51,13 +51,21 @@ class SchoolService:
         return sorted(self._cache.values(), key=lambda item: item.name)
 
     def list_summary(self) -> dict[str, Any]:
+        def normalize_level(raw_level: str) -> str:
+            level = (raw_level or "").strip().lower()
+            if level == "junior":
+                return "undergraduate"
+            if level in {"undergraduate", "master", "general"}:
+                return level
+            return "general"
+
         return {
             "version": "2026-03-17",
             "data": [
                 {
                     "id": config.id,
                     "delaySeconds": config.pre_extract_delay,
-                    "level": "general",
+                    "level": normalize_level(config.level),
                     "targetUrl": config.target_url,
                     "extractScriptUrl": f"/api/schools/{config.id}/script?script_type=provider",
                     "title": config.name,

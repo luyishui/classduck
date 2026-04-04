@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../shared/constants/survey_links.dart';
 import '../../../shared/theme/app_tokens.dart';
+import '../../../shared/widgets/app_share_dialog.dart';
 import '../../../shared/widgets/duck_modal.dart';
 import '../../schedule/domain/course.dart';
 import '../../schedule/domain/course_table.dart';
@@ -8,6 +10,7 @@ import '../../schedule/data/schedule_repository.dart';
 import '../../settings/ui/about_page.dart';
 import '../../settings/ui/appearance_page.dart';
 import '../../settings/ui/notifications_page.dart';
+import '../../settings/ui/survey_webview_page.dart';
 import '../../todo/data/todo_repository.dart';
 import '../../todo/domain/todo_item.dart';
 
@@ -64,7 +67,7 @@ class _ProfilePageState extends State<ProfilePage> {
     _refreshStatsIfNeeded();
     return SafeArea(
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(5, 5, 5, 120),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 120),
         children: <Widget>[
           Row(
             children: <Widget>[
@@ -93,7 +96,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               _TopActionButton(
                 icon: Icons.share_outlined,
-                onTap: _openSharePlaceholder,
+                onTap: () => AppShareDialog.show(context),
               ),
             ],
           ),
@@ -159,6 +162,18 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 const SizedBox(height: 8),
                 _SettingCard(
+                  title: '鸭鸭问卷',
+                  onTap: () =>
+                      _openPage(
+                        SurveyWebviewPage(
+                          title: '鸭鸭问卷',
+                          url: SurveyLinks.generalSurveyUrl,
+                          shareUrl: SurveyLinks.projectShareUrl,
+                        ),
+                      ),
+                ),
+                const SizedBox(height: 8),
+                _SettingCard(
                   title: '关于上课鸭',
                   onTap: () => _openPage(const AboutPage()),
                 ),
@@ -183,19 +198,6 @@ class _ProfilePageState extends State<ProfilePage> {
         _loadStats();
       }
     });
-  }
-
-  Future<void> _openSharePlaceholder() async {
-    await DuckModal.show<void>(
-      context: context,
-      child: const DuckModalFrame(
-        title: '分享',
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: AppTokens.space12),
-          child: Text('分享能力会在后续任务接入。'),
-        ),
-      ),
-    );
   }
 
   Future<void> _openDoneCourseModal() async {

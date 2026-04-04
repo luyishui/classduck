@@ -1,0 +1,41 @@
+{
+  "id": "huat",
+  "name": "湖北汽车工业学院",
+  "level": "undergraduate",
+  "system_type": "huat",
+  "login_url": "https://cas.huat.edu.cn/authserver/login?service=http%3A%2F%2Fneweas.huat.edu.cn%2Flogin",
+  "target_url": "",
+  "fetch_config": {
+    "url": "",
+    "method": "POST",
+    "headers": {},
+    "body_template": "",
+    "credentials": "include"
+  },
+  "term_mapping": {
+    "first": "1",
+    "second": "2",
+    "short": ""
+  },
+  "data_path": "",
+  "field_mapping": {
+    "name": "name",
+    "position": "position",
+    "teacher": "teacher",
+    "weeks": "weeks",
+    "day": "day",
+    "sections": "sections"
+  },
+  "timer_config": {
+    "total_week": 20,
+    "start_semester": "2026-02-24",
+    "start_with_sunday": false,
+    "forenoon": 5,
+    "afternoon": 4,
+    "night": 3,
+    "sections": []
+  },
+  "script_version": "1.0.0",
+  "pre_extract_delay": 0,
+  "notes": "Imported from shiguang_warehouse/HUAT/HUAT | 湖北汽车工业学院适配教务,非本校开发者适配如果有误建议提交issues"
+}

@@ -2,16 +2,16 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:vibration/vibration.dart';
 
 import '../../import/data/school_config_repository.dart';
 import '../../import/domain/school_config.dart';
 import '../../import/ui/import_school_list_page.dart';
-import '../../import/ui/doubao_import_page.dart';
+import '../../import/ui/ai_import_page.dart';
 import '../../settings/data/appearance_state.dart';
 import '../../todo/data/todo_repository.dart';
 import '../../todo/domain/todo_item.dart';
@@ -20,6 +20,7 @@ import '../domain/course.dart';
 import '../domain/course_table.dart';
 import 'manual_add_course_page.dart';
 import '../../../shared/theme/app_tokens.dart';
+import '../../../shared/widgets/app_share_dialog.dart';
 import '../../../shared/widgets/duck_modal.dart';
 
 class SchedulePage extends StatefulWidget {
@@ -45,6 +46,7 @@ class _SchedulePageState extends State<SchedulePage> {
   int _expandedSidebarGroup = 0;
   String _activeTableName = '我的课表';
   List<CourseEntity> _courses = const <CourseEntity>[];
+  Map<String, Color> _adjacentColorByCourseName = const <String, Color>{};
   int _currentWeek = 1;
   int _displayWeek = 1;
   final Map<int, _ScheduleConfig> _tableConfigs = <int, _ScheduleConfig>{};
@@ -53,6 +55,8 @@ class _SchedulePageState extends State<SchedulePage> {
   _CourseDragPayload? _activeCourseDrag;
   _CourseDragHover? _courseDragHover;
   String? _courseDragRejectMessage;
+  double _weekSwipeAccumulatedDx = 0;
+  bool _suppressWeekSwipeForQuickSelection = false;
   double _gridColWidth = 0;
   double _gridRowHeight = 0;
 
@@ -75,25 +79,46 @@ class _SchedulePageState extends State<SchedulePage> {
     _bootstrap();
   }
 
+  void _logPerf(
+    String stage,
+    Stopwatch stopwatch, {
+    Map<String, Object?> extras = const <String, Object?>{},
+  }) {
+    if (!kDebugMode) {
+      return;
+    }
+
+    final String detail = extras.entries
+        .map((MapEntry<String, Object?> item) => '${item.key}=${item.value}')
+        .join(', ');
+    debugPrint(
+      '[perf][schedule] $stage ${stopwatch.elapsedMilliseconds}ms'
+      '${detail.isEmpty ? '' : ' | $detail'}',
+    );
+  }
+
   @override
   void dispose() {
     super.dispose();
   }
 
   Future<void> _bootstrap() async {
+    final Stopwatch stopwatch = Stopwatch()..start();
     await _loadSchoolConfigs();
     await _loadScheduleData();
+    _logPerf('_bootstrap', stopwatch);
   }
 
   Future<void> _loadSchoolConfigs() async {
+    final Stopwatch stopwatch = Stopwatch()..start();
     setState(() {
       _loadingConfig = true;
       _configError = null;
     });
 
     try {
-      final List<SchoolConfig> configs =
-          await _configRepository.fetchSchoolConfigs();
+      final List<SchoolConfig> configs = await _configRepository
+          .fetchSchoolConfigs();
       setState(() {
         _schoolConfigCount = configs.length;
       });
@@ -105,10 +130,19 @@ class _SchedulePageState extends State<SchedulePage> {
       setState(() {
         _loadingConfig = false;
       });
+      _logPerf(
+        '_loadSchoolConfigs',
+        stopwatch,
+        extras: <String, Object?>{
+          'count': _schoolConfigCount,
+          'error': _configError != null,
+        },
+      );
     }
   }
 
   Future<void> _loadScheduleData() async {
+    final Stopwatch stopwatch = Stopwatch()..start();
     setState(() {
       _loadingSchedule = true;
       _scheduleError = null;
@@ -124,6 +158,7 @@ class _SchedulePageState extends State<SchedulePage> {
           _activeTableName = '未选择课表';
           _activeTableId = null;
           _courses = const <CourseEntity>[];
+          _adjacentColorByCourseName = const <String, Color>{};
         });
         _scheduleRepository.setActiveTableId(null);
         return;
@@ -144,6 +179,7 @@ class _SchedulePageState extends State<SchedulePage> {
         _activeTableId = active.id;
         _activeTableName = active.name;
         _courses = courses;
+        _adjacentColorByCourseName = _buildAdjacentAwareColorMap(courses);
       });
       _scheduleRepository.setActiveTableId(active.id);
     } catch (error) {
@@ -151,11 +187,21 @@ class _SchedulePageState extends State<SchedulePage> {
         _scheduleError = '课表加载失败：$error';
         _activeTableName = '课表加载失败';
         _courses = const <CourseEntity>[];
+        _adjacentColorByCourseName = const <String, Color>{};
       });
     } finally {
       setState(() {
         _loadingSchedule = false;
       });
+      _logPerf(
+        '_loadScheduleData',
+        stopwatch,
+        extras: <String, Object?>{
+          'tableId': _activeTableId,
+          'courseCount': _courses.length,
+          'error': _scheduleError != null,
+        },
+      );
     }
   }
 
@@ -170,213 +216,252 @@ class _SchedulePageState extends State<SchedulePage> {
     final String weekText = _currentWeek <= 0
         ? '未开学'
         : (semesterEnded ? '已结束' : '第 $viewingWeek 周');
-    final bool viewingOtherWeek = _currentWeek > 0 && !semesterEnded && viewingWeek != _currentWeek;
+    final bool viewingOtherWeek =
+        _currentWeek > 0 && !semesterEnded && viewingWeek != _currentWeek;
     final double screenWidth = MediaQuery.of(context).size.width;
-    const double horizontalPadding = 5;
+    const double horizontalPadding = 12;
 
     return ValueListenableBuilder<AppearanceState>(
       valueListenable: AppearanceStore.state,
-      builder: (BuildContext context, AppearanceState appearance, Widget? child) {
-        return Container(
-          color: AppTokens.pageBackground,
-          child: SafeArea(
-            child: Stack(
-              children: <Widget>[
-                Padding(
-                  padding: EdgeInsets.fromLTRB(horizontalPadding, 5, horizontalPadding, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      builder:
+          (BuildContext context, AppearanceState appearance, Widget? child) {
+            return Container(
+              color: AppTokens.pageBackground,
+              child: SafeArea(
+                child: Stack(
+                  children: <Widget>[
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        horizontalPadding,
+                        5,
+                        horizontalPadding,
+                        0,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: <Widget>[
-                          _TopActionButton(
-                            icon: Icons.menu,
-                            onTap: _openScheduleSidebar,
-                          ),
-                          Expanded(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: <Widget>[
-                                Text(
-                                  weekText,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w700,
-                                    color: viewingOtherWeek
-                                        ? const Color(0xFFD64545)
-                                        : AppTokens.textMain,
-                                  ),
-                                ),
-                                const SizedBox(height: 1),
-                                Text(
-                                  '$dateText ${_weekDayName(now.weekday)}',
-                                  textAlign: TextAlign.center,
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: AppTokens.textMuted,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: <Widget>[
+                              _TopActionButton(
+                                icon: Icons.menu,
+                                onTap: _openScheduleSidebar,
+                              ),
+                              Expanded(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Text(
+                                      weekText,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w700,
+                                        color: viewingOtherWeek
+                                            ? const Color(0xFFD64545)
+                                            : AppTokens.textMain,
                                       ),
+                                    ),
+                                    const SizedBox(height: 1),
+                                    Text(
+                                      '$dateText ${_weekDayName(now.weekday)}',
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: AppTokens.textMuted,
+                                          ),
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
+                              _TopActionButton(
+                                icon: Icons.share_outlined,
+                                onTap: () => AppShareDialog.show(context),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          _WeekHeader(
+                            weekDates: weekDates,
+                            weekStartDay: config.weekStartDay,
+                            cornerLabel: '${weekDates.first.month}月',
+                            leftSpacing: screenWidth < 380 ? 30 : 32,
+                          ),
+                          const SizedBox(height: 3),
+                          Expanded(
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+                              onHorizontalDragStart:
+                                  (DragStartDetails details) {
+                                    _weekSwipeAccumulatedDx = 0;
+                                    _suppressWeekSwipeForQuickSelection = false;
+                                    if (_activeCourseDrag != null) {
+                                      _suppressWeekSwipeForQuickSelection =
+                                          true;
+                                      return;
+                                    }
+
+                                    if (_quickAddSelection != null) {
+                                      final bool insideQuickSelection =
+                                          _isPointInsideQuickAddSelection(
+                                            details.globalPosition,
+                                          );
+                                      if (insideQuickSelection) {
+                                        _suppressWeekSwipeForQuickSelection =
+                                            true;
+                                        return;
+                                      }
+                                      _clearQuickAddSelection();
+                                    }
+                                  },
+                              onHorizontalDragUpdate:
+                                  (DragUpdateDetails details) {
+                                    if (_suppressWeekSwipeForQuickSelection) {
+                                      return;
+                                    }
+                                    _weekSwipeAccumulatedDx += details.delta.dx;
+                                  },
+                              onHorizontalDragEnd: (DragEndDetails details) {
+                                if (_suppressWeekSwipeForQuickSelection) {
+                                  _weekSwipeAccumulatedDx = 0;
+                                  _suppressWeekSwipeForQuickSelection = false;
+                                  return;
+                                }
+                                final double velocity =
+                                    details.primaryVelocity ?? 0;
+                                if (velocity.abs() >= 120) {
+                                  _handleWeekSwipe(velocity);
+                                } else if (_weekSwipeAccumulatedDx.abs() >=
+                                    28) {
+                                  _handleWeekSwipe(_weekSwipeAccumulatedDx);
+                                }
+                                _weekSwipeAccumulatedDx = 0;
+                                _suppressWeekSwipeForQuickSelection = false;
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  image: appearance.backgroundBytes == null
+                                      ? null
+                                      : DecorationImage(
+                                          image: MemoryImage(
+                                            appearance.backgroundBytes!,
+                                          ),
+                                          fit: BoxFit.cover,
+                                        ),
+                                ),
+                                child: _buildScheduleGrid(),
+                              ),
                             ),
                           ),
-                          _TopActionButton(
-                            icon: Icons.share_outlined,
-                            onTap: () {
-                              DuckModal.show<void>(
-                                context: context,
-                                child: const DuckModalFrame(
-                                  title: '分享上课鸭',
-                                  child: Padding(
-                                    padding: EdgeInsets.symmetric(vertical: AppTokens.space12),
-                                    child: Text('分享 App 链路将在后续任务接入。'),
-                                  ),
-                                ),
-                              );
-                            },
+                          if (_loadingConfig ||
+                              _loadingSchedule ||
+                              _configError != null ||
+                              _scheduleError != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(
+                                _buildStatusLine(),
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(color: AppTokens.textMuted),
+                              ),
+                            ),
+                          if (!_loadingSchedule &&
+                              _courses.isEmpty &&
+                              _scheduleError == null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 10),
+                              child: Text(
+                                '当前还没有课程，点击右下角 + 开始导入或手动添加。',
+                                textAlign: TextAlign.center,
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(color: AppTokens.textMuted),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (_addMenuOpen)
+                      Positioned.fill(
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _addMenuOpen = false;
+                            });
+                          },
+                          child: Container(color: const Color(0x33000000)),
+                        ),
+                      ),
+                    if (_addMenuOpen)
+                      Positioned(
+                        right: AppTokens.space20,
+                        bottom: 148,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: <Widget>[
+                            _AddMenuItem(
+                              icon: Icons.edit_note_rounded,
+                              iconColor: const Color(0xFF93C5FD),
+                              title: '手动添加',
+                              onTap: () => _handleAddMenuAction('manual'),
+                            ),
+                            const SizedBox(height: 10),
+                            _AddMenuItem(
+                              icon: Icons.cloud_sync_outlined,
+                              iconColor: const Color(0xFFF59EBC),
+                              title: '教务添加',
+                              onTap: () => _handleAddMenuAction('import'),
+                            ),
+                            const SizedBox(height: 10),
+                            _AddMenuItem(
+                              icon: Icons.auto_awesome_rounded,
+                              iconColor: const Color(0xFFFFD966),
+                              title: 'AI添加',
+                              onTap: () => _handleAddMenuAction('ai_import'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    Positioned(
+                      right: AppTokens.space20,
+                      bottom: 94,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          if (viewingOtherWeek && _currentWeek > 0)
+                            _RoundAddButton(
+                              onTap: _resetDisplayWeekToCurrent,
+                              backgroundColor: const Color(0xFFD64545),
+                              child: const Icon(
+                                Icons.reply_rounded,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                          if (viewingOtherWeek && _currentWeek > 0)
+                            const SizedBox(height: 20),
+                          _RoundAddButton(
+                            onTap: _openAddMenu,
+                            child: AnimatedRotation(
+                              turns: _addMenuOpen ? 0.125 : 0,
+                              duration: const Duration(milliseconds: 180),
+                              child: const Icon(
+                                Icons.add,
+                                color: Colors.white,
+                                size: 26,
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      _WeekHeader(
-                        weekDates: weekDates,
-                        weekStartDay: config.weekStartDay,
-                        cornerLabel: '${weekDates.first.month}月',
-                        leftSpacing: screenWidth < 380 ? 30 : 32,
-                      ),
-                      const SizedBox(height: 3),
-                      Expanded(
-                        child: GestureDetector(
-                          onHorizontalDragEnd: (DragEndDetails details) {
-                            final double velocity = details.primaryVelocity ?? 0;
-                            if (velocity.abs() < 150) {
-                              return;
-                            }
-                            if (velocity < 0) {
-                              _shiftDisplayWeek(1);
-                            } else {
-                              _shiftDisplayWeek(-1);
-                            }
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              image: appearance.backgroundBytes == null
-                                  ? null
-                                  : DecorationImage(
-                                      image: MemoryImage(appearance.backgroundBytes!),
-                                      fit: BoxFit.cover,
-                                    ),
-                            ),
-                            child: _buildScheduleGrid(),
-                          ),
-                        ),
-                      ),
-                      if (_loadingConfig ||
-                          _loadingSchedule ||
-                          _configError != null ||
-                          _scheduleError != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(
-                            _buildStatusLine(),
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: AppTokens.textMuted,
-                                ),
-                          ),
-                        ),
-                      if (!_loadingSchedule && _courses.isEmpty && _scheduleError == null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 10),
-                          child: Text(
-                            '当前还没有课程，点击右下角 + 开始导入或手动添加。',
-                            textAlign: TextAlign.center,
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: AppTokens.textMuted,
-                                ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                if (_addMenuOpen)
-                  Positioned.fill(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _addMenuOpen = false;
-                        });
-                      },
-                      child: Container(color: const Color(0x33000000)),
                     ),
-                  ),
-                if (_addMenuOpen)
-                  Positioned(
-                    right: AppTokens.space20,
-                    bottom: 148,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: <Widget>[
-                        _AddMenuItem(
-                          icon: Icons.edit_note_rounded,
-                          iconColor: const Color(0xFF93C5FD),
-                          title: '手动添加',
-                          onTap: () => _handleAddMenuAction('manual'),
-                        ),
-                        const SizedBox(height: 10),
-                        _AddMenuItem(
-                          icon: Icons.cloud_sync_outlined,
-                          iconColor: const Color(0xFFF59EBC),
-                          title: '教务添加',
-                          onTap: () => _handleAddMenuAction('import'),
-                        ),
-                        const SizedBox(height: 10),
-                        _AddMenuItem(
-                          icon: Icons.photo_camera_outlined,
-                          iconColor: const Color(0xFF86EFAC),
-                          title: '拍照添加',
-                          onTap: () => _handleAddMenuAction('camera'),
-                        ),
-                        const SizedBox(height: 10),
-                        _AddMenuItem(
-                          icon: Icons.auto_awesome_rounded,
-                          iconColor: const Color(0xFFFFD966),
-                          title: '豆包AI识别',
-                          onTap: () => _handleAddMenuAction('doubao'),
-                        ),
-                      ],
-                    ),
-                  ),
-                Positioned(
-                  right: AppTokens.space20,
-                  bottom: 94,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      if (viewingOtherWeek && _currentWeek > 0)
-                        _RoundAddButton(
-                          onTap: _resetDisplayWeekToCurrent,
-                          backgroundColor: const Color(0xFFD64545),
-                          child: const Icon(Icons.reply_rounded, color: Colors.white, size: 24),
-                        ),
-                      if (viewingOtherWeek && _currentWeek > 0)
-                        const SizedBox(height: 20),
-                      _RoundAddButton(
-                        onTap: _openAddMenu,
-                        child: AnimatedRotation(
-                          turns: _addMenuOpen ? 0.125 : 0,
-                          duration: const Duration(milliseconds: 180),
-                          child: const Icon(Icons.add, color: Colors.white, size: 26),
-                        ),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-        );
-      },
+              ),
+            );
+          },
     );
   }
 
@@ -416,12 +501,10 @@ class _SchedulePageState extends State<SchedulePage> {
       if (saved == true) {
         await _loadScheduleData();
       }
-    } else if (action == 'camera') {
-      await _handleCameraAdd();
-    } else if (action == 'doubao') {
+    } else if (action == 'ai_import') {
       final bool? imported = await Navigator.of(context).push<bool>(
         MaterialPageRoute<bool>(
-          builder: (BuildContext context) => const DoubaoImportPage(),
+          builder: (BuildContext context) => const AiImportPage(),
         ),
       );
       if (imported == true) {
@@ -458,7 +541,8 @@ class _SchedulePageState extends State<SchedulePage> {
     if (current == null || _gridColWidth <= 0 || _gridRowHeight <= 0) {
       return;
     }
-    final RenderBox? box = _gridAreaKey.currentContext?.findRenderObject() as RenderBox?;
+    final RenderBox? box =
+        _gridAreaKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null) {
       return;
     }
@@ -488,16 +572,21 @@ class _SchedulePageState extends State<SchedulePage> {
     }
 
     final _ScheduleConfig config = _activeConfig();
-    final List<ManualCourseSessionPrefill> sessions = <ManualCourseSessionPrefill>[
-      for (int dayColumn = selection.dayStart; dayColumn <= selection.dayEnd; dayColumn++)
-        ManualCourseSessionPrefill(
-          weekday: _weekdayForColumn(dayColumn, config.weekStartDay),
-          startPeriod: selection.periodStart,
-          endPeriod: selection.periodEnd,
-          startWeek: 1,
-          endWeek: 16,
-        ),
-    ];
+    final List<ManualCourseSessionPrefill> sessions =
+        <ManualCourseSessionPrefill>[
+          for (
+            int dayColumn = selection.dayStart;
+            dayColumn <= selection.dayEnd;
+            dayColumn++
+          )
+            ManualCourseSessionPrefill(
+              weekday: _weekdayForColumn(dayColumn, config.weekStartDay),
+              startPeriod: selection.periodStart,
+              endPeriod: selection.periodEnd,
+              startWeek: 1,
+              endWeek: 16,
+            ),
+        ];
 
     _clearQuickAddSelection();
 
@@ -550,7 +639,8 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 
   bool _isPointInsideGrid(Offset globalPosition) {
-    final RenderBox? box = _gridAreaKey.currentContext?.findRenderObject() as RenderBox?;
+    final RenderBox? box =
+        _gridAreaKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null) {
       return false;
     }
@@ -559,6 +649,29 @@ class _SchedulePageState extends State<SchedulePage> {
         local.dy >= 0 &&
         local.dx <= box.size.width &&
         local.dy <= box.size.height;
+  }
+
+  bool _isPointInsideQuickAddSelection(Offset globalPosition) {
+    final _QuickAddSelection? selection = _quickAddSelection;
+    if (selection == null || _gridColWidth <= 0 || _gridRowHeight <= 0) {
+      return false;
+    }
+    final RenderBox? box =
+        _gridAreaKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) {
+      return false;
+    }
+
+    final Offset local = box.globalToLocal(globalPosition);
+    final double left = (selection.dayStart - 1) * _gridColWidth;
+    final double right = selection.dayEnd * _gridColWidth;
+    final double top = (selection.periodStart - 1) * _gridRowHeight;
+    final double bottom = selection.periodEnd * _gridRowHeight;
+
+    return local.dx >= left &&
+        local.dx <= right &&
+        local.dy >= top &&
+        local.dy <= bottom;
   }
 
   bool _weeksOverlap(List<int> dragWeeks, List<int> existingWeeks) {
@@ -583,7 +696,10 @@ class _SchedulePageState extends State<SchedulePage> {
     }
 
     final _ScheduleConfig config = _activeConfig();
-    final int targetWeekday = _weekdayForColumn(targetDayColumn, config.weekStartDay);
+    final int targetWeekday = _weekdayForColumn(
+      targetDayColumn,
+      config.weekStartDay,
+    );
 
     for (final CourseEntity existing in _courses) {
       if (existing.id != null && existing.id == payload.courseId) {
@@ -624,9 +740,9 @@ class _SchedulePageState extends State<SchedulePage> {
     );
     if (!decision.accepted) {
       if (decision.message != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(decision.message!)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(decision.message!)));
       }
       return;
     }
@@ -637,7 +753,10 @@ class _SchedulePageState extends State<SchedulePage> {
     }
 
     final _ScheduleConfig config = _activeConfig();
-    final int targetWeekday = _weekdayForColumn(targetDayColumn, config.weekStartDay);
+    final int targetWeekday = _weekdayForColumn(
+      targetDayColumn,
+      config.weekStartDay,
+    );
     try {
       await _scheduleRepository.updateCourseDetail(
         courseId: courseId,
@@ -652,9 +771,9 @@ class _SchedulePageState extends State<SchedulePage> {
       await _loadScheduleData();
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('课程移动失败：$error')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('课程移动失败：$error')));
       }
     }
   }
@@ -662,16 +781,18 @@ class _SchedulePageState extends State<SchedulePage> {
   Future<void> _openScheduleSidebar() async {
     if (_loadingSchedule) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('课表加载中，请稍后再试。')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('课表加载中，请稍后再试。')));
       }
       return;
     }
 
     List<CourseTableEntity> tables = const <CourseTableEntity>[];
     try {
-      tables = await _scheduleRepository.getCourseTables().timeout(const Duration(seconds: 4));
+      tables = await _scheduleRepository.getCourseTables().timeout(
+        const Duration(seconds: 4),
+      );
     } catch (_) {
       tables = const <CourseTableEntity>[];
     }
@@ -679,17 +800,17 @@ class _SchedulePageState extends State<SchedulePage> {
       return;
     }
 
-    if (_activeTableId == null && tables.isNotEmpty && tables.first.id != null) {
+    if (_activeTableId == null &&
+        tables.isNotEmpty &&
+        tables.first.id != null) {
       await _switchCourseTable(tables.first.id!, tables.first.name);
     }
 
     final TextEditingController tableNameController = TextEditingController();
     bool creatingTable = false;
 
-    const String morningAfternoonConflictText =
-        '您的操作会导致上午课程与下午课程时间冲突，无法完成该操作';
-    const String afternoonEveningConflictText =
-        '您的操作会导致下午课程与晚上课程时间冲突，无法完成该操作';
+    const String morningAfternoonConflictText = '您的操作会导致上午课程与下午课程时间冲突，无法完成该操作';
+    const String afternoonEveningConflictText = '您的操作会导致下午课程与晚上课程时间冲突，无法完成该操作';
 
     String? morningWarningText;
     String? afternoonWarningText;
@@ -713,7 +834,9 @@ class _SchedulePageState extends State<SchedulePage> {
     }) {
       final _SectionTime current = config.sectionAt(index);
       int editedStart = start ? _toMinute(picked) : _toMinute(current.start);
-      int editedEnd = start ? editedStart + config.classDuration : _toMinute(picked);
+      int editedEnd = start
+          ? editedStart + config.classDuration
+          : _toMinute(picked);
 
       if (editedEnd <= editedStart) {
         editedStart = editedEnd - config.classDuration;
@@ -800,16 +923,19 @@ class _SchedulePageState extends State<SchedulePage> {
       });
     }
 
-    Future<void> deleteTable(CourseTableEntity table, StateSetter setModalState) async {
+    Future<void> deleteTable(
+      CourseTableEntity table,
+      StateSetter setModalState,
+    ) async {
       final int? tableId = table.id;
       if (tableId == null) {
         return;
       }
       if (tables.length <= 1) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('至少保留一张课表，无法删除最后一张。')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('至少保留一张课表，无法删除最后一张。')));
         }
         return;
       }
@@ -826,7 +952,9 @@ class _SchedulePageState extends State<SchedulePage> {
       setModalState(() {});
     }
 
-    Future<void> updateConfig(void Function(_ScheduleConfig config) updater) async {
+    Future<void> updateConfig(
+      void Function(_ScheduleConfig config) updater,
+    ) async {
       final int? tableId = _activeTableId;
       if (tableId == null) {
         return;
@@ -845,16 +973,21 @@ class _SchedulePageState extends State<SchedulePage> {
       if (trimmed.isEmpty || trimmed.length > 20) {
         return;
       }
-      final CourseTableEntity table = await _scheduleRepository.createCourseTable(
-        name: trimmed,
-        semesterStartMonday: DateFormat('yyyy-MM-dd').format(DateTime.now()),
-        classTimeList: const <Map<String, String>>[],
-      );
-      _tableConfigs[table.id!] = _ScheduleConfig.defaults();
+      final _ScheduleConfig defaults = _ScheduleConfig.defaults();
+      final String defaultSemesterStart = DateFormat(
+        'yyyy-MM-dd',
+      ).format(defaults.semesterStartDate);
+      final CourseTableEntity table = await _scheduleRepository
+          .createCourseTable(
+            name: trimmed,
+            semesterStartMonday: defaultSemesterStart,
+            classTimeList: const <Map<String, String>>[],
+          );
+      _tableConfigs[table.id!] = defaults;
       await _scheduleRepository.updateCourseTableConfig(
         tableId: table.id!,
-        classTimeListJson: _ScheduleConfig.defaults().toJson(),
-        semesterStartMonday: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        classTimeListJson: defaults.toJson(),
+        semesterStartMonday: defaultSemesterStart,
       );
       tables = await _scheduleRepository.getCourseTables();
       await _switchCourseTable(table.id!, table.name);
@@ -885,7 +1018,10 @@ class _SchedulePageState extends State<SchedulePage> {
           start: start,
           picked: picked,
         );
-        final String? conflictMessage = resolveBoundaryConflictMessage(draft, period);
+        final String? conflictMessage = resolveBoundaryConflictMessage(
+          draft,
+          period,
+        );
         if (conflictMessage != null) {
           setWarningForPeriod(setModalState, config, period, conflictMessage);
         }
@@ -917,7 +1053,12 @@ class _SchedulePageState extends State<SchedulePage> {
         config.overwriteFrom(draft);
       });
 
-      setWarningForPeriod(setModalState, _activeConfig(), period, blockedMessage);
+      setWarningForPeriod(
+        setModalState,
+        _activeConfig(),
+        period,
+        blockedMessage,
+      );
     }
 
     if (!mounted) {
@@ -930,645 +1071,907 @@ class _SchedulePageState extends State<SchedulePage> {
       barrierLabel: 'schedule-sidebar',
       barrierColor: Colors.transparent,
       transitionDuration: const Duration(milliseconds: 300),
-      pageBuilder: (
-        BuildContext dialogContext,
-        Animation<double> animation,
-        Animation<double> secondaryAnimation,
-      ) {
-        return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            final _ScheduleConfig config = _activeConfig();
-            final bool morningConflict = config.hasMorningAfternoonConflict();
-            final bool afternoonConflict = config.hasAfternoonEveningConflict();
-            final int maxMorningCount = config.maxMorningCountWithoutConflict();
-            final int maxAfternoonCount = config.maxAfternoonCountWithoutConflict();
-            final bool disableMorningIncrease = config.morningCount >= maxMorningCount;
-            final bool disableAfternoonIncrease = config.afternoonCount >= maxAfternoonCount;
+      pageBuilder:
+          (
+            BuildContext dialogContext,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+          ) {
+            return StatefulBuilder(
+              builder: (BuildContext context, StateSetter setModalState) {
+                final _ScheduleConfig config = _activeConfig();
+                final bool morningConflict = config
+                    .hasMorningAfternoonConflict();
+                final bool afternoonConflict = config
+                    .hasAfternoonEveningConflict();
+                final int maxMorningCount = config
+                    .maxMorningCountWithoutConflict();
+                final int maxAfternoonCount = config
+                    .maxAfternoonCountWithoutConflict();
+                final bool disableMorningIncrease =
+                    config.morningCount >= maxMorningCount;
+                final bool disableAfternoonIncrease =
+                    config.afternoonCount >= maxAfternoonCount;
 
-            final String? morningCardWarning =
-              morningConflict ? morningAfternoonConflictText : morningWarningText;
-            final String? afternoonCardWarning = afternoonConflict
-              ? afternoonEveningConflictText
-              : (morningConflict ? morningAfternoonConflictText : afternoonWarningText);
-            final String? eveningCardWarning =
-              afternoonConflict ? afternoonEveningConflictText : eveningWarningText;
+                final String? morningCardWarning = morningConflict
+                    ? morningAfternoonConflictText
+                    : morningWarningText;
+                final String? afternoonCardWarning = afternoonConflict
+                    ? afternoonEveningConflictText
+                    : (morningConflict
+                          ? morningAfternoonConflictText
+                          : afternoonWarningText);
+                final String? eveningCardWarning = afternoonConflict
+                    ? afternoonEveningConflictText
+                    : eveningWarningText;
 
-            Widget buildSectionEditors(int fromSection, int toSection) {
-              return Column(
-                children: <Widget>[
-                  for (int section = fromSection; section <= toSection; section++)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF2EFE9),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: <Widget>[
-                            ...() {
-                              final int index = section - 1;
-                              final _SectionTime sectionTime =
-                                  (index >= 0 && index < config.sections.length)
-                                      ? config.sections[index]
-                                      : const _SectionTime(start: '00:00', end: '00:45');
-                              return <Widget>[
-                            SizedBox(
-                              width: 34,
-                              child: Text(
-                                '$section节',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppTokens.textMain,
-                                ),
-                              ),
+                Widget buildSectionEditors(int fromSection, int toSection) {
+                  return Column(
+                    children: <Widget>[
+                      for (
+                        int section = fromSection;
+                        section <= toSection;
+                        section++
+                      )
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
                             ),
-                            Expanded(
-                              child: InkWell(
-                                onTap: () async {
-                                  await pickTime(
-                                    index: section - 1,
-                                    start: true,
-                                    setModalState: setModalState,
-                                  );
-                                },
-                                child: Container(
-                                  height: 28,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFE7E3DC),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    sectionTime.start,
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(fontSize: 12, color: AppTokens.textMain),
-                                  ),
-                                ),
-                              ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF2EFE9),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            const Text('-', style: TextStyle(fontSize: 12, color: AppTokens.textMuted)),
-                            Expanded(
-                              child: InkWell(
-                                onTap: () async {
-                                  await pickTime(
-                                    index: section - 1,
-                                    start: false,
-                                    setModalState: setModalState,
-                                  );
-                                },
-                                child: Container(
-                                  height: 28,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFE7E3DC),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    sectionTime.end,
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(fontSize: 12, color: AppTokens.textMain),
-                                  ),
-                                ),
-                              ),
-                            ),
-                              ];
-                            }(),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            }
-
-            return Stack(
-              children: <Widget>[
-                Positioned.fill(
-                  child: GestureDetector(
-                    onTap: () => Navigator.of(dialogContext).pop(),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-                      child: Container(
-                        color: const Color(0x66000000),
-                      ),
-                    ),
-                  ),
-                ),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Material(
-                    color: const Color(0xFFFFFDF6),
-                    child: SizedBox(
-                      width: 340,
-                      child: SafeArea(
-                        child: ListView(
-                          padding: const EdgeInsets.fromLTRB(14, 14, 14, 24),
-                          children: <Widget>[
-                            Row(
+                            child: Row(
                               children: <Widget>[
-                                const SizedBox(width: 8),
-                                const Text(
-                                  '上课鸭',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppTokens.textMain,
-                                  ),
-                                ),
-                                const Spacer(),
-                                IconButton(
-                                  onPressed: () => Navigator.of(dialogContext).pop(),
-                                  icon: const Icon(Icons.close, color: AppTokens.textMain),
-                                ),
+                                ...() {
+                                  final int index = section - 1;
+                                  final _SectionTime sectionTime =
+                                      (index >= 0 &&
+                                          index < config.sections.length)
+                                      ? config.sections[index]
+                                      : const _SectionTime(
+                                          start: '00:00',
+                                          end: '00:45',
+                                        );
+                                  return <Widget>[
+                                    SizedBox(
+                                      width: 34,
+                                      child: Text(
+                                        '$section节',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppTokens.textMain,
+                                        ),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: InkWell(
+                                        onTap: () async {
+                                          await pickTime(
+                                            index: section - 1,
+                                            start: true,
+                                            setModalState: setModalState,
+                                          );
+                                        },
+                                        child: Container(
+                                          height: 28,
+                                          alignment: Alignment.center,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFE7E3DC),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            sectionTime.start,
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppTokens.textMain,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const Text(
+                                      '-',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppTokens.textMuted,
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: InkWell(
+                                        onTap: () async {
+                                          await pickTime(
+                                            index: section - 1,
+                                            start: false,
+                                            setModalState: setModalState,
+                                          );
+                                        },
+                                        child: Container(
+                                          height: 28,
+                                          alignment: Alignment.center,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFE7E3DC),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            sectionTime.end,
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppTokens.textMain,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ];
+                                }(),
                               ],
                             ),
-                            const SizedBox(height: 12),
-                            _SidebarGroupCard(
-                              title: '课表设置',
-                              icon: Icons.calendar_month,
-                              color: const Color(0xFFFFF2C9),
-                              expanded: _expandedSidebarGroup == 0,
-                              onToggle: () => setModalState(() {
-                                _expandedSidebarGroup = _expandedSidebarGroup == 0 ? -1 : 0;
-                              }),
-                              child: Column(
-                                children: <Widget>[
-                                  for (final CourseTableEntity table in tables)
-                                    InkWell(
-                                      onTap: () async {
-                                        if (table.id == null) {
-                                          return;
-                                        }
-                                        await _switchCourseTable(table.id!, table.name);
-                                        setModalState(() {});
-                                      },
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                                        child: Row(
-                                          children: <Widget>[
-                                            const SizedBox(width: 2),
-                                            if (table.id == _activeTableId)
-                                              const Padding(
-                                                padding: EdgeInsets.only(right: 6),
-                                                child: Icon(Icons.check_circle, size: 16, color: Color(0xFFB98500)),
-                                              )
-                                            else
-                                              const SizedBox(width: 22),
-                                            Expanded(
+                          ),
+                        ),
+                    ],
+                  );
+                }
+
+                return Stack(
+                  children: <Widget>[
+                    Positioned.fill(
+                      child: GestureDetector(
+                        onTap: () => Navigator.of(dialogContext).pop(),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                          child: Container(color: const Color(0x66000000)),
+                        ),
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Material(
+                        color: const Color(0xFFFFFDF6),
+                        child: SizedBox(
+                          width: 340,
+                          child: SafeArea(
+                            child: ListView(
+                              padding: const EdgeInsets.fromLTRB(
+                                20,
+                                18,
+                                20,
+                                24,
+                              ),
+                              children: <Widget>[
+                                Row(
+                                  children: <Widget>[
+                                    const Text(
+                                      '上课鸭',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppTokens.textMain,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    IconButton(
+                                      onPressed: () =>
+                                          Navigator.of(dialogContext).pop(),
+                                      icon: const Icon(
+                                        Icons.close,
+                                        color: AppTokens.textMain,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                _SidebarGroupCard(
+                                  title: '课表设置',
+                                  icon: Icons.calendar_month,
+                                  color: const Color(0xFFFFF2C9),
+                                  expanded: _expandedSidebarGroup == 0,
+                                  onToggle: () => setModalState(() {
+                                    _expandedSidebarGroup =
+                                        _expandedSidebarGroup == 0 ? -1 : 0;
+                                  }),
+                                  child: Column(
+                                    children: <Widget>[
+                                      for (final CourseTableEntity table
+                                          in tables)
+                                        InkWell(
+                                          onTap: () async {
+                                            if (table.id == null) {
+                                              return;
+                                            }
+                                            await _switchCourseTable(
+                                              table.id!,
+                                              table.name,
+                                            );
+                                            setModalState(() {});
+                                          },
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 4,
+                                              vertical: 6,
+                                            ),
+                                            child: Row(
+                                              children: <Widget>[
+                                                const SizedBox(width: 2),
+                                                if (table.id == _activeTableId)
+                                                  const Padding(
+                                                    padding: EdgeInsets.only(
+                                                      right: 6,
+                                                    ),
+                                                    child: Icon(
+                                                      Icons.check_circle,
+                                                      size: 16,
+                                                      color: Color(0xFFB98500),
+                                                    ),
+                                                  )
+                                                else
+                                                  const SizedBox(width: 22),
+                                                Expanded(
+                                                  child: Text(
+                                                    table.name,
+                                                    style: const TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: AppTokens.textMain,
+                                                    ),
+                                                  ),
+                                                ),
+                                                IconButton(
+                                                  constraints:
+                                                      const BoxConstraints.tightFor(
+                                                        width: 28,
+                                                        height: 28,
+                                                      ),
+                                                  padding: EdgeInsets.zero,
+                                                  splashRadius: 16,
+                                                  tooltip: '删除课表',
+                                                  onPressed: () async =>
+                                                      deleteTable(
+                                                        table,
+                                                        setModalState,
+                                                      ),
+                                                  icon: const Icon(
+                                                    Icons.delete_outline,
+                                                    size: 16,
+                                                    color: Color(0xFFE16C7B),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      if (creatingTable)
+                                        Container(
+                                          margin: const EdgeInsets.only(top: 4),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            children: <Widget>[
+                                              const SizedBox(width: 6),
+                                              Expanded(
+                                                child: TextField(
+                                                  controller:
+                                                      tableNameController,
+                                                  maxLength: 20,
+                                                  decoration:
+                                                      const InputDecoration(
+                                                        counterText: '',
+                                                        hintText: '课表名称',
+                                                        isDense: true,
+                                                        border:
+                                                            InputBorder.none,
+                                                      ),
+                                                ),
+                                              ),
+                                              IconButton(
+                                                onPressed: () => createTable(
+                                                  tableNameController.text,
+                                                  setModalState,
+                                                ),
+                                                icon: const Icon(
+                                                  Icons.check_circle,
+                                                  color: AppTokens.duckYellow,
+                                                ),
+                                              ),
+                                              IconButton(
+                                                onPressed: () => setModalState(
+                                                  () {
+                                                    creatingTable = false;
+                                                    tableNameController.clear();
+                                                  },
+                                                ),
+                                                icon: const Icon(
+                                                  Icons.cancel,
+                                                  color: AppTokens.duckYellow,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      else
+                                        Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: Padding(
+                                            padding: const EdgeInsets.only(
+                                              left: 10,
+                                            ),
+                                            child: TextButton(
+                                              onPressed: () =>
+                                                  setModalState(() {
+                                                    creatingTable = true;
+                                                  }),
+                                              child: const Text('+ 新建课表'),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                _SidebarGroupCard(
+                                  title: '时间设置',
+                                  icon: Icons.access_time,
+                                  color: const Color(0xFFE7F2FF),
+                                  expanded: _expandedSidebarGroup == 1,
+                                  onToggle: () => setModalState(() {
+                                    _expandedSidebarGroup =
+                                        _expandedSidebarGroup == 1 ? -1 : 1;
+                                  }),
+                                  child: Column(
+                                    children: <Widget>[
+                                      _StepInputRow(
+                                        title: '每节课时长',
+                                        value: config.classDuration,
+                                        min: 10,
+                                        max: 180,
+                                        buttonColor: const Color(0xFF6D9CD5),
+                                        onChanged: (int value) async {
+                                          await updateConfig(
+                                            (config) =>
+                                                config.classDuration = value,
+                                          );
+                                          setModalState(() {});
+                                        },
+                                      ),
+                                      const SizedBox(height: 10),
+                                      _StepInputRow(
+                                        title: '课间时长',
+                                        value: config.breakDuration,
+                                        min: 0,
+                                        max: 120,
+                                        buttonColor: const Color(0xFF6D9CD5),
+                                        onChanged: (int value) async {
+                                          await updateConfig(
+                                            (config) =>
+                                                config.breakDuration = value,
+                                          );
+                                          setModalState(() {});
+                                        },
+                                      ),
+                                      const SizedBox(height: 10),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: FilledButton(
+                                          onPressed: () async {
+                                            await updateConfig(
+                                              (config) =>
+                                                  config.alignByTemplate(),
+                                            );
+                                            setModalState(() {});
+                                          },
+                                          style: FilledButton.styleFrom(
+                                            backgroundColor: const Color(
+                                              0xFF65A5EA,
+                                            ),
+                                          ),
+                                          child: const Text('一键批量对齐'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                _SidebarGroupCard(
+                                  title: '上午课程',
+                                  icon: Icons.wb_sunny,
+                                  color: const Color(0xFFFFEDD5),
+                                  expanded: _expandedSidebarGroup == 2,
+                                  onToggle: () => setModalState(() {
+                                    _expandedSidebarGroup =
+                                        _expandedSidebarGroup == 2 ? -1 : 2;
+                                  }),
+                                  child: Column(
+                                    children: <Widget>[
+                                      _StepInputRow(
+                                        title: '上午课程节数',
+                                        value: config.morningCount,
+                                        min: 1,
+                                        max: 30,
+                                        disableIncrease: disableMorningIncrease,
+                                        warningText: morningCardWarning,
+                                        dialogMaxValue: maxMorningCount,
+                                        dialogConflictMessage:
+                                            morningAfternoonConflictText,
+                                        buttonColor: const Color(0xFFF2A866),
+                                        onChanged: (int value) async {
+                                          final bool blocked =
+                                              value > maxMorningCount;
+                                          await updateConfig((config) {
+                                            final _SegmentAnchors anchors =
+                                                config.captureAnchors();
+                                            final int safeMax = config
+                                                .maxMorningCountWithoutConflict();
+                                            final int safeValue = value
+                                                .clamp(1, safeMax)
+                                                .toInt();
+                                            config.morningCount = safeValue;
+                                            config.normalizeCounts();
+                                            config.rebuildSectionsByAnchors(
+                                              anchors,
+                                            );
+                                          });
+                                          setModalState(() {
+                                            morningWarningText = blocked
+                                                ? morningAfternoonConflictText
+                                                : null;
+                                          });
+                                        },
+                                      ),
+                                      const SizedBox(height: 8),
+                                      buildSectionEditors(1, config.morningEnd),
+                                    ],
+                                  ),
+                                ),
+                                _SidebarGroupCard(
+                                  title: '下午课程',
+                                  icon: Icons.wb_cloudy,
+                                  color: const Color(0xFFFFF5E5),
+                                  expanded: _expandedSidebarGroup == 3,
+                                  onToggle: () => setModalState(() {
+                                    _expandedSidebarGroup =
+                                        _expandedSidebarGroup == 3 ? -1 : 3;
+                                  }),
+                                  child: Column(
+                                    children: <Widget>[
+                                      _StepInputRow(
+                                        title: '下午课程节数',
+                                        value: config.afternoonCount,
+                                        min: 1,
+                                        max: 30,
+                                        disableIncrease:
+                                            disableAfternoonIncrease,
+                                        warningText: afternoonCardWarning,
+                                        dialogMaxValue: maxAfternoonCount,
+                                        dialogConflictMessage:
+                                            afternoonEveningConflictText,
+                                        buttonColor: const Color(0xFFE5A15A),
+                                        onChanged: (int value) async {
+                                          final bool blocked =
+                                              value > maxAfternoonCount;
+                                          await updateConfig((config) {
+                                            final _SegmentAnchors anchors =
+                                                config.captureAnchors();
+                                            final int safeMax = config
+                                                .maxAfternoonCountWithoutConflict();
+                                            final int safeValue = value
+                                                .clamp(1, safeMax)
+                                                .toInt();
+                                            config.afternoonCount = safeValue;
+                                            config.normalizeCounts();
+                                            config.rebuildSectionsByAnchors(
+                                              anchors,
+                                            );
+                                          });
+                                          setModalState(() {
+                                            afternoonWarningText = blocked
+                                                ? afternoonEveningConflictText
+                                                : null;
+                                          });
+                                        },
+                                      ),
+                                      const SizedBox(height: 8),
+                                      buildSectionEditors(
+                                        config.afternoonStart,
+                                        config.afternoonEnd,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                _SidebarGroupCard(
+                                  title: '晚上课程',
+                                  icon: Icons.dark_mode,
+                                  color: const Color(0xFFFFE9EF),
+                                  expanded: _expandedSidebarGroup == 4,
+                                  onToggle: () => setModalState(() {
+                                    _expandedSidebarGroup =
+                                        _expandedSidebarGroup == 4 ? -1 : 4;
+                                  }),
+                                  child: Column(
+                                    children: <Widget>[
+                                      _StepInputRow(
+                                        title: '晚上课程节数',
+                                        value: config.eveningCount,
+                                        min: 1,
+                                        max: 30,
+                                        warningText: eveningCardWarning,
+                                        buttonColor: const Color(0xFFD37F95),
+                                        onChanged: (int value) async {
+                                          await updateConfig((config) {
+                                            final _SegmentAnchors anchors =
+                                                config.captureAnchors();
+                                            config
+                                                .setEveningCountPreferIncrease(
+                                                  value,
+                                                );
+                                            config.rebuildSectionsByAnchors(
+                                              anchors,
+                                            );
+                                          });
+                                          setModalState(() {
+                                            eveningWarningText = null;
+                                          });
+                                        },
+                                      ),
+                                      const SizedBox(height: 8),
+                                      buildSectionEditors(
+                                        config.eveningStart,
+                                        config.eveningEnd,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                _SidebarGroupCard(
+                                  title: '周数设置',
+                                  icon: Icons.repeat,
+                                  color: const Color(0xFFECE6FF),
+                                  expanded: _expandedSidebarGroup == 5,
+                                  onToggle: () => setModalState(() {
+                                    _expandedSidebarGroup =
+                                        _expandedSidebarGroup == 5 ? -1 : 5;
+                                  }),
+                                  child: Column(
+                                    children: <Widget>[
+                                      _StepInputRow(
+                                        title: '学习周数',
+                                        value: config.termWeeks,
+                                        min: 1,
+                                        max: 35,
+                                        buttonColor: const Color(0xFFA58ADC),
+                                        onChanged: (int value) async {
+                                          await updateConfig(
+                                            (config) =>
+                                                config.termWeeks = value,
+                                          );
+                                          setModalState(() {});
+                                        },
+                                      ),
+                                      const SizedBox(height: 10),
+                                      const Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          '每周起始日',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppTokens.textMain,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      SizedBox(
+                                        height: 88,
+                                        child: CupertinoPicker(
+                                          looping: true,
+                                          itemExtent: 30,
+                                          selectionOverlay: DecoratedBox(
+                                            decoration: BoxDecoration(
+                                              color: const Color(0x20FFFFFF),
+                                              border: Border.symmetric(
+                                                horizontal: BorderSide(
+                                                  color: Color(0x44FFFFFF),
+                                                ),
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          scrollController:
+                                              FixedExtentScrollController(
+                                                initialItem:
+                                                    config.weekStartDay - 1,
+                                              ),
+                                          onSelectedItemChanged:
+                                              (int index) async {
+                                                await updateConfig(
+                                                  (config) =>
+                                                      config.weekStartDay =
+                                                          index + 1,
+                                                );
+                                                setModalState(() {});
+                                              },
+                                          children: const <Widget>[
+                                            Center(
                                               child: Text(
-                                                table.name,
-                                                style: const TextStyle(
-                                                  fontSize: 13,
+                                                '星期一',
+                                                style: TextStyle(
+                                                  fontSize: 14,
                                                   fontWeight: FontWeight.w700,
                                                   color: AppTokens.textMain,
                                                 ),
                                               ),
                                             ),
-                                            IconButton(
-                                              constraints: const BoxConstraints.tightFor(width: 28, height: 28),
-                                              padding: EdgeInsets.zero,
-                                              splashRadius: 16,
-                                              tooltip: '删除课表',
-                                              onPressed: () async => deleteTable(table, setModalState),
-                                              icon: const Icon(Icons.delete_outline, size: 16, color: Color(0xFFE16C7B)),
+                                            Center(
+                                              child: Text(
+                                                '星期二',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppTokens.textMain,
+                                                ),
+                                              ),
+                                            ),
+                                            Center(
+                                              child: Text(
+                                                '星期三',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppTokens.textMain,
+                                                ),
+                                              ),
+                                            ),
+                                            Center(
+                                              child: Text(
+                                                '星期四',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppTokens.textMain,
+                                                ),
+                                              ),
+                                            ),
+                                            Center(
+                                              child: Text(
+                                                '星期五',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppTokens.textMain,
+                                                ),
+                                              ),
+                                            ),
+                                            Center(
+                                              child: Text(
+                                                '星期六',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppTokens.textMain,
+                                                ),
+                                              ),
+                                            ),
+                                            Center(
+                                              child: Text(
+                                                '星期日',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppTokens.textMain,
+                                                ),
+                                              ),
                                             ),
                                           ],
                                         ),
                                       ),
-                                    ),
-                                  if (creatingTable)
-                                    Container(
-                                      margin: const EdgeInsets.only(top: 4),
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Row(
-                                        children: <Widget>[
-                                          const SizedBox(width: 6),
-                                          Expanded(
-                                            child: TextField(
-                                              controller: tableNameController,
-                                              maxLength: 20,
-                                              decoration: const InputDecoration(
-                                                counterText: '',
-                                                hintText: '课表名称',
-                                                isDense: true,
-                                                border: InputBorder.none,
+                                    ],
+                                  ),
+                                ),
+                                _SidebarGroupCard(
+                                  title: '开学日期',
+                                  icon: Icons.event,
+                                  color: const Color(0xFFE6F8FF),
+                                  expanded: _expandedSidebarGroup == 6,
+                                  onToggle: () => setModalState(() {
+                                    _expandedSidebarGroup =
+                                        _expandedSidebarGroup == 6 ? -1 : 6;
+                                  }),
+                                  trailingText: DateFormat(
+                                    'yyyy-MM-dd',
+                                  ).format(config.semesterStartDate),
+                                  child: SizedBox(
+                                    height: 96,
+                                    child: Row(
+                                      children: <Widget>[
+                                        Expanded(
+                                          child: CupertinoPicker(
+                                            itemExtent: 30,
+                                            scrollController:
+                                                FixedExtentScrollController(
+                                                  initialItem:
+                                                      config
+                                                          .semesterStartDate
+                                                          .year -
+                                                      2020,
+                                                ),
+                                            onSelectedItemChanged:
+                                                (int index) async {
+                                                  await updateConfig((config) {
+                                                    config.semesterStartDate =
+                                                        DateTime(
+                                                          2020 + index,
+                                                          config
+                                                              .semesterStartDate
+                                                              .month,
+                                                          config
+                                                              .semesterStartDate
+                                                              .day,
+                                                        );
+                                                  });
+                                                  setModalState(() {});
+                                                },
+                                            children: List<Widget>.generate(
+                                              20,
+                                              (int index) => Center(
+                                                child: Text(
+                                                  '${2020 + index}',
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: AppTokens.textMain,
+                                                  ),
+                                                ),
                                               ),
                                             ),
                                           ),
-                                          IconButton(
-                                            onPressed: () => createTable(tableNameController.text, setModalState),
-                                            icon: const Icon(Icons.check_circle, color: AppTokens.duckYellow),
-                                          ),
-                                          IconButton(
-                                            onPressed: () => setModalState(() {
-                                              creatingTable = false;
-                                              tableNameController.clear();
-                                            }),
-                                            icon: const Icon(Icons.cancel, color: AppTokens.duckYellow),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  else
-                                    Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: Padding(
-                                        padding: const EdgeInsets.only(left: 10),
-                                        child: TextButton(
-                                          onPressed: () => setModalState(() {
-                                            creatingTable = true;
-                                          }),
-                                          child: const Text('+ 新建课表'),
                                         ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            _SidebarGroupCard(
-                              title: '时间设置',
-                              icon: Icons.access_time,
-                              color: const Color(0xFFE7F2FF),
-                              expanded: _expandedSidebarGroup == 1,
-                              onToggle: () => setModalState(() {
-                                _expandedSidebarGroup = _expandedSidebarGroup == 1 ? -1 : 1;
-                              }),
-                              child: Column(
-                                children: <Widget>[
-                                  _StepInputRow(
-                                    title: '每节课时长',
-                                    value: config.classDuration,
-                                    min: 10,
-                                    max: 180,
-                                    buttonColor: const Color(0xFF6D9CD5),
-                                    onChanged: (int value) async {
-                                      await updateConfig((config) => config.classDuration = value);
-                                      setModalState(() {});
-                                    },
-                                  ),
-                                  const SizedBox(height: 10),
-                                  _StepInputRow(
-                                    title: '课间时长',
-                                    value: config.breakDuration,
-                                    min: 0,
-                                    max: 120,
-                                    buttonColor: const Color(0xFF6D9CD5),
-                                    onChanged: (int value) async {
-                                      await updateConfig((config) => config.breakDuration = value);
-                                      setModalState(() {});
-                                    },
-                                  ),
-                                  const SizedBox(height: 10),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: FilledButton(
-                                      onPressed: () async {
-                                        await updateConfig((config) => config.alignByTemplate());
-                                        setModalState(() {});
-                                      },
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor: const Color(0xFF65A5EA),
-                                      ),
-                                      child: const Text('一键批量对齐'),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            _SidebarGroupCard(
-                              title: '上午课程',
-                              icon: Icons.wb_sunny,
-                              color: const Color(0xFFFFEDD5),
-                              expanded: _expandedSidebarGroup == 2,
-                              onToggle: () => setModalState(() {
-                                _expandedSidebarGroup = _expandedSidebarGroup == 2 ? -1 : 2;
-                              }),
-                              child: Column(
-                                children: <Widget>[
-                                  _StepInputRow(
-                                    title: '上午课程节数',
-                                    value: config.morningCount,
-                                    min: 1,
-                                    max: 30,
-                                    disableIncrease: disableMorningIncrease,
-                                    warningText: morningCardWarning,
-                                    dialogMaxValue: maxMorningCount,
-                                    dialogConflictMessage: morningAfternoonConflictText,
-                                    buttonColor: const Color(0xFFF2A866),
-                                    onChanged: (int value) async {
-                                      final bool blocked = value > maxMorningCount;
-                                      await updateConfig((config) {
-                                        final _SegmentAnchors anchors = config.captureAnchors();
-                                        final int safeMax = config.maxMorningCountWithoutConflict();
-                                        final int safeValue = value
-                                            .clamp(1, safeMax)
-                                            .toInt();
-                                        config.morningCount = safeValue;
-                                        config.normalizeCounts();
-                                        config.rebuildSectionsByAnchors(anchors);
-                                      });
-                                      setModalState(() {
-                                        morningWarningText = blocked
-                                            ? morningAfternoonConflictText
-                                            : null;
-                                      });
-                                    },
-                                  ),
-                                  const SizedBox(height: 8),
-                                  buildSectionEditors(1, config.morningEnd),
-                                ],
-                              ),
-                            ),
-                            _SidebarGroupCard(
-                              title: '下午课程',
-                              icon: Icons.wb_cloudy,
-                              color: const Color(0xFFFFF5E5),
-                              expanded: _expandedSidebarGroup == 3,
-                              onToggle: () => setModalState(() {
-                                _expandedSidebarGroup = _expandedSidebarGroup == 3 ? -1 : 3;
-                              }),
-                              child: Column(
-                                children: <Widget>[
-                                  _StepInputRow(
-                                    title: '下午课程节数',
-                                    value: config.afternoonCount,
-                                    min: 1,
-                                    max: 30,
-                                    disableIncrease: disableAfternoonIncrease,
-                                    warningText: afternoonCardWarning,
-                                    dialogMaxValue: maxAfternoonCount,
-                                    dialogConflictMessage: afternoonEveningConflictText,
-                                    buttonColor: const Color(0xFFE5A15A),
-                                    onChanged: (int value) async {
-                                      final bool blocked = value > maxAfternoonCount;
-                                      await updateConfig((config) {
-                                        final _SegmentAnchors anchors = config.captureAnchors();
-                                        final int safeMax = config.maxAfternoonCountWithoutConflict();
-                                        final int safeValue = value
-                                            .clamp(1, safeMax)
-                                            .toInt();
-                                        config.afternoonCount = safeValue;
-                                        config.normalizeCounts();
-                                        config.rebuildSectionsByAnchors(anchors);
-                                      });
-                                      setModalState(() {
-                                        afternoonWarningText = blocked
-                                            ? afternoonEveningConflictText
-                                            : null;
-                                      });
-                                    },
-                                  ),
-                                  const SizedBox(height: 8),
-                                  buildSectionEditors(config.afternoonStart, config.afternoonEnd),
-                                ],
-                              ),
-                            ),
-                            _SidebarGroupCard(
-                              title: '晚上课程',
-                              icon: Icons.dark_mode,
-                              color: const Color(0xFFFFE9EF),
-                              expanded: _expandedSidebarGroup == 4,
-                              onToggle: () => setModalState(() {
-                                _expandedSidebarGroup = _expandedSidebarGroup == 4 ? -1 : 4;
-                              }),
-                              child: Column(
-                                children: <Widget>[
-                                  _StepInputRow(
-                                    title: '晚上课程节数',
-                                    value: config.eveningCount,
-                                    min: 1,
-                                    max: 30,
-                                    warningText: eveningCardWarning,
-                                    buttonColor: const Color(0xFFD37F95),
-                                    onChanged: (int value) async {
-                                      await updateConfig((config) {
-                                        final _SegmentAnchors anchors = config.captureAnchors();
-                                        config.setEveningCountPreferIncrease(value);
-                                        config.rebuildSectionsByAnchors(anchors);
-                                      });
-                                      setModalState(() {
-                                        eveningWarningText = null;
-                                      });
-                                    },
-                                  ),
-                                  const SizedBox(height: 8),
-                                  buildSectionEditors(config.eveningStart, config.eveningEnd),
-                                ],
-                              ),
-                            ),
-                            _SidebarGroupCard(
-                              title: '周数设置',
-                              icon: Icons.repeat,
-                              color: const Color(0xFFECE6FF),
-                              expanded: _expandedSidebarGroup == 5,
-                              onToggle: () => setModalState(() {
-                                _expandedSidebarGroup = _expandedSidebarGroup == 5 ? -1 : 5;
-                              }),
-                              child: Column(
-                                children: <Widget>[
-                                  _StepInputRow(
-                                    title: '学习周数',
-                                    value: config.termWeeks,
-                                    min: 1,
-                                    max: 35,
-                                    buttonColor: const Color(0xFFA58ADC),
-                                    onChanged: (int value) async {
-                                      await updateConfig((config) => config.termWeeks = value);
-                                      setModalState(() {});
-                                    },
-                                  ),
-                                  const SizedBox(height: 10),
-                                  const Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Text(
-                                      '每周起始日',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppTokens.textMain,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  SizedBox(
-                                    height: 88,
-                                    child: CupertinoPicker(
-                                      looping: true,
-                                      itemExtent: 30,
-                                      selectionOverlay: DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          color: const Color(0x20FFFFFF),
-                                          border: Border.symmetric(
-                                            horizontal: BorderSide(color: Color(0x44FFFFFF)),
+                                        Expanded(
+                                          child: CupertinoPicker(
+                                            itemExtent: 30,
+                                            scrollController:
+                                                FixedExtentScrollController(
+                                                  initialItem:
+                                                      config
+                                                          .semesterStartDate
+                                                          .month -
+                                                      1,
+                                                ),
+                                            onSelectedItemChanged:
+                                                (int index) async {
+                                                  await updateConfig((config) {
+                                                    config.semesterStartDate =
+                                                        DateTime(
+                                                          config
+                                                              .semesterStartDate
+                                                              .year,
+                                                          index + 1,
+                                                          config
+                                                              .semesterStartDate
+                                                              .day,
+                                                        );
+                                                  });
+                                                  setModalState(() {});
+                                                },
+                                            children: List<Widget>.generate(
+                                              12,
+                                              (int index) => Center(
+                                                child: Text(
+                                                  '${index + 1}',
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: AppTokens.textMain,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
                                           ),
-                                          borderRadius: BorderRadius.circular(8),
                                         ),
-                                      ),
-                                      scrollController: FixedExtentScrollController(
-                                        initialItem: config.weekStartDay - 1,
-                                      ),
-                                      onSelectedItemChanged: (int index) async {
-                                        await updateConfig((config) => config.weekStartDay = index + 1);
-                                        setModalState(() {});
-                                      },
-                                      children: const <Widget>[
-                                        Center(child: Text('星期一', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.textMain))),
-                                        Center(child: Text('星期二', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.textMain))),
-                                        Center(child: Text('星期三', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.textMain))),
-                                        Center(child: Text('星期四', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.textMain))),
-                                        Center(child: Text('星期五', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.textMain))),
-                                        Center(child: Text('星期六', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.textMain))),
-                                        Center(child: Text('星期日', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.textMain))),
+                                        Expanded(
+                                          child: CupertinoPicker(
+                                            itemExtent: 30,
+                                            scrollController:
+                                                FixedExtentScrollController(
+                                                  initialItem:
+                                                      config
+                                                          .semesterStartDate
+                                                          .day -
+                                                      1,
+                                                ),
+                                            onSelectedItemChanged:
+                                                (int index) async {
+                                                  await updateConfig((config) {
+                                                    config.semesterStartDate =
+                                                        DateTime(
+                                                          config
+                                                              .semesterStartDate
+                                                              .year,
+                                                          config
+                                                              .semesterStartDate
+                                                              .month,
+                                                          index + 1,
+                                                        );
+                                                  });
+                                                  setModalState(() {});
+                                                },
+                                            children: List<Widget>.generate(
+                                              31,
+                                              (int index) => Center(
+                                                child: Text(
+                                                  '${index + 1}',
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: AppTokens.textMain,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
-                            _SidebarGroupCard(
-                              title: '开学日期',
-                              icon: Icons.event,
-                              color: const Color(0xFFE6F8FF),
-                              expanded: _expandedSidebarGroup == 6,
-                              onToggle: () => setModalState(() {
-                                _expandedSidebarGroup = _expandedSidebarGroup == 6 ? -1 : 6;
-                              }),
-                              trailingText: DateFormat('yyyy-MM-dd').format(config.semesterStartDate),
-                              child: SizedBox(
-                                height: 96,
-                                child: Row(
-                                  children: <Widget>[
-                                    Expanded(
-                                      child: CupertinoPicker(
-                                        itemExtent: 30,
-                                        scrollController: FixedExtentScrollController(
-                                          initialItem: config.semesterStartDate.year - 2020,
-                                        ),
-                                        onSelectedItemChanged: (int index) async {
-                                          await updateConfig((config) {
-                                            config.semesterStartDate = DateTime(
-                                              2020 + index,
-                                              config.semesterStartDate.month,
-                                              config.semesterStartDate.day,
-                                            );
-                                          });
-                                          setModalState(() {});
-                                        },
-                                        children: List<Widget>.generate(
-                                          20,
-                                          (int index) => Center(
-                                            child: Text(
-                                              '${2020 + index}',
-                                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.textMain),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: CupertinoPicker(
-                                        itemExtent: 30,
-                                        scrollController: FixedExtentScrollController(
-                                          initialItem: config.semesterStartDate.month - 1,
-                                        ),
-                                        onSelectedItemChanged: (int index) async {
-                                          await updateConfig((config) {
-                                            config.semesterStartDate = DateTime(
-                                              config.semesterStartDate.year,
-                                              index + 1,
-                                              config.semesterStartDate.day,
-                                            );
-                                          });
-                                          setModalState(() {});
-                                        },
-                                        children: List<Widget>.generate(
-                                          12,
-                                          (int index) => Center(
-                                            child: Text(
-                                              '${index + 1}',
-                                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.textMain),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: CupertinoPicker(
-                                        itemExtent: 30,
-                                        scrollController: FixedExtentScrollController(
-                                          initialItem: config.semesterStartDate.day - 1,
-                                        ),
-                                        onSelectedItemChanged: (int index) async {
-                                          await updateConfig((config) {
-                                            config.semesterStartDate = DateTime(
-                                              config.semesterStartDate.year,
-                                              config.semesterStartDate.month,
-                                              index + 1,
-                                            );
-                                          });
-                                          setModalState(() {});
-                                        },
-                                        children: List<Widget>.generate(
-                                          31,
-                                          (int index) => Center(
-                                            child: Text(
-                                              '${index + 1}',
-                                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTokens.textMain),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
                                 ),
-                              ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-              ],
+                  ],
+                );
+              },
             );
           },
-        );
-      },
-      transitionBuilder: (
-        BuildContext context,
-        Animation<double> animation,
-        Animation<double> secondaryAnimation,
-        Widget child,
-      ) {
-        final CurvedAnimation curve = CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeOutCubic,
-          reverseCurve: Curves.easeInCubic,
-        );
-        final Animation<Offset> slide = Tween<Offset>(
-          begin: const Offset(-0.22, 0),
-          end: Offset.zero,
-        ).animate(curve);
-        final Animation<double> scale = Tween<double>(begin: 0.985, end: 1).animate(curve);
-        return FadeTransition(
-          opacity: curve,
-          child: SlideTransition(
-            position: slide,
-            child: ScaleTransition(
-              scale: scale,
-              alignment: Alignment.centerLeft,
-              child: child,
-            ),
-          ),
-        );
-      },
+      transitionBuilder:
+          (
+            BuildContext context,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+            Widget child,
+          ) {
+            final CurvedAnimation curve = CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+              reverseCurve: Curves.easeInCubic,
+            );
+            final Animation<Offset> slide = Tween<Offset>(
+              begin: const Offset(-0.22, 0),
+              end: Offset.zero,
+            ).animate(curve);
+            final Animation<double> scale = Tween<double>(
+              begin: 0.985,
+              end: 1,
+            ).animate(curve);
+            return FadeTransition(
+              opacity: curve,
+              child: SlideTransition(
+                position: slide,
+                child: ScaleTransition(
+                  scale: scale,
+                  alignment: Alignment.centerLeft,
+                  child: child,
+                ),
+              ),
+            );
+          },
     );
 
     tableNameController.dispose();
@@ -1576,8 +1979,10 @@ class _SchedulePageState extends State<SchedulePage> {
 
   Future<void> _switchCourseTable(int tableId, String tableName) async {
     // 切换课表只更新当前展示上下文，不修改数据库原始数据。
-    final List<CourseEntity> courses = await _scheduleRepository.getCoursesByTableId(tableId);
-    final List<CourseTableEntity> tables = await _scheduleRepository.getCourseTables();
+    final List<CourseEntity> courses = await _scheduleRepository
+        .getCoursesByTableId(tableId);
+    final List<CourseTableEntity> tables = await _scheduleRepository
+        .getCourseTables();
     CourseTableEntity? target;
     for (final CourseTableEntity table in tables) {
       if (table.id == tableId) {
@@ -1597,6 +2002,7 @@ class _SchedulePageState extends State<SchedulePage> {
       _activeTableId = tableId;
       _activeTableName = tableName;
       _courses = courses;
+      _adjacentColorByCourseName = _buildAdjacentAwareColorMap(courses);
     });
     _scheduleRepository.setActiveTableId(tableId);
   }
@@ -1653,51 +2059,6 @@ class _SchedulePageState extends State<SchedulePage> {
     );
   }
 
-  Future<void> _handleCameraAdd() async {
-    // 拍照链路只负责权限与采集入口，OCR 解析在后续能力中接入。
-    final ImagePicker picker = ImagePicker();
-
-    try {
-      final XFile? captured = await picker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: 2048,
-        maxHeight: 2048,
-        imageQuality: 85,
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      if (captured == null) {
-        // 用户主动取消不属于异常，提示后直接返回。
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已取消拍照，未写入课程数据。')),
-        );
-        return;
-      }
-
-      await DuckModal.show<void>(
-        context: context,
-        child: DuckModalFrame(
-          title: '拍照添加',
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppTokens.space12),
-            child: Text('已获取照片：${captured.name}\nOCR识别与课程抽取将在后续任务接入。'),
-          ),
-        ),
-      );
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      // 统一拦截权限与设备能力异常，避免流程静默失败。
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('无法访问相机，请检查系统权限设置。')),
-      );
-    }
-  }
-
   Future<void> _openCourseDetail(int period, List<CourseEntity> courses) async {
     if (courses.isEmpty) {
       await DuckModal.show<void>(
@@ -1713,15 +2074,14 @@ class _SchedulePageState extends State<SchedulePage> {
       return;
     }
 
-    final Map<String, List<TodoItem>> todoByCourseName = <String, List<TodoItem>>{};
+    final Map<String, List<TodoItem>> todoByCourseName =
+        <String, List<TodoItem>>{};
     for (final CourseEntity course in courses) {
       if (todoByCourseName.containsKey(course.name)) {
         continue;
       }
-      final List<TodoItem> linkedTodos = await _todoRepository.getTodosByCourseName(
-        course.name,
-        tableId: _activeTableId,
-      );
+      final List<TodoItem> linkedTodos = await _todoRepository
+          .getTodosByCourseName(course.name, tableId: _activeTableId);
       todoByCourseName[course.name] = linkedTodos;
     }
 
@@ -1800,7 +2160,8 @@ class _SchedulePageState extends State<SchedulePage> {
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: <Widget>[
                           TextButton(
-                            onPressed: () => Navigator.of(dialogContext).pop(false),
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(false),
                             style: TextButton.styleFrom(
                               foregroundColor: const Color(0xFF2F2A25),
                             ),
@@ -1808,7 +2169,8 @@ class _SchedulePageState extends State<SchedulePage> {
                           ),
                           const SizedBox(width: 4),
                           TextButton(
-                            onPressed: () => Navigator.of(dialogContext).pop(true),
+                            onPressed: () =>
+                                Navigator.of(dialogContext).pop(true),
                             style: TextButton.styleFrom(
                               foregroundColor: const Color(0xFFD24B5A),
                             ),
@@ -1828,10 +2190,8 @@ class _SchedulePageState extends State<SchedulePage> {
           }
 
           // 课程删除联动：彻底物理删除所有关联待办（含未完成/已完成）。
-          final int removedTodos = await _todoRepository.deleteTodosByCourseName(
-            course.name,
-            tableId: _activeTableId,
-          );
+          final int removedTodos = await _todoRepository
+              .deleteTodosByCourseName(course.name, tableId: _activeTableId);
           await _scheduleRepository.deleteCourse(courseId);
           await _loadScheduleData();
 
@@ -1840,7 +2200,9 @@ class _SchedulePageState extends State<SchedulePage> {
           }
           Navigator.of(context).pop();
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('已删除课程：${course.name}，联动删除待办 $removedTodos 条')),
+            SnackBar(
+              content: Text('已删除课程：${course.name}，联动删除待办 $removedTodos 条'),
+            ),
           );
         },
       ),
@@ -1861,7 +2223,9 @@ class _SchedulePageState extends State<SchedulePage> {
     final int span = activeDrag.timeCount.clamp(1, maxPeriod).toInt();
     final int highlightSpan = hover == null
         ? span
-        : (math.min(maxPeriod, hover.periodStart + span - 1) - hover.periodStart + 1);
+        : (math.min(maxPeriod, hover.periodStart + span - 1) -
+              hover.periodStart +
+              1);
 
     return Positioned.fill(
       child: Stack(
@@ -1874,30 +2238,35 @@ class _SchedulePageState extends State<SchedulePage> {
                 width: colWidth,
                 height: rowHeight,
                 child: DragTarget<_CourseDragPayload>(
-                  onWillAcceptWithDetails: (DragTargetDetails<_CourseDragPayload> details) {
-                    final _CourseDropDecision decision = _canDropCourseAt(
-                      payload: details.data,
-                      targetDayColumn: dayColumn,
-                      targetStartPeriod: period,
-                    );
-                    if (!decision.accepted) {
-                      _courseDragRejectMessage = decision.message;
-                      return false;
-                    }
+                  onWillAcceptWithDetails:
+                      (DragTargetDetails<_CourseDragPayload> details) {
+                        final _CourseDropDecision decision = _canDropCourseAt(
+                          payload: details.data,
+                          targetDayColumn: dayColumn,
+                          targetStartPeriod: period,
+                        );
+                        if (!decision.accepted) {
+                          _courseDragRejectMessage = decision.message;
+                          return false;
+                        }
 
-                    _courseDragRejectMessage = null;
-                    final _CourseDragHover next =
-                        _CourseDragHover(dayColumn: dayColumn, periodStart: period);
-                    if (_courseDragHover != next) {
-                      setState(() {
-                        _courseDragHover = next;
-                      });
-                    }
-                    return true;
-                  },
+                        _courseDragRejectMessage = null;
+                        final _CourseDragHover next = _CourseDragHover(
+                          dayColumn: dayColumn,
+                          periodStart: period,
+                        );
+                        if (_courseDragHover != next) {
+                          setState(() {
+                            _courseDragHover = next;
+                          });
+                        }
+                        return true;
+                      },
                   onMove: (DragTargetDetails<_CourseDragPayload> details) {
-                    final _CourseDragHover next =
-                        _CourseDragHover(dayColumn: dayColumn, periodStart: period);
+                    final _CourseDragHover next = _CourseDragHover(
+                      dayColumn: dayColumn,
+                      periodStart: period,
+                    );
                     if (_courseDragHover != next) {
                       setState(() {
                         _courseDragHover = next;
@@ -1906,27 +2275,32 @@ class _SchedulePageState extends State<SchedulePage> {
                   },
                   onLeave: (details) {
                     if (_courseDragHover ==
-                        _CourseDragHover(dayColumn: dayColumn, periodStart: period)) {
+                        _CourseDragHover(
+                          dayColumn: dayColumn,
+                          periodStart: period,
+                        )) {
                       setState(() {
                         _courseDragHover = null;
                       });
                     }
                   },
-                  onAcceptWithDetails: (DragTargetDetails<_CourseDragPayload> details) {
-                    _courseDragRejectMessage = null;
-                    _applyCourseDragDrop(
-                      payload: details.data,
-                      targetDayColumn: dayColumn,
-                      targetStartPeriod: period,
-                    );
-                  },
-                  builder: (
-                    BuildContext context,
-                    List<_CourseDragPayload?> candidateData,
-                    List<dynamic> rejectedData,
-                  ) {
-                    return const SizedBox.expand();
-                  },
+                  onAcceptWithDetails:
+                      (DragTargetDetails<_CourseDragPayload> details) {
+                        _courseDragRejectMessage = null;
+                        _applyCourseDragDrop(
+                          payload: details.data,
+                          targetDayColumn: dayColumn,
+                          targetStartPeriod: period,
+                        );
+                      },
+                  builder:
+                      (
+                        BuildContext context,
+                        List<_CourseDragPayload?> candidateData,
+                        List<dynamic> rejectedData,
+                      ) {
+                        return const SizedBox.expand();
+                      },
                 ),
               ),
           if (hover != null)
@@ -1963,7 +2337,11 @@ class _SchedulePageState extends State<SchedulePage> {
     final List<_RenderedCourseBlock> blocks = _buildRenderedBlocks(_courses);
     final Set<String> occupiedCells = <String>{
       for (final _RenderedCourseBlock block in blocks)
-        for (int period = block.start; period < block.start + block.span; period++)
+        for (
+          int period = block.start;
+          period < block.start + block.span;
+          period++
+        )
           '${block.dayColumn}-$period',
     };
 
@@ -1972,8 +2350,9 @@ class _SchedulePageState extends State<SchedulePage> {
         final double availableHeight = constraints.maxHeight.isFinite
             ? constraints.maxHeight
             : 760;
-        final double rowHeight =
-          (availableHeight / _periodTimes.length).clamp(68.0, 92.0).toDouble();
+        final double rowHeight = (availableHeight / _periodTimes.length)
+            .clamp(68.0, 92.0)
+            .toDouble();
         final double gridHeight = math.max(
           rowHeight * _periodTimes.length + 56,
           availableHeight,
@@ -1996,7 +2375,9 @@ class _SchedulePageState extends State<SchedulePage> {
                   SizedBox(
                     width: leftWidth,
                     child: Column(
-                      children: List<Widget>.generate(_periodTimes.length, (int index) {
+                      children: List<Widget>.generate(_periodTimes.length, (
+                        int index,
+                      ) {
                         final int period = index + 1;
                         return SizedBox(
                           height: rowHeight,
@@ -2034,24 +2415,34 @@ class _SchedulePageState extends State<SchedulePage> {
                         _gridColWidth = colWidth;
                         _gridRowHeight = rowHeight;
 
-                        final _QuickAddSelection? selection = _quickAddSelection;
+                        final _QuickAddSelection? selection =
+                            _quickAddSelection;
                         final bool showSelection = selection != null;
                         final int selectionDayStart =
-                          selection?.dayStart.clamp(1, 7).toInt() ?? 1;
+                            selection?.dayStart.clamp(1, 7).toInt() ?? 1;
                         final int selectionDayEnd =
-                          selection?.dayEnd.clamp(1, 7).toInt() ?? 1;
+                            selection?.dayEnd.clamp(1, 7).toInt() ?? 1;
                         final int selectionPeriodStart =
-                          selection?.periodStart.clamp(1, _periodTimes.length).toInt() ?? 1;
+                            selection?.periodStart
+                                .clamp(1, _periodTimes.length)
+                                .toInt() ??
+                            1;
                         final int selectionPeriodEnd =
-                          selection?.periodEnd.clamp(1, _periodTimes.length).toInt() ?? 1;
+                            selection?.periodEnd
+                                .clamp(1, _periodTimes.length)
+                                .toInt() ??
+                            1;
 
-                        final double selectionLeft = (selectionDayStart - 1) * colWidth;
+                        final double selectionLeft =
+                            (selectionDayStart - 1) * colWidth;
                         final double selectionTop =
                             (selectionPeriodStart - 1) * rowHeight;
                         final double selectionWidth =
-                            (selectionDayEnd - selectionDayStart + 1) * colWidth;
+                            (selectionDayEnd - selectionDayStart + 1) *
+                            colWidth;
                         final double selectionHeight =
-                            (selectionPeriodEnd - selectionPeriodStart + 1) * rowHeight;
+                            (selectionPeriodEnd - selectionPeriodStart + 1) *
+                            rowHeight;
                         final int selectionDayCount =
                             selectionDayEnd - selectionDayStart + 1;
                         final int selectionPeriodCount =
@@ -2070,14 +2461,27 @@ class _SchedulePageState extends State<SchedulePage> {
                                   height: rowHeight,
                                   decoration: const BoxDecoration(
                                     border: Border(
-                                      top: BorderSide(color: Color(0xFFF1E9DA), width: 0.8),
+                                      top: BorderSide(
+                                        color: Color(0xFFF1E9DA),
+                                        width: 0.8,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                            for (int period = 1; period <= _periodTimes.length; period++)
-                              for (int dayColumn = 1; dayColumn <= 7; dayColumn++)
-                                if (!occupiedCells.contains('$dayColumn-$period'))
+                            for (
+                              int period = 1;
+                              period <= _periodTimes.length;
+                              period++
+                            )
+                              for (
+                                int dayColumn = 1;
+                                dayColumn <= 7;
+                                dayColumn++
+                              )
+                                if (!occupiedCells.contains(
+                                  '$dayColumn-$period',
+                                ))
                                   Positioned(
                                     left: (dayColumn - 1) * colWidth,
                                     top: (period - 1) * rowHeight,
@@ -2124,50 +2528,84 @@ class _SchedulePageState extends State<SchedulePage> {
                                     Positioned.fill(
                                       child: Listener(
                                         onPointerMove: (PointerMoveEvent event) {
-                                          final bool touchLike = event.kind == PointerDeviceKind.touch ||
-                                              event.kind == PointerDeviceKind.stylus ||
-                                              event.kind == PointerDeviceKind.invertedStylus;
+                                          final bool touchLike =
+                                              event.kind ==
+                                                  PointerDeviceKind.touch ||
+                                              event.kind ==
+                                                  PointerDeviceKind.stylus ||
+                                              event.kind ==
+                                                  PointerDeviceKind
+                                                      .invertedStylus;
                                           final bool mousePrimaryDown =
                                               (event.buttons & 0x01) != 0;
                                           if (!touchLike && !mousePrimaryDown) {
                                             return;
                                           }
-                                          _updateQuickAddSelectionFromGlobal(event.position);
+                                          _updateQuickAddSelectionFromGlobal(
+                                            event.position,
+                                          );
                                         },
                                         child: GestureDetector(
                                           behavior: HitTestBehavior.opaque,
-                                          onTap: _openManualAddFromQuickSelection,
-                                          onPanUpdate: (DragUpdateDetails details) {
-                                            _updateQuickAddSelectionFromGlobal(details.globalPosition);
-                                          },
-                                          onLongPressMoveUpdate: (LongPressMoveUpdateDetails details) {
-                                            _updateQuickAddSelectionFromGlobal(details.globalPosition);
-                                          },
+                                          onTap:
+                                              _openManualAddFromQuickSelection,
+                                          onPanUpdate:
+                                              (DragUpdateDetails details) {
+                                                _updateQuickAddSelectionFromGlobal(
+                                                  details.globalPosition,
+                                                );
+                                              },
+                                          onLongPressMoveUpdate:
+                                              (
+                                                LongPressMoveUpdateDetails
+                                                details,
+                                              ) {
+                                                _updateQuickAddSelectionFromGlobal(
+                                                  details.globalPosition,
+                                                );
+                                              },
                                           child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(10),
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
                                             child: Stack(
                                               children: <Widget>[
-                                                for (int dayOffset = 0;
-                                                    dayOffset < selectionDayCount;
-                                                    dayOffset++)
-                                                  for (int periodOffset = 0;
-                                                      periodOffset < selectionPeriodCount;
-                                                      periodOffset++)
+                                                for (
+                                                  int dayOffset = 0;
+                                                  dayOffset < selectionDayCount;
+                                                  dayOffset++
+                                                )
+                                                  for (
+                                                    int periodOffset = 0;
+                                                    periodOffset <
+                                                        selectionPeriodCount;
+                                                    periodOffset++
+                                                  )
                                                     Positioned(
-                                                      left: dayOffset * colWidth,
-                                                      top: periodOffset * rowHeight,
+                                                      left:
+                                                          dayOffset * colWidth,
+                                                      top:
+                                                          periodOffset *
+                                                          rowHeight,
                                                       width: colWidth,
                                                       height: rowHeight,
                                                       child: Container(
-                                                        color: AppTokens.duckYellow,
+                                                        color: AppTokens
+                                                            .duckYellow,
                                                       ),
                                                     ),
                                                 Positioned.fill(
                                                   child: Container(
                                                     decoration: BoxDecoration(
-                                                      borderRadius: BorderRadius.circular(10),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            10,
+                                                          ),
                                                       border: Border.all(
-                                                        color: Colors.white.withValues(alpha: 0.9),
+                                                        color: Colors.white
+                                                            .withValues(
+                                                              alpha: 0.9,
+                                                            ),
                                                       ),
                                                     ),
                                                   ),
@@ -2186,10 +2624,14 @@ class _SchedulePageState extends State<SchedulePage> {
                                       ),
                                     ),
                                     Positioned(
-                                      left: selectionLeft + selectionWidth + 38 > constraints.maxWidth
+                                      left:
+                                          selectionLeft + selectionWidth + 38 >
+                                              constraints.maxWidth
                                           ? -38
                                           : null,
-                                      right: selectionLeft + selectionWidth + 38 > constraints.maxWidth
+                                      right:
+                                          selectionLeft + selectionWidth + 38 >
+                                              constraints.maxWidth
                                           ? null
                                           : -38,
                                       top: math.max(
@@ -2201,11 +2643,16 @@ class _SchedulePageState extends State<SchedulePage> {
                                           width: 30,
                                           height: 52,
                                           decoration: BoxDecoration(
-                                            color: Colors.white.withValues(alpha: 0.70),
-                                            borderRadius: BorderRadius.circular(8),
+                                            color: Colors.white.withValues(
+                                              alpha: 0.70,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
                                           ),
                                           child: const Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
                                             children: <Widget>[
                                               Icon(
                                                 Icons.keyboard_arrow_up_rounded,
@@ -2214,7 +2661,8 @@ class _SchedulePageState extends State<SchedulePage> {
                                               ),
                                               SizedBox(height: 2),
                                               Icon(
-                                                Icons.keyboard_arrow_down_rounded,
+                                                Icons
+                                                    .keyboard_arrow_down_rounded,
                                                 size: 18,
                                                 color: AppTokens.textMuted,
                                               ),
@@ -2235,20 +2683,27 @@ class _SchedulePageState extends State<SchedulePage> {
                                           width: 52,
                                           height: 28,
                                           decoration: BoxDecoration(
-                                            color: Colors.white.withValues(alpha: 0.70),
-                                            borderRadius: BorderRadius.circular(8),
+                                            color: Colors.white.withValues(
+                                              alpha: 0.70,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
                                           ),
                                           child: const Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
                                             children: <Widget>[
                                               Icon(
-                                                Icons.keyboard_arrow_left_rounded,
+                                                Icons
+                                                    .keyboard_arrow_left_rounded,
                                                 size: 18,
                                                 color: AppTokens.textMuted,
                                               ),
                                               SizedBox(width: 2),
                                               Icon(
-                                                Icons.keyboard_arrow_right_rounded,
+                                                Icons
+                                                    .keyboard_arrow_right_rounded,
                                                 size: 18,
                                                 color: AppTokens.textMuted,
                                               ),
@@ -2285,11 +2740,15 @@ class _SchedulePageState extends State<SchedulePage> {
     final int start = block.start.clamp(1, _periodTimes.length);
     final int span = block.span.clamp(1, 4);
     final Color activeColor = _normalizeCourseDisplayColor(color);
-    final Color finalColor = block.active ? activeColor : const Color(0xFFE1DED7);
+    final Color finalColor = block.active
+        ? activeColor
+        : const Color(0xFFE1DED7);
     const Color titleColor = Color(0xFF1F1A14);
     const Color metaColor = Color(0xFF1F1A14);
 
-    final int dragTimeCount = course.timeCount.clamp(1, _periodTimes.length).toInt();
+    final int dragTimeCount = course.timeCount
+        .clamp(1, _periodTimes.length)
+        .toInt();
     final _CourseDragPayload dragPayload = _CourseDragPayload(
       course: course,
       courseId: course.id,
@@ -2304,12 +2763,26 @@ class _SchedulePageState extends State<SchedulePage> {
       required double opacity,
       required bool withShadow,
     }) {
+      final bool compactSingleSlot =
+          span == 1 && (colWidth < 58 || rowHeight < 72);
+      final int titleMaxLines = span >= 3
+          ? 7
+          : (span == 2 ? 5 : (compactSingleSlot ? 4 : 3));
+      final int teacherMaxLines = span >= 3 ? 3 : (span == 2 ? 2 : 1);
+      final int classroomMaxLines = teacherMaxLines;
+      final double titleFontSize = span >= 3
+          ? 9.4
+          : (span == 2 ? 9.0 : (compactSingleSlot ? 8.4 : 9.2));
+      final double metaFontSize = span >= 3
+          ? 8.4
+          : (span == 2 ? 8.0 : (compactSingleSlot ? 7.3 : 8.0));
+
       return Opacity(
         opacity: opacity,
         child: Transform.scale(
           scale: scale,
           child: Container(
-            padding: const EdgeInsets.fromLTRB(6, 7, 6, 7),
+            padding: const EdgeInsets.fromLTRB(4, 5, 4, 5),
             decoration: BoxDecoration(
               color: finalColor,
               borderRadius: BorderRadius.circular(8),
@@ -2323,19 +2796,22 @@ class _SchedulePageState extends State<SchedulePage> {
                     ]
                   : null,
             ),
-            child: Stack(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                Positioned.fill(
+                Expanded(
                   child: Center(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(2, 0, 2, 24),
+                      padding: const EdgeInsets.fromLTRB(2, 0, 2, 1),
                       child: Text(
                         course.name,
                         textAlign: TextAlign.center,
-                        maxLines: span >= 2 ? 3 : 2,
+                        maxLines: titleMaxLines,
+                        softWrap: true,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 10,
-                          height: 1.2,
+                          fontSize: titleFontSize,
+                          height: 1.16,
                           fontWeight: FontWeight.w700,
                           color: titleColor,
                         ),
@@ -2343,35 +2819,31 @@ class _SchedulePageState extends State<SchedulePage> {
                     ),
                   ),
                 ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Text(
-                        course.teacher?.isNotEmpty == true ? course.teacher! : '未填教师',
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        style: TextStyle(
-                          fontSize: 9,
-                          height: 1.15,
-                          color: metaColor,
-                        ),
-                      ),
-                      const SizedBox(height: 1),
-                      Text(
-                        course.classroom?.isNotEmpty == true ? course.classroom! : '未填地点',
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        style: TextStyle(
-                          fontSize: 9,
-                          height: 1.15,
-                          color: metaColor,
-                        ),
-                      ),
-                    ],
+                Text(
+                  course.teacher?.isNotEmpty == true ? course.teacher! : '未填教师',
+                  textAlign: TextAlign.center,
+                  maxLines: teacherMaxLines,
+                  softWrap: true,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: metaFontSize,
+                    height: 1.1,
+                    color: metaColor,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  course.classroom?.isNotEmpty == true
+                      ? course.classroom!
+                      : '未填地点',
+                  textAlign: TextAlign.center,
+                  maxLines: classroomMaxLines,
+                  softWrap: true,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: metaFontSize,
+                    height: 1.1,
+                    color: metaColor,
                   ),
                 ),
               ],
@@ -2399,71 +2871,117 @@ class _SchedulePageState extends State<SchedulePage> {
             child: Transform.scale(scale: value, child: child),
           );
         },
-        child: buildCardVisual(
-          scale: 1,
-          opacity: 1,
-          withShadow: false,
-        ),
+        child: buildCardVisual(scale: 1, opacity: 1, withShadow: false),
       ),
     );
+
+    final int futureOverlapCount = _countFutureOverlapCourses(block);
 
     return Positioned(
       left: (dayColumn - 1) * colWidth + 2,
       top: (start - 1) * rowHeight + 3,
       width: colWidth - 4,
       height: rowHeight * span - 6,
-      child: LongPressDraggable<_CourseDragPayload>(
-        data: dragPayload,
-        delay: const Duration(milliseconds: 300),
-        feedback: Material(
-          color: Colors.transparent,
-          child: SizedBox(
-            width: colWidth - 4,
-            height: rowHeight * span - 6,
-            child: buildCardVisual(
-              scale: 0.95,
-              opacity: 0.9,
-              withShadow: true,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: <Widget>[
+          if (futureOverlapCount > 0)
+            for (int i = 0; i < math.min(2, futureOverlapCount); i++)
+              Positioned(
+                left: 1.0 + i * 1.4,
+                right: 1.0 + i * 1.4,
+                top: 1.0 + i * 1.4,
+                bottom: 1.0 + i * 1.4,
+                child: IgnorePointer(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDAD6CE).withValues(alpha: 0.75),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+          LongPressDraggable<_CourseDragPayload>(
+            data: dragPayload,
+            delay: const Duration(milliseconds: 300),
+            feedback: Material(
+              color: Colors.transparent,
+              child: SizedBox(
+                width: colWidth - 4,
+                height: rowHeight * span - 6,
+                child: buildCardVisual(
+                  scale: 0.95,
+                  opacity: 0.9,
+                  withShadow: true,
+                ),
+              ),
             ),
+            childWhenDragging: Container(
+              decoration: BoxDecoration(
+                color: AppTokens.duckYellow.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onDragStarted: () {
+              _startCourseDrag(dragPayload);
+            },
+            onDragUpdate: (DragUpdateDetails details) {
+              if (_isPointInsideGrid(details.globalPosition)) {
+                return;
+              }
+              if (_courseDragHover == null &&
+                  _courseDragRejectMessage == null) {
+                return;
+              }
+              setState(() {
+                _courseDragHover = null;
+                _courseDragRejectMessage = null;
+              });
+            },
+            onDragCompleted: _clearCourseDragState,
+            onDraggableCanceled: (Velocity velocity, Offset offset) {
+              final String? rejectMessage = _courseDragRejectMessage;
+              _clearCourseDragState();
+              if (rejectMessage != null && mounted) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(rejectMessage)));
+              }
+            },
+            onDragEnd: (DraggableDetails details) {
+              if (_activeCourseDrag != null) {
+                _clearCourseDragState();
+              }
+            },
+            child: tapCard,
           ),
-        ),
-        childWhenDragging: Container(
-          decoration: BoxDecoration(
-            color: AppTokens.duckYellow.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-        onDragStarted: () {
-          _startCourseDrag(dragPayload);
-        },
-        onDragUpdate: (DragUpdateDetails details) {
-          if (_isPointInsideGrid(details.globalPosition)) {
-            return;
-          }
-          if (_courseDragHover == null && _courseDragRejectMessage == null) {
-            return;
-          }
-          setState(() {
-            _courseDragHover = null;
-            _courseDragRejectMessage = null;
-          });
-        },
-        onDragCompleted: _clearCourseDragState,
-        onDraggableCanceled: (Velocity velocity, Offset offset) {
-          final String? rejectMessage = _courseDragRejectMessage;
-          _clearCourseDragState();
-          if (rejectMessage != null && mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(rejectMessage)),
-            );
-          }
-        },
-        onDragEnd: (DraggableDetails details) {
-          if (_activeCourseDrag != null) {
-            _clearCourseDragState();
-          }
-        },
-        child: tapCard,
+          if (futureOverlapCount > 0)
+            Positioned(
+              right: -2,
+              top: -2,
+              child: IgnorePointer(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 1,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFB3AEA3),
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                  child: Text(
+                    '+$futureOverlapCount',
+                    style: const TextStyle(
+                      fontSize: 8,
+                      height: 1,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -2471,7 +2989,6 @@ class _SchedulePageState extends State<SchedulePage> {
   List<_RenderedCourseBlock> _buildRenderedBlocks(List<CourseEntity> source) {
     final List<_RenderedCourseBlock> result = <_RenderedCourseBlock>[];
     final _ScheduleConfig config = _activeConfig();
-    final bool showInactiveOnGrid = _currentWeek <= 0 || _isSemesterEnded(config);
 
     for (int dayColumn = 1; dayColumn <= 7; dayColumn++) {
       final int weekday = _weekdayForColumn(dayColumn, config.weekStartDay);
@@ -2481,25 +2998,50 @@ class _SchedulePageState extends State<SchedulePage> {
       );
 
       for (int period = 1; period <= _periodTimes.length; period++) {
-        final List<CourseEntity> active = source
-            .where((CourseEntity c) =>
-            c.weekTime == weekday && _coversPeriod(c, period) && _isCourseInDisplayedWeek(c))
-            .toList(growable: false)
-          ..sort((CourseEntity a, CourseEntity b) => a.name.compareTo(b.name));
+        final List<CourseEntity> inactive =
+            source
+                .where(
+                  (CourseEntity c) =>
+                      c.weekTime == weekday &&
+                      _coversPeriod(c, period) &&
+                      !_isCourseInDisplayedWeek(c) &&
+                      _shouldShowAsInactiveCourse(c, config),
+                )
+                .toList(growable: false)
+              ..sort(
+                (CourseEntity a, CourseEntity b) => a.name.compareTo(b.name),
+              );
+
+        final List<CourseEntity> active =
+            source
+                .where(
+                  (CourseEntity c) =>
+                      c.weekTime == weekday &&
+                      _coversPeriod(c, period) &&
+                      _isCourseInDisplayedWeek(c),
+                )
+                .toList(growable: false)
+              ..sort(
+                (CourseEntity a, CourseEntity b) => a.name.compareTo(b.name),
+              );
 
         if (active.isNotEmpty) {
-          slots[period] = _ResolvedSlot(primary: active.first, all: active, active: true);
+          slots[period] = _ResolvedSlot(
+            primary: active.first,
+            all: inactive.isEmpty
+                ? active
+                : <CourseEntity>[...active, ...inactive],
+            active: true,
+          );
           continue;
         }
 
-        final List<CourseEntity> inactive = source
-            .where((CourseEntity c) =>
-            c.weekTime == weekday && _coversPeriod(c, period) && !_isCourseInDisplayedWeek(c))
-            .toList(growable: false)
-          ..sort((CourseEntity a, CourseEntity b) => a.name.compareTo(b.name));
-
-        if (showInactiveOnGrid && inactive.isNotEmpty) {
-          slots[period] = _ResolvedSlot(primary: inactive.first, all: inactive, active: false);
+        if (inactive.isNotEmpty) {
+          slots[period] = _ResolvedSlot(
+            primary: inactive.first,
+            all: inactive,
+            active: false,
+          );
         }
       }
 
@@ -2557,14 +3099,16 @@ class _SchedulePageState extends State<SchedulePage> {
     final int rangeStart = block.start;
     final int rangeEnd = block.start + block.span - 1;
 
-    final List<CourseEntity> matched = _courses.where((CourseEntity course) {
-      if (course.weekTime != day) {
-        return false;
-      }
-      final int start = course.startTime;
-      final int end = course.startTime + course.timeCount - 1;
-      return !(end < rangeStart || start > rangeEnd);
-    }).toList(growable: false);
+    final List<CourseEntity> matched = _courses
+        .where((CourseEntity course) {
+          if (course.weekTime != day) {
+            return false;
+          }
+          final int start = course.startTime;
+          final int end = course.startTime + course.timeCount - 1;
+          return !(end < rangeStart || start > rangeEnd);
+        })
+        .toList(growable: false);
 
     matched.sort((CourseEntity a, CourseEntity b) {
       final bool aActive = _isCourseInDisplayedWeek(a);
@@ -2582,15 +3126,32 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 
   bool _isCourseInDisplayedWeek(CourseEntity course) {
-    if (_isSemesterEnded(_activeConfig())) {
+    final _ScheduleConfig config = _activeConfig();
+    if (_currentWeek <= 0 || _isSemesterEnded(config)) {
       return false;
     }
     final List<int> weeks = _parseWeeks(course.weeksJson);
     if (weeks.isEmpty) {
       return true;
     }
-    final int displayWeek = _effectiveDisplayWeek(_activeConfig());
+    final int displayWeek = _effectiveDisplayWeek(config);
     return weeks.contains(displayWeek);
+  }
+
+  bool _shouldShowAsInactiveCourse(
+    CourseEntity course,
+    _ScheduleConfig config,
+  ) {
+    if (_currentWeek <= 0 || _isSemesterEnded(config)) {
+      return true;
+    }
+
+    final int displayWeek = _effectiveDisplayWeek(config);
+    final List<int> weeks = _parseWeeks(course.weeksJson);
+    if (weeks.isEmpty) {
+      return false;
+    }
+    return weeks.any((int week) => week > displayWeek);
   }
 
   List<int> _parseWeeks(String weeksJson) {
@@ -2606,7 +3167,6 @@ class _SchedulePageState extends State<SchedulePage> {
     }
   }
 
-  // ignore: unused_element
   Map<String, Color> _buildAdjacentAwareColorMap(List<CourseEntity> courses) {
     const List<Color> palette = <Color>[
       Color(0xFFD45E6A),
@@ -2619,11 +3179,12 @@ class _SchedulePageState extends State<SchedulePage> {
       Color(0xFFA19586),
     ];
 
-    final List<String> names = courses
-        .map((CourseEntity item) => item.name)
-        .toSet()
-        .toList(growable: false)
-      ..sort();
+    final List<String> names =
+        courses
+            .map((CourseEntity item) => item.name)
+            .toSet()
+            .toList(growable: false)
+          ..sort();
 
     final Map<String, Set<String>> neighbors = <String, Set<String>>{};
     for (final String name in names) {
@@ -2645,6 +3206,7 @@ class _SchedulePageState extends State<SchedulePage> {
     }
 
     final Map<String, Color> picked = <String, Color>{};
+    final List<int> usage = List<int>.filled(palette.length, 0);
 
     for (final String currentName in names) {
       final Set<int> blocked = <int>{};
@@ -2657,17 +3219,34 @@ class _SchedulePageState extends State<SchedulePage> {
       }
 
       final int preferred = _stableColorIndex(currentName, palette.length);
-      int selected = preferred;
-      if (blocked.contains(selected)) {
-        for (int i = 0; i < palette.length; i++) {
-          final int candidate = (preferred + i) % palette.length;
-          if (!blocked.contains(candidate)) {
-            selected = candidate;
-            break;
-          }
+      final List<int> candidates = <int>[];
+      for (int i = 0; i < palette.length; i++) {
+        if (!blocked.contains(i)) {
+          candidates.add(i);
         }
       }
+
+      final List<int> fallbackCandidates = candidates.isEmpty
+          ? List<int>.generate(palette.length, (int i) => i)
+          : candidates;
+
+      int selected = fallbackCandidates.first;
+      int bestScore = 1 << 30;
+      for (final int candidate in fallbackCandidates) {
+        final int ringDistance = (candidate - preferred).abs();
+        final int circularDistance = math.min(
+          ringDistance,
+          palette.length - ringDistance,
+        );
+        final int score = usage[candidate] * 100 + circularDistance;
+        if (score < bestScore) {
+          bestScore = score;
+          selected = candidate;
+        }
+      }
+
       picked[currentName] = palette[selected];
+      usage[selected] += 1;
     }
 
     return picked;
@@ -2698,7 +3277,10 @@ class _SchedulePageState extends State<SchedulePage> {
     final int startDay = weekStartDay.clamp(1, 7);
     final int delta = (now.weekday - startDay + 7) % 7;
     final DateTime start = now.subtract(Duration(days: delta));
-    return List<DateTime>.generate(7, (int index) => start.add(Duration(days: index)));
+    return List<DateTime>.generate(
+      7,
+      (int index) => start.add(Duration(days: index)),
+    );
   }
 
   int _effectiveDisplayWeek(_ScheduleConfig config) {
@@ -2727,11 +3309,51 @@ class _SchedulePageState extends State<SchedulePage> {
     return week > config.termWeeks;
   }
 
+  void _handleWeekSwipe(double directionValue) {
+    if (directionValue < 0) {
+      _shiftDisplayWeek(1);
+    } else {
+      _shiftDisplayWeek(-1);
+    }
+  }
+
+  int _countFutureOverlapCourses(_RenderedCourseBlock block) {
+    if (!block.active) {
+      return 0;
+    }
+
+    final _ScheduleConfig config = _activeConfig();
+    final int day = block.course.weekTime;
+    final int rangeStart = block.start;
+    final int rangeEnd = block.start + block.span - 1;
+    int count = 0;
+
+    for (final CourseEntity course in _courses) {
+      if (course.weekTime != day) {
+        continue;
+      }
+      final int start = course.startTime;
+      final int end = course.startTime + course.timeCount - 1;
+      if (end < rangeStart || start > rangeEnd) {
+        continue;
+      }
+      if (_isCourseInDisplayedWeek(course)) {
+        continue;
+      }
+      if (_shouldShowAsInactiveCourse(course, config)) {
+        count += 1;
+      }
+    }
+    return count;
+  }
+
   void _shiftDisplayWeek(int delta) {
     final _ScheduleConfig config = _activeConfig();
     final int minWeek = 1;
     final int maxWeek = config.termWeeks.clamp(1, 60).toInt();
-    final int next = (_effectiveDisplayWeek(config) + delta).clamp(minWeek, maxWeek).toInt();
+    final int next = (_effectiveDisplayWeek(config) + delta)
+        .clamp(minWeek, maxWeek)
+        .toInt();
     if (next == _displayWeek) {
       return;
     }
@@ -2754,11 +3376,16 @@ class _SchedulePageState extends State<SchedulePage> {
       return _currentWeekDates(DateTime.now(), config.weekStartDay);
     }
 
-    final DateTime seed = config.semesterStartDate.add(Duration(days: (displayWeek - 1) * 7));
+    final DateTime seed = config.semesterStartDate.add(
+      Duration(days: (displayWeek - 1) * 7),
+    );
     final int startDay = config.weekStartDay.clamp(1, 7);
     final int delta = (seed.weekday - startDay + 7) % 7;
     final DateTime start = seed.subtract(Duration(days: delta));
-    return List<DateTime>.generate(7, (int index) => start.add(Duration(days: index)));
+    return List<DateTime>.generate(
+      7,
+      (int index) => start.add(Duration(days: index)),
+    );
   }
 
   String _weekDayName(int weekday) {
@@ -2796,7 +3423,9 @@ class _SchedulePageState extends State<SchedulePage> {
   Color _colorForCourse(CourseEntity course) {
     final String? colorHex = course.colorHex?.trim();
     if (colorHex != null && colorHex.isNotEmpty) {
-      final String normalized = colorHex.startsWith('#') ? colorHex.substring(1) : colorHex;
+      final String normalized = colorHex.startsWith('#')
+          ? colorHex.substring(1)
+          : colorHex;
       if (normalized.length == 6) {
         final int? value = int.tryParse('FF$normalized', radix: 16);
         if (value != null) {
@@ -2808,6 +3437,11 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 
   Color _colorForCourseName(String name) {
+    final Color? adjacencyColor = _adjacentColorByCourseName[name];
+    if (adjacencyColor != null) {
+      return adjacencyColor;
+    }
+
     const List<Color> palette = <Color>[
       Color(0xFFD45E6A),
       Color(0xFFCBA42F),
@@ -2886,9 +3520,9 @@ class _SchedulePageState extends State<SchedulePage> {
       text: minute.toString().padLeft(2, '0'),
     );
     final FixedExtentScrollController hourWheelController =
-      FixedExtentScrollController(initialItem: hour);
+        FixedExtentScrollController(initialItem: hour);
     final FixedExtentScrollController minuteWheelController =
-      FixedExtentScrollController(initialItem: minute);
+        FixedExtentScrollController(initialItem: minute);
 
     bool wheelMode = false;
     String? errorText;
@@ -2905,14 +3539,19 @@ class _SchedulePageState extends State<SchedulePage> {
 
             bool applyManualInput() {
               final int? nextHour = int.tryParse(hourController.text.trim());
-              final int? nextMinute = int.tryParse(minuteController.text.trim());
+              final int? nextMinute = int.tryParse(
+                minuteController.text.trim(),
+              );
               if (nextHour == null || nextMinute == null) {
                 setModalState(() {
                   errorText = '请输入有效数字';
                 });
                 return false;
               }
-              if (nextHour < 0 || nextHour > 23 || nextMinute < 0 || nextMinute > 59) {
+              if (nextHour < 0 ||
+                  nextHour > 23 ||
+                  nextMinute < 0 ||
+                  nextMinute > 59) {
                 setModalState(() {
                   errorText = '小时范围 0-23，分钟范围 0-59';
                 });
@@ -2950,190 +3589,224 @@ class _SchedulePageState extends State<SchedulePage> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
-                      const Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          '时间设置',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
-                            color: AppTokens.textMain,
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '时间设置',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: AppTokens.textMain,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                    if (!wheelMode)
-                      Row(
-                        children: <Widget>[
-                          Expanded(
-                            child: TextField(
-                              controller: hourController,
-                              keyboardType: TextInputType.number,
-                              cursorColor: AppTokens.duckYellow,
-                              decoration: const InputDecoration(
-                                labelText: '小时',
-                                hintText: '00-23',
-                                floatingLabelStyle: TextStyle(color: AppTokens.duckYellow),
-                                enabledBorder: UnderlineInputBorder(
-                                  borderSide: BorderSide(color: AppTokens.duckYellow),
-                                ),
-                                focusedBorder: UnderlineInputBorder(
-                                  borderSide: BorderSide(color: AppTokens.duckYellow, width: 2),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8),
-                            child: Text(':', style: TextStyle(fontSize: 18)),
-                          ),
-                          Expanded(
-                            child: TextField(
-                              controller: minuteController,
-                              keyboardType: TextInputType.number,
-                              cursorColor: AppTokens.duckYellow,
-                              decoration: const InputDecoration(
-                                labelText: '分钟',
-                                hintText: '00-59',
-                                floatingLabelStyle: TextStyle(color: AppTokens.duckYellow),
-                                enabledBorder: UnderlineInputBorder(
-                                  borderSide: BorderSide(color: AppTokens.duckYellow),
-                                ),
-                                focusedBorder: UnderlineInputBorder(
-                                  borderSide: BorderSide(color: AppTokens.duckYellow, width: 2),
+                        const SizedBox(height: 12),
+                        if (!wheelMode)
+                          Row(
+                            children: <Widget>[
+                              Expanded(
+                                child: TextField(
+                                  controller: hourController,
+                                  keyboardType: TextInputType.number,
+                                  cursorColor: AppTokens.duckYellow,
+                                  decoration: const InputDecoration(
+                                    labelText: '小时',
+                                    hintText: '00-23',
+                                    floatingLabelStyle: TextStyle(
+                                      color: AppTokens.duckYellow,
+                                    ),
+                                    enabledBorder: UnderlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: AppTokens.duckYellow,
+                                      ),
+                                    ),
+                                    focusedBorder: UnderlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: AppTokens.duckYellow,
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8),
+                                child: Text(
+                                  ':',
+                                  style: TextStyle(fontSize: 18),
+                                ),
+                              ),
+                              Expanded(
+                                child: TextField(
+                                  controller: minuteController,
+                                  keyboardType: TextInputType.number,
+                                  cursorColor: AppTokens.duckYellow,
+                                  decoration: const InputDecoration(
+                                    labelText: '分钟',
+                                    hintText: '00-59',
+                                    floatingLabelStyle: TextStyle(
+                                      color: AppTokens.duckYellow,
+                                    ),
+                                    enabledBorder: UnderlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: AppTokens.duckYellow,
+                                      ),
+                                    ),
+                                    focusedBorder: UnderlineInputBorder(
+                                      borderSide: BorderSide(
+                                        color: AppTokens.duckYellow,
+                                        width: 2,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        else
+                          SizedBox(
+                            height: 150,
+                            child: Row(
+                              children: <Widget>[
+                                Expanded(
+                                  child: CupertinoPicker(
+                                    itemExtent: 34,
+                                    scrollController: hourWheelController,
+                                    onSelectedItemChanged: (int value) {
+                                      setModalState(() {
+                                        hour = value;
+                                        errorText = null;
+                                        syncTextFromWheel();
+                                      });
+                                    },
+                                    children: List<Widget>.generate(
+                                      24,
+                                      (int index) => Center(
+                                        child: Text(
+                                          index.toString().padLeft(2, '0'),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 8),
+                                  child: Text(
+                                    ':',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: CupertinoPicker(
+                                    itemExtent: 34,
+                                    scrollController: minuteWheelController,
+                                    onSelectedItemChanged: (int value) {
+                                      setModalState(() {
+                                        minute = value;
+                                        errorText = null;
+                                        syncTextFromWheel();
+                                      });
+                                    },
+                                    children: List<Widget>.generate(
+                                      60,
+                                      (int index) => Center(
+                                        child: Text(
+                                          index.toString().padLeft(2, '0'),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      )
-                    else
-                      SizedBox(
-                        height: 150,
-                        child: Row(
+                        const SizedBox(height: 10),
+                        Row(
                           children: <Widget>[
-                            Expanded(
-                              child: CupertinoPicker(
-                                itemExtent: 34,
-                                scrollController: hourWheelController,
-                                onSelectedItemChanged: (int value) {
-                                  setModalState(() {
-                                    hour = value;
-                                    errorText = null;
-                                    syncTextFromWheel();
-                                  });
-                                },
-                                children: List<Widget>.generate(
-                                  24,
-                                  (int index) => Center(
-                                    child: Text(index.toString().padLeft(2, '0')),
-                                  ),
-                                ),
+                            Text(
+                              wheelMode ? '当前：滚轮模式' : '当前：手动输入模式',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppTokens.textMuted,
                               ),
                             ),
-                            const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 8),
-                              child: Text(':', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                            ),
-                            Expanded(
-                              child: CupertinoPicker(
-                                itemExtent: 34,
-                                scrollController: minuteWheelController,
-                                onSelectedItemChanged: (int value) {
-                                  setModalState(() {
-                                    minute = value;
-                                    errorText = null;
-                                    syncTextFromWheel();
-                                  });
-                                },
-                                children: List<Widget>.generate(
-                                  60,
-                                  (int index) => Center(
-                                    child: Text(index.toString().padLeft(2, '0')),
-                                  ),
-                                ),
+                            const Spacer(),
+                            IconButton(
+                              tooltip: wheelMode ? '切回手动输入' : '切换滚轮',
+                              onPressed: () {
+                                if (!wheelMode && !applyManualInput()) {
+                                  return;
+                                }
+                                setModalState(() {
+                                  wheelMode = !wheelMode;
+                                  errorText = null;
+                                  if (wheelMode) {
+                                    hourWheelController.jumpToItem(hour);
+                                    minuteWheelController.jumpToItem(minute);
+                                  }
+                                });
+                              },
+                              icon: Icon(
+                                wheelMode ? Icons.keyboard : Icons.tune,
+                                size: 18,
+                                color: AppTokens.duckYellow,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: <Widget>[
-                        Text(
-                          wheelMode ? '当前：滚轮模式' : '当前：手动输入模式',
-                          style: const TextStyle(fontSize: 12, color: AppTokens.textMuted),
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          tooltip: wheelMode ? '切回手动输入' : '切换滚轮',
-                          onPressed: () {
-                            if (!wheelMode && !applyManualInput()) {
-                              return;
-                            }
-                            setModalState(() {
-                              wheelMode = !wheelMode;
-                              errorText = null;
-                              if (wheelMode) {
-                                hourWheelController.jumpToItem(hour);
-                                minuteWheelController.jumpToItem(minute);
-                              }
-                            });
-                          },
-                          icon: Icon(
-                            wheelMode ? Icons.keyboard : Icons.tune,
-                            size: 18,
-                            color: AppTokens.duckYellow,
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (errorText != null)
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          errorText!,
-                          style: const TextStyle(fontSize: 12, color: Colors.redAccent),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: <Widget>[
-                          TextButton(
-                            onPressed: () => Navigator.of(dialogContext).pop(),
-                            style: TextButton.styleFrom(
-                              foregroundColor: const Color(0xFF2F2A25),
+                        if (errorText != null)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              errorText!,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.redAccent,
+                              ),
                             ),
-                            child: const Text('取消'),
                           ),
-                          const SizedBox(width: 4),
-                          FilledButton(
-                            onPressed: () {
-                              if (!wheelMode && !applyManualInput()) {
-                                return;
-                              }
-                              final String picked =
-                                  '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
-                              final String? validationError = validator?.call(picked);
-                              if (validationError != null) {
-                                setModalState(() {
-                                  errorText = validationError;
-                                });
-                                return;
-                              }
-                              Navigator.of(dialogContext).pop(
-                                picked,
-                              );
-                            },
-                            style: FilledButton.styleFrom(
-                              backgroundColor: AppTokens.duckYellow,
-                              foregroundColor: Colors.white,
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: <Widget>[
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.of(dialogContext).pop(),
+                              style: TextButton.styleFrom(
+                                foregroundColor: const Color(0xFF2F2A25),
+                              ),
+                              child: const Text('取消'),
                             ),
-                            child: const Text('确定'),
-                          ),
-                        ],
-                      ),
+                            const SizedBox(width: 4),
+                            FilledButton(
+                              onPressed: () {
+                                if (!wheelMode && !applyManualInput()) {
+                                  return;
+                                }
+                                final String picked =
+                                    '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+                                final String? validationError = validator?.call(
+                                  picked,
+                                );
+                                if (validationError != null) {
+                                  setModalState(() {
+                                    errorText = validationError;
+                                  });
+                                  return;
+                                }
+                                Navigator.of(dialogContext).pop(picked);
+                              },
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppTokens.duckYellow,
+                                foregroundColor: Colors.white,
+                              ),
+                              child: const Text('确定'),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -3185,10 +3858,7 @@ class _WeekHeader extends StatelessWidget {
           child: Text(
             cornerLabel,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 10,
-              color: Color(0xFFAAA192),
-            ),
+            style: const TextStyle(fontSize: 10, color: Color(0xFFAAA192)),
           ),
         ),
         for (int i = 0; i < 7; i++)
@@ -3224,7 +3894,9 @@ class _WeekHeader extends StatelessWidget {
 
   bool _isToday(DateTime value) {
     final DateTime now = DateTime.now();
-    return now.year == value.year && now.month == value.month && now.day == value.day;
+    return now.year == value.year &&
+        now.month == value.month &&
+        now.day == value.day;
   }
 }
 
@@ -3312,7 +3984,7 @@ class _CourseActivatedModalState extends State<_CourseActivatedModal> {
   void initState() {
     super.initState();
     _drafts = widget.courses
-      .map(_CourseEditDraft.fromCourse)
+        .map(_CourseEditDraft.fromCourse)
         .toList(growable: false);
   }
 
@@ -3350,9 +4022,9 @@ class _CourseActivatedModalState extends State<_CourseActivatedModal> {
 
     final String? validationError = _validateAllDrafts();
     if (validationError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(validationError)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(validationError)));
       return;
     }
 
@@ -3371,16 +4043,16 @@ class _CourseActivatedModalState extends State<_CourseActivatedModal> {
         return;
       }
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('课程修改已保存。')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('课程修改已保存。')));
     } catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('保存失败：$error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('保存失败：$error')));
     } finally {
       if (mounted) {
         setState(() {
@@ -3394,10 +4066,16 @@ class _CourseActivatedModalState extends State<_CourseActivatedModal> {
     for (int i = 0; i < _drafts.length; i++) {
       final _CourseEditDraft draft = _drafts[i];
       final String name = draft.nameController.text.trim();
-      final int? weekStart = int.tryParse(draft.weekStartController.text.trim());
+      final int? weekStart = int.tryParse(
+        draft.weekStartController.text.trim(),
+      );
       final int? weekEnd = int.tryParse(draft.weekEndController.text.trim());
-      final int? sectionStart = int.tryParse(draft.sectionStartController.text.trim());
-      final int? sectionEnd = int.tryParse(draft.sectionEndController.text.trim());
+      final int? sectionStart = int.tryParse(
+        draft.sectionStartController.text.trim(),
+      );
+      final int? sectionEnd = int.tryParse(
+        draft.sectionEndController.text.trim(),
+      );
       if (name.isEmpty) {
         return '第${i + 1}门课程名称不能为空。';
       }
@@ -3438,7 +4116,11 @@ class _CourseActivatedModalState extends State<_CourseActivatedModal> {
       final DateTime deadline = DateTime.parse(iso).toLocal();
       final DateTime now = DateTime.now();
       final DateTime today = DateTime(now.year, now.month, now.day);
-      final DateTime target = DateTime(deadline.year, deadline.month, deadline.day);
+      final DateTime target = DateTime(
+        deadline.year,
+        deadline.month,
+        deadline.day,
+      );
       final int dayDiff = target.difference(today).inDays;
       if (dayDiff == 1) {
         return '明天';
@@ -3502,305 +4184,376 @@ class _CourseActivatedModalState extends State<_CourseActivatedModal> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-            Row(
-              children: <Widget>[
-                InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: _closeWithSave,
-                  child: const SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: Icon(Icons.close, size: 18, color: Color(0xFF4A4A4A)),
-                  ),
-                ),
-                Expanded(
-                  child: TextFormField(
-                    controller: draft.nameController,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: AppTokens.textMain,
+                    Row(
+                      children: <Widget>[
+                        InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: _closeWithSave,
+                          child: const SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: Icon(
+                              Icons.close,
+                              size: 18,
+                              color: Color(0xFF4A4A4A),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: TextFormField(
+                            controller: draft.nameController,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              color: AppTokens.textMain,
+                            ),
+                            decoration: const InputDecoration(
+                              isCollapsed: true,
+                              border: InputBorder.none,
+                              hintText: '课程名称',
+                            ),
+                          ),
+                        ),
+                        InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: _saving ? null : () => widget.onDelete(_index),
+                          child: const SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: Icon(
+                              Icons.delete_outline,
+                              size: 18,
+                              color: Color(0xFFE16C7B),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    decoration: const InputDecoration(
-                      isCollapsed: true,
-                      border: InputBorder.none,
-                      hintText: '课程名称',
-                    ),
-                  ),
-                ),
-                InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: _saving ? null : () => widget.onDelete(_index),
-                  child: const SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: Icon(Icons.delete_outline, size: 18, color: Color(0xFFE16C7B)),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _CourseEditableLine(
-              label: '星期',
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<int>(
-                  isExpanded: true,
-                  value: draft.weekday,
-                  alignment: Alignment.center,
-                  items: const <DropdownMenuItem<int>>[
-                    DropdownMenuItem<int>(value: 1, child: Center(child: Text('一'))),
-                    DropdownMenuItem<int>(value: 2, child: Center(child: Text('二'))),
-                    DropdownMenuItem<int>(value: 3, child: Center(child: Text('三'))),
-                    DropdownMenuItem<int>(value: 4, child: Center(child: Text('四'))),
-                    DropdownMenuItem<int>(value: 5, child: Center(child: Text('五'))),
-                    DropdownMenuItem<int>(value: 6, child: Center(child: Text('六'))),
-                    DropdownMenuItem<int>(value: 7, child: Center(child: Text('日'))),
-                  ],
-                  onChanged: _saving
-                      ? null
-                      : (int? value) {
-                          if (value == null) {
-                            return;
-                          }
-                          setState(() {
-                            draft.weekday = value;
-                          });
-                        },
-                ),
-              ),
-            ),
-            _CourseEditableLine(
-              label: '周次',
-              child: Row(
-                children: <Widget>[
-                  Expanded(
-                    child: TextFormField(
-                      controller: draft.weekStartController,
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      decoration: const InputDecoration(border: InputBorder.none),
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 4),
-                    child: Text('-', style: TextStyle(color: AppTokens.textMuted)),
-                  ),
-                  Expanded(
-                    child: TextFormField(
-                      controller: draft.weekEndController,
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      decoration: const InputDecoration(border: InputBorder.none),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  const Text(
-                    '周',
-                    style: TextStyle(fontSize: 12, color: AppTokens.textMuted),
-                  ),
-                ],
-              ),
-            ),
-            _CourseEditableLine(
-              label: '节次',
-              child: Row(
-                children: <Widget>[
-                  Expanded(
-                    child: TextFormField(
-                      controller: draft.sectionStartController,
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      decoration: const InputDecoration(border: InputBorder.none),
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 4),
-                    child: Text('-', style: TextStyle(color: AppTokens.textMuted)),
-                  ),
-                  Expanded(
-                    child: TextFormField(
-                      controller: draft.sectionEndController,
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      decoration: const InputDecoration(border: InputBorder.none),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  const Text(
-                    '节',
-                    style: TextStyle(fontSize: 12, color: AppTokens.textMuted),
-                  ),
-                ],
-              ),
-            ),
-            _CourseEditableLine(
-              label: '教师',
-              child: TextFormField(
-                controller: draft.teacherController,
-                maxLength: 20,
-                textAlign: TextAlign.center,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  counterText: '',
-                  hintText: '请输入授课教师',
-                ),
-              ),
-            ),
-            _CourseEditableLine(
-              label: '地点',
-              child: TextFormField(
-                controller: draft.locationController,
-                maxLength: 30,
-                textAlign: TextAlign.center,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  counterText: '',
-                  hintText: '请输入上课地点',
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                '待办',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: AppTokens.textMain,
-                ),
-              ),
-            ),
-            const SizedBox(height: 4),
-            if (linkedTodos.isEmpty)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF7F7F7),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  '暂无关联待办',
-                  style: TextStyle(fontSize: 12, color: AppTokens.textMuted),
-                ),
-              )
-            else
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 138),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  padding: EdgeInsets.zero,
-                  physics: linkedTodos.length > 3
-                      ? const BouncingScrollPhysics()
-                      : const NeverScrollableScrollPhysics(),
-                  itemCount: linkedTodos.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    final TodoItem item = linkedTodos[index];
-                    return Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFFE9E9E9)),
+                    const SizedBox(height: 12),
+                    _CourseEditableLine(
+                      label: '星期',
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int>(
+                          isExpanded: true,
+                          value: draft.weekday,
+                          alignment: Alignment.center,
+                          items: const <DropdownMenuItem<int>>[
+                            DropdownMenuItem<int>(
+                              value: 1,
+                              child: Center(child: Text('一')),
+                            ),
+                            DropdownMenuItem<int>(
+                              value: 2,
+                              child: Center(child: Text('二')),
+                            ),
+                            DropdownMenuItem<int>(
+                              value: 3,
+                              child: Center(child: Text('三')),
+                            ),
+                            DropdownMenuItem<int>(
+                              value: 4,
+                              child: Center(child: Text('四')),
+                            ),
+                            DropdownMenuItem<int>(
+                              value: 5,
+                              child: Center(child: Text('五')),
+                            ),
+                            DropdownMenuItem<int>(
+                              value: 6,
+                              child: Center(child: Text('六')),
+                            ),
+                            DropdownMenuItem<int>(
+                              value: 7,
+                              child: Center(child: Text('日')),
+                            ),
+                          ],
+                          onChanged: _saving
+                              ? null
+                              : (int? value) {
+                                  if (value == null) {
+                                    return;
+                                  }
+                                  setState(() {
+                                    draft.weekday = value;
+                                  });
+                                },
+                        ),
                       ),
+                    ),
+                    _CourseEditableLine(
+                      label: '周次',
                       child: Row(
                         children: <Widget>[
                           Expanded(
-                            child: Text(
-                              item.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppTokens.textMain,
+                            child: TextFormField(
+                              controller: draft.weekStartController,
+                              keyboardType: TextInputType.number,
+                              textAlign: TextAlign.center,
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _formatTodoDeadline(item.dueAt),
-                            style: const TextStyle(
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 4),
+                            child: Text(
+                              '-',
+                              style: TextStyle(color: AppTokens.textMuted),
+                            ),
+                          ),
+                          Expanded(
+                            child: TextFormField(
+                              controller: draft.weekEndController,
+                              keyboardType: TextInputType.number,
+                              textAlign: TextAlign.center,
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Text(
+                            '周',
+                            style: TextStyle(
                               fontSize: 12,
                               color: AppTokens.textMuted,
                             ),
                           ),
                         ],
                       ),
-                    );
-                  },
-                  separatorBuilder: (_, _) => const SizedBox(height: 6),
-                ),
-              ),
-            const SizedBox(height: 6),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: InkWell(
-                      onTap: _index > 0 ? _showPreviousCourse : null,
-                      borderRadius: BorderRadius.circular(14),
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        alignment: Alignment.center,
-                        child: Icon(
-                          Icons.chevron_left,
-                          size: 22,
-                          color: _index > 0
-                              ? const Color(0xFF2F2A25)
-                              : const Color(0xFFC7C7C7),
+                    ),
+                    _CourseEditableLine(
+                      label: '节次',
+                      child: Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: TextFormField(
+                              controller: draft.sectionStartController,
+                              keyboardType: TextInputType.number,
+                              textAlign: TextAlign.center,
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                              ),
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 4),
+                            child: Text(
+                              '-',
+                              style: TextStyle(color: AppTokens.textMuted),
+                            ),
+                          ),
+                          Expanded(
+                            child: TextFormField(
+                              controller: draft.sectionEndController,
+                              keyboardType: TextInputType.number,
+                              textAlign: TextAlign.center,
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Text(
+                            '节',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppTokens.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    _CourseEditableLine(
+                      label: '教师',
+                      child: TextFormField(
+                        controller: draft.teacherController,
+                        maxLength: 20,
+                        textAlign: TextAlign.center,
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          counterText: '',
+                          hintText: '请输入授课教师',
                         ),
                       ),
                     ),
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    '${_index + 1} / ${courses.length}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 11, color: AppTokens.textMuted),
-                  ),
-                ),
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: InkWell(
-                      onTap: _index < courses.length - 1 ? _showNextCourse : null,
-                      borderRadius: BorderRadius.circular(14),
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        alignment: Alignment.center,
-                        child: Icon(
-                          Icons.chevron_right,
-                          size: 22,
-                          color: _index < courses.length - 1
-                              ? const Color(0xFF2F2A25)
-                              : const Color(0xFFC7C7C7),
+                    _CourseEditableLine(
+                      label: '地点',
+                      child: TextFormField(
+                        controller: draft.locationController,
+                        maxLength: 30,
+                        textAlign: TextAlign.center,
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          counterText: '',
+                          hintText: '请输入上课地点',
                         ),
                       ),
                     ),
-                  ),
-                ),
-              ],
-            ),
-            const Text(
-              '左右滑动或点击两侧箭头切换课程',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 10, color: AppTokens.textMuted),
-            ),
-            if (_saving)
-              const Padding(
-                padding: EdgeInsets.only(top: 6),
-                child: Text(
-                  '保存中...',
-                  style: TextStyle(fontSize: 10, color: AppTokens.textMuted),
-                ),
-              ),
+                    const SizedBox(height: 10),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '待办',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppTokens.textMain,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    if (linkedTodos.isEmpty)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF7F7F7),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          '暂无关联待办',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTokens.textMuted,
+                          ),
+                        ),
+                      )
+                    else
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 138),
+                        child: ListView.separated(
+                          shrinkWrap: true,
+                          padding: EdgeInsets.zero,
+                          physics: linkedTodos.length > 3
+                              ? const BouncingScrollPhysics()
+                              : const NeverScrollableScrollPhysics(),
+                          itemCount: linkedTodos.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            final TodoItem item = linkedTodos[index];
+                            return Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(0xFFE9E9E9),
+                                ),
+                              ),
+                              child: Row(
+                                children: <Widget>[
+                                  Expanded(
+                                    child: Text(
+                                      item.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppTokens.textMain,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _formatTodoDeadline(item.dueAt),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppTokens.textMuted,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                          separatorBuilder: (_, _) => const SizedBox(height: 6),
+                        ),
+                      ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: InkWell(
+                              onTap: _index > 0 ? _showPreviousCourse : null,
+                              borderRadius: BorderRadius.circular(14),
+                              child: Container(
+                                width: 28,
+                                height: 28,
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  Icons.chevron_left,
+                                  size: 22,
+                                  color: _index > 0
+                                      ? const Color(0xFF2F2A25)
+                                      : const Color(0xFFC7C7C7),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            '${_index + 1} / ${courses.length}',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppTokens.textMuted,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: InkWell(
+                              onTap: _index < courses.length - 1
+                                  ? _showNextCourse
+                                  : null,
+                              borderRadius: BorderRadius.circular(14),
+                              child: Container(
+                                width: 28,
+                                height: 28,
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  Icons.chevron_right,
+                                  size: 22,
+                                  color: _index < courses.length - 1
+                                      ? const Color(0xFF2F2A25)
+                                      : const Color(0xFFC7C7C7),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Text(
+                      '左右滑动或点击两侧箭头切换课程',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: AppTokens.textMuted,
+                      ),
+                    ),
+                    if (_saving)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 6),
+                        child: Text(
+                          '保存中...',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: AppTokens.textMuted,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -3894,7 +4647,9 @@ class _CourseEditDraft {
       weekday: course.weekTime <= 0 ? 1 : course.weekTime,
       weekStartController: TextEditingController(text: weekStart.toString()),
       weekEndController: TextEditingController(text: weekEnd.toString()),
-      sectionStartController: TextEditingController(text: sectionStart.toString()),
+      sectionStartController: TextEditingController(
+        text: sectionStart.toString(),
+      ),
       sectionEndController: TextEditingController(text: sectionEnd.toString()),
       teacherController: TextEditingController(text: course.teacher ?? ''),
       locationController: TextEditingController(text: course.classroom ?? ''),
@@ -3918,9 +4673,12 @@ class _CourseEditDraft {
 
     final String name = nameController.text.trim();
     final int weekStart = int.tryParse(weekStartController.text.trim()) ?? 1;
-    final int weekEnd = int.tryParse(weekEndController.text.trim()) ?? weekStart;
-    final int sectionStart = int.tryParse(sectionStartController.text.trim()) ?? 1;
-    final int sectionEnd = int.tryParse(sectionEndController.text.trim()) ?? sectionStart;
+    final int weekEnd =
+        int.tryParse(weekEndController.text.trim()) ?? weekStart;
+    final int sectionStart =
+        int.tryParse(sectionStartController.text.trim()) ?? 1;
+    final int sectionEnd =
+        int.tryParse(sectionEndController.text.trim()) ?? sectionStart;
     final String teacher = teacherController.text.trim();
     final String location = locationController.text.trim();
     final String weeksJson = jsonEncode(
@@ -3931,7 +4689,8 @@ class _CourseEditDraft {
     final String originalLocation = (original.classroom ?? '').trim();
     final int originalEnd = original.startTime + original.timeCount - 1;
 
-    final bool changed = name != original.name ||
+    final bool changed =
+        name != original.name ||
         weekday != original.weekTime ||
         weeksJson != original.weeksJson ||
         sectionStart != original.startTime ||
@@ -3968,12 +4727,13 @@ class _CourseEditDraft {
   static List<int> _decodeWeeks(String weeksJson) {
     try {
       final List<dynamic> raw = jsonDecode(weeksJson) as List<dynamic>;
-      final List<int> weeks = raw
-          .whereType<num>()
-          .map((num item) => item.toInt())
-          .where((int value) => value > 0)
-          .toList(growable: false)
-        ..sort();
+      final List<int> weeks =
+          raw
+              .whereType<num>()
+              .map((num item) => item.toInt())
+              .where((int value) => value > 0)
+              .toList(growable: false)
+            ..sort();
       return weeks;
     } catch (_) {
       return const <int>[];
@@ -4033,11 +4793,16 @@ class _SidebarGroupCard extends StatelessWidget {
                       padding: const EdgeInsets.only(right: 6),
                       child: Text(
                         trailingText!,
-                        style: const TextStyle(fontSize: 11, color: AppTokens.textMuted),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppTokens.textMuted,
+                        ),
                       ),
                     ),
                   Icon(
-                    expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                    expanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
                     size: 18,
                     color: const Color(0xFF776C60),
                   ),
@@ -4109,92 +4874,101 @@ class _StepInputRow extends StatelessWidget {
               return Theme(
                 data: themed,
                 child: AlertDialog(
-                backgroundColor: Colors.white,
-                surfaceTintColor: Colors.transparent,
-                title: Text(
-                  '输入$title',
-                  style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w700),
-                ),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    TextFormField(
-                      key: ValueKey<int>(fieldVersion),
-                      autofocus: true,
-                      initialValue: draftValue,
-                      onChanged: (String text) {
-                        draftValue = text;
-                      },
-                      keyboardType: TextInputType.number,
-                      cursorColor: AppTokens.duckYellow,
-                      decoration: const InputDecoration(
-                        hintText: '请输入数字',
-                        hintStyle: TextStyle(color: Color(0xFF8E8E8E)),
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: AppTokens.duckYellow),
-                        ),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: AppTokens.duckYellow, width: 2),
-                        ),
-                      ),
-                      style: const TextStyle(color: Colors.black),
+                  backgroundColor: Colors.white,
+                  surfaceTintColor: Colors.transparent,
+                  title: Text(
+                    '输入$title',
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w700,
                     ),
-                    if (dialogErrorText != null) ...<Widget>[
-                      const SizedBox(height: 6),
-                      Text(
-                        dialogErrorText!,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFFD64545),
-                          fontWeight: FontWeight.w600,
+                  ),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      TextFormField(
+                        key: ValueKey<int>(fieldVersion),
+                        autofocus: true,
+                        initialValue: draftValue,
+                        onChanged: (String text) {
+                          draftValue = text;
+                        },
+                        keyboardType: TextInputType.number,
+                        cursorColor: AppTokens.duckYellow,
+                        decoration: const InputDecoration(
+                          hintText: '请输入数字',
+                          hintStyle: TextStyle(color: Color(0xFF8E8E8E)),
+                          enabledBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(color: AppTokens.duckYellow),
+                          ),
+                          focusedBorder: UnderlineInputBorder(
+                            borderSide: BorderSide(
+                              color: AppTokens.duckYellow,
+                              width: 2,
+                            ),
+                          ),
                         ),
+                        style: const TextStyle(color: Colors.black),
                       ),
+                      if (dialogErrorText != null) ...<Widget>[
+                        const SizedBox(height: 6),
+                        Text(
+                          dialogErrorText!,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFFD64545),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ],
-                  ],
-                ),
-                actions: <Widget>[
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: TextButton.styleFrom(foregroundColor: Colors.black),
-                    child: const Text('取消'),
                   ),
-                  FilledButton(
-                    onPressed: () {
-                      final int? rawValue = int.tryParse(draftValue.trim());
-                      if (rawValue == null) {
-                        setDialogState(() {
-                          dialogErrorText = '请输入有效数字';
-                        });
-                        return;
-                      }
-
-                      int next = rawValue.clamp(min, max).toInt();
-                      final int effectiveDialogMax =
-                          (dialogMaxValue ?? max).clamp(min, max).toInt();
-
-                      if (next > effectiveDialogMax) {
-                        setDialogState(() {
-                          dialogErrorText =
-                              dialogConflictMessage ?? '输入值超出可用范围，已回退到最大可用值';
-                          draftValue = effectiveDialogMax.toString();
-                          fieldVersion++;
-                        });
-                        return;
-                      }
-
-                      if (disableIncrease && next > value) {
-                        next = value;
-                      }
-                      Navigator.of(context).pop(next);
-                    },
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppTokens.duckYellow,
-                      foregroundColor: Colors.white,
+                  actions: <Widget>[
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.black,
+                      ),
+                      child: const Text('取消'),
                     ),
-                    child: const Text('确认'),
-                  ),
-                ],
+                    FilledButton(
+                      onPressed: () {
+                        final int? rawValue = int.tryParse(draftValue.trim());
+                        if (rawValue == null) {
+                          setDialogState(() {
+                            dialogErrorText = '请输入有效数字';
+                          });
+                          return;
+                        }
+
+                        int next = rawValue.clamp(min, max).toInt();
+                        final int effectiveDialogMax = (dialogMaxValue ?? max)
+                            .clamp(min, max)
+                            .toInt();
+
+                        if (next > effectiveDialogMax) {
+                          setDialogState(() {
+                            dialogErrorText =
+                                dialogConflictMessage ?? '输入值超出可用范围，已回退到最大可用值';
+                            draftValue = effectiveDialogMax.toString();
+                            fieldVersion++;
+                          });
+                          return;
+                        }
+
+                        if (disableIncrease && next > value) {
+                          next = value;
+                        }
+                        Navigator.of(context).pop(next);
+                      },
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTokens.duckYellow,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('确认'),
+                    ),
+                  ],
                 ),
               );
             },
@@ -4219,7 +4993,11 @@ class _StepInputRow extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(fontSize: 12, color: AppTokens.textMain, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppTokens.textMain,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
             _MiniStepButton(
@@ -4241,14 +5019,20 @@ class _StepInputRow extends StatelessWidget {
                 ),
                 child: Text(
                   '$value',
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTokens.textMain),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppTokens.textMain,
+                  ),
                 ),
               ),
             ),
             _MiniStepButton(
               icon: Icons.add,
               color: buttonColor,
-              onTap: (!disableIncrease && value < max) ? () => onChanged(value + 1) : null,
+              onTap: (!disableIncrease && value < max)
+                  ? () => onChanged(value + 1)
+                  : null,
             ),
           ],
         ),
@@ -4269,7 +5053,11 @@ class _StepInputRow extends StatelessWidget {
 }
 
 class _MiniStepButton extends StatelessWidget {
-  const _MiniStepButton({required this.icon, required this.color, required this.onTap});
+  const _MiniStepButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
 
   final IconData icon;
   final Color color;
@@ -4316,52 +5104,54 @@ class _ScheduleConfig {
   List<_SectionTime> eveningSections;
 
   List<_SectionTime> get sections => <_SectionTime>[
-        ...morningSections,
-        ...afternoonSections,
-        ...eveningSections,
-      ];
+    ...morningSections,
+    ...afternoonSections,
+    ...eveningSections,
+  ];
 
   int get morningCount => morningSections.length;
   int get afternoonCount => afternoonSections.length;
   int get eveningCount => eveningSections.length;
 
-    _ScheduleConfig clone() {
+  _ScheduleConfig clone() {
     return _ScheduleConfig(
       classDuration: classDuration,
       breakDuration: breakDuration,
       termWeeks: termWeeks,
       weekStartDay: weekStartDay,
-      semesterStartDate:
-        DateTime.fromMillisecondsSinceEpoch(semesterStartDate.millisecondsSinceEpoch),
+      semesterStartDate: DateTime.fromMillisecondsSinceEpoch(
+        semesterStartDate.millisecondsSinceEpoch,
+      ),
       morningSections: morningSections
-        .map((item) => item.copyWith())
-        .toList(growable: true),
+          .map((item) => item.copyWith())
+          .toList(growable: true),
       afternoonSections: afternoonSections
-        .map((item) => item.copyWith())
-        .toList(growable: true),
+          .map((item) => item.copyWith())
+          .toList(growable: true),
       eveningSections: eveningSections
-        .map((item) => item.copyWith())
-        .toList(growable: true),
+          .map((item) => item.copyWith())
+          .toList(growable: true),
     );
-    }
+  }
 
-    void overwriteFrom(_ScheduleConfig source) {
+  void overwriteFrom(_ScheduleConfig source) {
     classDuration = source.classDuration;
     breakDuration = source.breakDuration;
     termWeeks = source.termWeeks;
     weekStartDay = source.weekStartDay;
-    semesterStartDate =
-      DateTime.fromMillisecondsSinceEpoch(source.semesterStartDate.millisecondsSinceEpoch);
+    semesterStartDate = DateTime.fromMillisecondsSinceEpoch(
+      source.semesterStartDate.millisecondsSinceEpoch,
+    );
     morningSections = source.morningSections
-      .map((item) => item.copyWith())
-      .toList(growable: true);
+        .map((item) => item.copyWith())
+        .toList(growable: true);
     afternoonSections = source.afternoonSections
-      .map((item) => item.copyWith())
-      .toList(growable: true);
+        .map((item) => item.copyWith())
+        .toList(growable: true);
     eveningSections = source.eveningSections
-      .map((item) => item.copyWith())
-      .toList(growable: true);
-    }
+        .map((item) => item.copyWith())
+        .toList(growable: true);
+  }
 
   set morningCount(int value) {
     _resizeSegment(
@@ -4395,9 +5185,15 @@ class _ScheduleConfig {
 
   _SegmentAnchors captureAnchors() {
     return _SegmentAnchors(
-      morningStart: morningSections.isEmpty ? '08:00' : morningSections.first.start,
-      afternoonStart: afternoonSections.isEmpty ? '14:00' : afternoonSections.first.start,
-      eveningStart: eveningSections.isEmpty ? '19:00' : eveningSections.first.start,
+      morningStart: morningSections.isEmpty
+          ? '08:00'
+          : morningSections.first.start,
+      afternoonStart: afternoonSections.isEmpty
+          ? '14:00'
+          : afternoonSections.first.start,
+      eveningStart: eveningSections.isEmpty
+          ? '19:00'
+          : eveningSections.first.start,
     );
   }
 
@@ -4443,25 +5239,44 @@ class _ScheduleConfig {
     try {
       final Map<String, dynamic> map = jsonDecode(raw) as Map<String, dynamic>;
       final _ScheduleConfig defaults = _ScheduleConfig.defaults();
-      final int morning = (map['morningCount'] as int?) ?? (map['morningEnd'] as int?) ?? defaults.morningCount;
-      final int afternoon = (map['afternoonCount'] as int?) ??
-          ((map['afternoonEnd'] as int?) != null ? (map['afternoonEnd'] as int) - morning : defaults.afternoonCount);
-      final int evening = (map['eveningCount'] as int?) ??
+      final int morning =
+          (map['morningCount'] as int?) ??
+          (map['morningEnd'] as int?) ??
+          defaults.morningCount;
+      final int afternoon =
+          (map['afternoonCount'] as int?) ??
+          ((map['afternoonEnd'] as int?) != null
+              ? (map['afternoonEnd'] as int) - morning
+              : defaults.afternoonCount);
+      final int evening =
+          (map['eveningCount'] as int?) ??
           ((map['eveningEnd'] as int?) != null
               ? (map['eveningEnd'] as int) - (morning + afternoon)
               : defaults.eveningCount);
 
-      List<_SectionTime> morningSections = _parseSectionList(map['morningSections']);
-      List<_SectionTime> afternoonSections = _parseSectionList(map['afternoonSections']);
-      List<_SectionTime> eveningSections = _parseSectionList(map['eveningSections']);
+      List<_SectionTime> morningSections = _parseSectionList(
+        map['morningSections'],
+      );
+      List<_SectionTime> afternoonSections = _parseSectionList(
+        map['afternoonSections'],
+      );
+      List<_SectionTime> eveningSections = _parseSectionList(
+        map['eveningSections'],
+      );
 
-      if (morningSections.isEmpty || afternoonSections.isEmpty || eveningSections.isEmpty) {
+      if (morningSections.isEmpty ||
+          afternoonSections.isEmpty ||
+          eveningSections.isEmpty) {
         final List<_SectionTime> legacy = _parseSectionList(map['sections']);
         if (legacy.isNotEmpty) {
           final int safeMorning = morning.clamp(1, legacy.length).toInt();
-          final int safeAfternoon = afternoon.clamp(1, (legacy.length - safeMorning).clamp(1, legacy.length)).toInt();
+          final int safeAfternoon = afternoon
+              .clamp(1, (legacy.length - safeMorning).clamp(1, legacy.length))
+              .toInt();
           final int afternoonStart = safeMorning;
-          final int afternoonEnd = (afternoonStart + safeAfternoon).clamp(afternoonStart, legacy.length).toInt();
+          final int afternoonEnd = (afternoonStart + safeAfternoon)
+              .clamp(afternoonStart, legacy.length)
+              .toInt();
           final int eveningStart = afternoonEnd;
 
           morningSections = legacy.sublist(0, safeMorning);
@@ -4477,30 +5292,37 @@ class _ScheduleConfig {
         breakDuration: map['breakDuration'] as int? ?? defaults.breakDuration,
         termWeeks: map['termWeeks'] as int? ?? defaults.termWeeks,
         weekStartDay: map['weekStartDay'] as int? ?? defaults.weekStartDay,
-        semesterStartDate: DateTime.tryParse(map['semesterStartDate'] as String? ?? '') ??
+        semesterStartDate:
+            DateTime.tryParse(map['semesterStartDate'] as String? ?? '') ??
             defaults.semesterStartDate,
         morningSections: morningSections.isEmpty
             ? _buildSegment(
                 count: morning.clamp(1, 30).toInt(),
                 anchorStart: '08:00',
-                classDuration: map['classDuration'] as int? ?? defaults.classDuration,
-                breakDuration: map['breakDuration'] as int? ?? defaults.breakDuration,
+                classDuration:
+                    map['classDuration'] as int? ?? defaults.classDuration,
+                breakDuration:
+                    map['breakDuration'] as int? ?? defaults.breakDuration,
               )
             : morningSections,
         afternoonSections: afternoonSections.isEmpty
             ? _buildSegment(
                 count: afternoon.clamp(1, 30).toInt(),
                 anchorStart: '14:00',
-                classDuration: map['classDuration'] as int? ?? defaults.classDuration,
-                breakDuration: map['breakDuration'] as int? ?? defaults.breakDuration,
+                classDuration:
+                    map['classDuration'] as int? ?? defaults.classDuration,
+                breakDuration:
+                    map['breakDuration'] as int? ?? defaults.breakDuration,
               )
             : afternoonSections,
         eveningSections: eveningSections.isEmpty
             ? _buildSegment(
                 count: evening.clamp(1, 30).toInt(),
                 anchorStart: '19:00',
-                classDuration: map['classDuration'] as int? ?? defaults.classDuration,
-                breakDuration: map['breakDuration'] as int? ?? defaults.breakDuration,
+                classDuration:
+                    map['classDuration'] as int? ?? defaults.classDuration,
+                breakDuration:
+                    map['breakDuration'] as int? ?? defaults.breakDuration,
               )
             : eveningSections,
       );
@@ -4525,28 +5347,16 @@ class _ScheduleConfig {
       'weekStartDay': weekStartDay,
       'semesterStartDate': DateFormat('yyyy-MM-dd').format(semesterStartDate),
       'morningSections': morningSections
-          .map((item) => <String, String>{
-                'start': item.start,
-                'end': item.end,
-              })
+          .map((item) => <String, String>{'start': item.start, 'end': item.end})
           .toList(growable: false),
       'afternoonSections': afternoonSections
-          .map((item) => <String, String>{
-                'start': item.start,
-                'end': item.end,
-              })
+          .map((item) => <String, String>{'start': item.start, 'end': item.end})
           .toList(growable: false),
       'eveningSections': eveningSections
-          .map((item) => <String, String>{
-                'start': item.start,
-                'end': item.end,
-              })
+          .map((item) => <String, String>{'start': item.start, 'end': item.end})
           .toList(growable: false),
       'sections': sections
-          .map((item) => <String, String>{
-                'start': item.start,
-                'end': item.end,
-              })
+          .map((item) => <String, String>{'start': item.start, 'end': item.end})
           .toList(growable: false),
     });
   }
@@ -4642,7 +5452,8 @@ class _ScheduleConfig {
     final int nextStart = _toMinutes(nextSegmentStart);
     int allowed = 1;
     for (int count = 1; count <= 30; count++) {
-      final int endMinutes = anchor + count * classDuration + (count - 1) * breakDuration;
+      final int endMinutes =
+          anchor + count * classDuration + (count - 1) * breakDuration;
       if (endMinutes >= nextStart) {
         return allowed.clamp(1, 30).toInt();
       }
@@ -4810,12 +5621,16 @@ class _SegmentAnchors {
 }
 
 class _ResolvedSlot {
-  const _ResolvedSlot({required this.primary, required this.all, required this.active});
+  const _ResolvedSlot({
+    required this.primary,
+    required this.all,
+    required this.active,
+  });
 
   const _ResolvedSlot.empty()
-      : primary = null,
-        all = const <CourseEntity>[],
-        active = false;
+    : primary = null,
+      all = const <CourseEntity>[],
+      active = false;
 
   final CourseEntity? primary;
   final List<CourseEntity> all;
@@ -4859,10 +5674,7 @@ class _CourseDragPayload {
 }
 
 class _CourseDragHover {
-  const _CourseDragHover({
-    required this.dayColumn,
-    required this.periodStart,
-  });
+  const _CourseDragHover({required this.dayColumn, required this.periodStart});
 
   final int dayColumn;
   final int periodStart;
@@ -4882,10 +5694,7 @@ class _CourseDragHover {
 }
 
 class _CourseDropDecision {
-  const _CourseDropDecision({
-    required this.accepted,
-    this.message,
-  });
+  const _CourseDropDecision({required this.accepted, this.message});
 
   final bool accepted;
   final String? message;
@@ -4909,10 +5718,7 @@ class _QuickAddSelection {
   int get periodStart => math.min(anchorPeriod, currentPeriod);
   int get periodEnd => math.max(anchorPeriod, currentPeriod);
 
-  _QuickAddSelection copyWith({
-    int? currentDay,
-    int? currentPeriod,
-  }) {
+  _QuickAddSelection copyWith({int? currentDay, int? currentPeriod}) {
     return _QuickAddSelection(
       anchorDay: anchorDay,
       anchorPeriod: anchorPeriod,
@@ -4944,34 +5750,31 @@ class _AddMenuItem extends StatelessWidget {
       shadowColor: const Color(0x26000000),
       child: InkWell(
         borderRadius: BorderRadius.circular(24),
-      onTap: onTap,
-      child: SizedBox(
-        width: 136,
-        height: 48,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: <Widget>[
-            const SizedBox(width: 12),
-            Icon(icon, size: 20, color: iconColor),
-            const SizedBox(width: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF333333),
+        onTap: onTap,
+        child: SizedBox(
+          width: 136,
+          height: 48,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: <Widget>[
+              const SizedBox(width: 12),
+              Icon(icon, size: 20, color: iconColor),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF333333),
+                ),
               ),
-            ),
-            const Spacer(),
-            Container(
-              width: 2,
-            ),
-            const SizedBox(width: 12),
-          ],
+              const Spacer(),
+              Container(width: 2),
+              const SizedBox(width: 12),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
 }
-

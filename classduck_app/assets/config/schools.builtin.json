@@ -1,726 +1,2245 @@
-﻿{
-    "version":  "2026-03-15",
-    "data":  [
-                 {
-                     "id":  "generic-urp",
-                     "delaySeconds":  3,
-                     "level":  "general",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/common-urp.js",
-                     "title":  "URP教务",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "generic-treew",
-                     "delaySeconds":  3,
-                     "level":  "general",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/treew-generic.js",
-                     "title":  "树维",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "generic-qingguo",
-                     "delaySeconds":  3,
-                     "level":  "general",
-                     "targetUrl":  "",
-                     "extractScriptUrl":  "local://parsers/qingguo-generic.js",
-                     "title":  "青果教务",
-                     "initialUrl":  ""
-                 },
-                 {
-                     "id":  "generic-jinzhi",
-                     "delaySeconds":  3,
-                     "level":  "general",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/jinzhi-generic.js",
-                     "title":  "金智教务",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "generic-zhengfang",
-                     "delaySeconds":  3,
-                     "level":  "general",
-                     "targetUrl":  "",
-                     "extractScriptUrl":  "local://parsers/zhengfang-generic.js",
-                     "title":  "正方教务",
-                     "initialUrl":  ""
-                 },
-                 {
-                     "id":  "generic-qiangzhi",
-                     "delaySeconds":  3,
-                     "level":  "general",
-                     "targetUrl":  "",
-                     "extractScriptUrl":  "local://parsers/qiangzhi-generic.js",
-                     "title":  "强智教务",
-                     "initialUrl":  ""
-                 },
-                 {
-                     "id":  "generic-jinchuang",
-                     "delaySeconds":  3,
-                     "level":  "general",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/jinchuang-generic.js",
-                     "title":  "金窗教务",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "generic-chaoxing",
-                     "delaySeconds":  3,
-                     "level":  "general",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/chaoxing-generic.js",
-                     "title":  "超星",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "generic-chengfang",
-                     "delaySeconds":  3,
-                     "level":  "general",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/chengfang-generic.js",
-                     "title":  "乘方教务",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "generic-jiaowu-v6",
-                     "delaySeconds":  3,
-                     "level":  "general",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/jiaowu-v6-generic.js",
-                     "title":  "教务管理系统V6.0",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "generic-lianyi",
-                     "delaySeconds":  3,
-                     "level":  "general",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/lianyi-generic.js",
-                     "title":  "联亦科技",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "generic-aic",
-                     "delaySeconds":  3,
-                     "level":  "general",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/aic-generic.js",
-                     "title":  "AIC智能校园",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "generic-crp",
-                     "delaySeconds":  3,
-                     "level":  "general",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/crp-generic.js",
-                     "title":  "crp",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "generic-eurasia",
-                     "delaySeconds":  3,
-                     "level":  "general",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/eurasia-generic.js",
-                     "title":  "eurasia",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "generic-yn",
-                     "delaySeconds":  3,
-                     "level":  "general",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/yn-generic.js",
-                     "title":  "YN智慧校园",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-001-贵州工程应用技术学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "贵州工程应用技术学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-002-哈尔滨工业大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "哈尔滨工业大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-003-河南中医药大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "河南中医药大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-004-南京中医药大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "南京中医药大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-005-齐齐哈尔医学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "齐齐哈尔医学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-006-青岛大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "青岛大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-007-泉州师范学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "泉州师范学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-008-山东第一医科大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "山东第一医科大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-009-山东药品职业学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "山东药品职业学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-010-山西工程科技职业大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "山西工程科技职业大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-011-泰州职业技术学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "泰州职业技术学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-012-武汉职业技术学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "武汉职业技术学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-013-西安建筑科技大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "西安建筑科技大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-014-武汉警官职业学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "武汉警官职业学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-015-荆州理工职业学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "荆州理工职业学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-016-西安欧亚学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "西安欧亚学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-017-河北农业大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "河北农业大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-018-华北理工大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "华北理工大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-019-内蒙古科技大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "内蒙古科技大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-020-烟台大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "烟台大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-021-德阳通用电子科技学校",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "德阳通用电子科技学校",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-022-成都大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "成都大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-023-广东交通职业技术学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "广东交通职业技术学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-024-广州中医药大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "广州中医药大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-025-长春师范大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "长春师范大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-026-四川科技职业学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "四川科技职业学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-027-安徽医学高等专科学校",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "安徽医学高等专科学校",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-028-燕山大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "燕山大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-029-长春汽车工业高等专科学校",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "长春汽车工业高等专科学校",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-030-江西水利职业学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "江西水利职业学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-031-河南农业大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "河南农业大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-032-河西学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "河西学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-033-江汉大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "江汉大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-034-昆明医科大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "昆明医科大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-035-陇东学院-新版",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "陇东学院_新版",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-036-山东女子学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "山东女子学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-037-西安翻译学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "西安翻译学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-038-新疆大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "新疆大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-039-烟台南山学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "烟台南山学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-040-湛江科技学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "湛江科技学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-041-郑州升达经贸管理学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "郑州升达经贸管理学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-042-安徽科技学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "安徽科技学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-043-安徽医科大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "安徽医科大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-044-成都信息工程大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "成都信息工程大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-045-广州工商学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "广州工商学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-046-河南理工大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "河南理工大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-047-辽宁科技学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "辽宁科技学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-048-辽宁装备制造职业技术学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "辽宁装备制造职业技术学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-049-内蒙古财经大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "内蒙古财经大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-050-山东水利职业学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "山东水利职业学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-051-商丘工学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "商丘工学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-052-商丘师范学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "商丘师范学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-053-西安航空学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "西安航空学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-054-长江大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "长江大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-055-郑州大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "郑州大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-056-中原科技学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "中原科技学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-057-重庆科技学院",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "重庆科技学院",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-058-重庆医科大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://example.com/course",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "重庆医科大学",
-                     "initialUrl":  "https://example.com/login"
-                 },
-                 {
-                     "id":  "school-059-东南大学-beta",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "http://ehall.seu.edu.cn/appShow?appId=5761129385495325",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "东南大学(beta)",
-                     "initialUrl":  "http://ehall.seu.edu.cn/appShow?appId=5761129385495325"
-                 },
-                 {
-                     "id":  "school-060-南京大学-beta",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/*default/index.do#/xskcb",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "南京大学课表(本科)",
-                     "initialUrl":  "https://authserver.nju.edu.cn/authserver/login?service=https%3A%2F%2Fehallapp.nju.edu.cn%2Fjwapp%2Fsys%2Fwdkb%2F*default%2Findex.do%23%2Fxskcb"
-                 },
-                 {
-                     "id":  "school-062-南京大学TS",
-                     "delaySeconds":  3,
-                     "level":  "master",
-                     "targetUrl":  "https://ehallapp.nju.edu.cn/gsapp/sys/wdkbapp/*default/index.do#/xskcb",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "南京大学课表(研究生)",
-                     "initialUrl":  "https://authserver.nju.edu.cn/authserver/login?service=https%3A%2F%2Fehallapp.nju.edu.cn%2Fgsapp%2Fsys%2Fwdkbapp%2F*default%2Findex.do%23%2Fxskcb"
-                 },
-                 {
-                     "id":  "school-064-上海交通大学",
-                     "delaySeconds":  3,
-                     "level":  "master",
-                     "targetUrl":  "https://yjsxk.sjtu.edu.cn/yjsxkapp/sys/xsxkapp/index.html",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "上海交通大学",
-                     "initialUrl":  "https://yjsxk.sjtu.edu.cn/yjsxkapp/sys/xsxkapp/index.html"
-                 },
-                 {
-                     "id":  "school-065-西北农林科技大学",
-                     "delaySeconds":  3,
-                     "level":  "undergraduate",
-                     "targetUrl":  "https://authserver.nwafu.edu.cn/authserver/login",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "西北农林科技大学",
-                     "initialUrl":  "https://authserver.nwafu.edu.cn/authserver/login"
-                 },
-                 {
-                     "id":  "school-066-中国人民大学",
-                     "delaySeconds":  3,
-                     "level":  "master",
-                     "targetUrl":  "https://yjs2.ruc.edu.cn",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "title":  "中国人民大学",
-                     "initialUrl":  "https://yjs2.ruc.edu.cn"
-                 },
-                 {
-                     "id":  "school-999-西安交通大学",
-                     "level":  "master",
-                     "title":  "西安交通大学",
-                     "initialUrl":  "https://gmis.xjtu.edu.cn/",
-                     "targetUrl":  "https://gmis.xjtu.edu.cn/pyxx/pygl/xskbcx",
-                     "extractScriptUrl":  "local://parsers/school-generic.js",
-                     "delaySeconds":  3
-                 }
-             ]
+{
+  "version": "2026-04-03",
+  "data": [
+    {
+      "id": "generic-aic",
+      "delaySeconds": 3,
+      "level": "general",
+      "targetUrl": "https://example.com/course",
+      "extractScriptUrl": "local://parsers/aic-generic.js",
+      "title": "AIC智能校园教务",
+      "initialUrl": "https://example.com/login"
+    },
+    {
+      "id": "generic-crp",
+      "delaySeconds": 3,
+      "level": "general",
+      "targetUrl": "https://example.com/course",
+      "extractScriptUrl": "local://parsers/crp-generic.js",
+      "title": "CRP教务",
+      "initialUrl": "https://example.com/login"
+    },
+    {
+      "id": "generic-eurasia",
+      "delaySeconds": 3,
+      "level": "general",
+      "targetUrl": "https://example.com/course",
+      "extractScriptUrl": "local://parsers/eurasia-generic.js",
+      "title": "Eurasia教务",
+      "initialUrl": "https://example.com/login"
+    },
+    {
+      "id": "sora",
+      "delaySeconds": 1,
+      "level": "general",
+      "targetUrl": "https://sora.example.edu/schedule",
+      "extractScriptUrl": "/api/schools/sora/script?script_type=provider",
+      "title": "SORA教务",
+      "initialUrl": "https://sora.example.edu/login",
+      "systemType": "sora",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "generic-urp",
+      "delaySeconds": 3,
+      "level": "general",
+      "targetUrl": "https://example.com/course",
+      "extractScriptUrl": "local://parsers/common-urp.js",
+      "title": "URP教务",
+      "initialUrl": "https://example.com/login"
+    },
+    {
+      "id": "wakeup_type_urp",
+      "delaySeconds": 0,
+      "level": "general",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/urp_01/script?script_type=provider",
+      "title": "URP教务",
+      "initialUrl": "",
+      "executionSchoolIds": [
+        "urp_01"
+      ],
+      "systemType": "wakeup_rule",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "urp_01",
+      "delaySeconds": 0,
+      "level": "general",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/urp_01/script?script_type=provider",
+      "title": "URP教务通用获取",
+      "initialUrl": "",
+      "systemType": "urp_jiaowu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "generic-yn",
+      "delaySeconds": 3,
+      "level": "general",
+      "targetUrl": "https://example.com/course",
+      "extractScriptUrl": "local://parsers/yn-generic.js",
+      "title": "YN智慧校园教务",
+      "initialUrl": "https://example.com/login"
+    },
+    {
+      "id": "ais_system_9f5789",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_9f5789/script?script_type=provider",
+      "title": "unknown_school（AIShedule）",
+      "initialUrl": "",
+      "systemType": "小爱测试",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_6939f1",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_6939f1/script?script_type=provider",
+      "title": "wotk（AIShedule）",
+      "initialUrl": "",
+      "systemType": "树维",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ctgu",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ctgu/script?script_type=provider",
+      "title": "三峡大学教务",
+      "initialUrl": "http://jwxt.ctgu.edu.cn/jwapp/sys/yjsrzfwapp/dbLogin/main.do",
+      "systemType": "ctgu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "shzq_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/shzq_01/script?script_type=provider",
+      "title": "上海中侨职业技术大学教务系统",
+      "initialUrl": "https://cas.shzq.edu.cn/cas/login?service=https://jw.shzq.edu.cn/sso/ddlogin",
+      "systemType": "shzq",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "csf_shanghaijiaotongdaxueyanjiu",
+      "delaySeconds": 3,
+      "level": "master",
+      "targetUrl": "https://yjsxk.sjtu.edu.cn/yjsxkapp/sys/xsxkapp/xsxkCourse/loadStdCourseInfo.do",
+      "extractScriptUrl": "/api/schools/csf_shanghaijiaotongdaxueyanjiu/script?script_type=provider",
+      "title": "上海交通大学研究生选课系统",
+      "initialUrl": "https://yjsxk.sjtu.edu.cn/yjsxkapp/sys/xsxkapp/index.html",
+      "systemType": "class_schedule_flutter",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "neau_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/neau_01/script?script_type=provider",
+      "title": "东北农业大学适配教务",
+      "initialUrl": "https://webvpn.neau.edu.cn/",
+      "systemType": "neau",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "neu_1",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/neu_1/script?script_type=provider",
+      "title": "东北大学",
+      "initialUrl": "https://pass.neu.edu.cn/tpass/login",
+      "systemType": "neu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "neuq",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/neuq/script?script_type=provider",
+      "title": "东北大学秦皇岛分校树维教务",
+      "initialUrl": "https://jwxt.neuq.edu.cn",
+      "systemType": "neuq",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "nenu_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/nenu_01/script?script_type=provider",
+      "title": "东北师范大学适配教务",
+      "initialUrl": "https://bkjx.nenu.edu.cn/",
+      "systemType": "nenu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_3c5e14",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_3c5e14/script?script_type=provider",
+      "title": "东华理工大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "正方教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "csf_dongnandaxue",
+      "delaySeconds": 3,
+      "level": "undergraduate",
+      "targetUrl": "https://ehall.seu.edu.cn/jwapp/sys/bykb/*default/index.do",
+      "extractScriptUrl": "/api/schools/csf_dongnandaxue/script?script_type=provider",
+      "title": "东南大学本研课表 (beta)",
+      "initialUrl": "http://ehall.seu.edu.cn/appShow?appId=5761129385495325",
+      "systemType": "class_schedule_flutter",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_a2c1c5",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_a2c1c5/script?script_type=provider",
+      "title": "中原科技学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "树维",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "school-066-中国人民大学",
+      "delaySeconds": 3,
+      "level": "undergraduate",
+      "targetUrl": "http://jiaowu.ruc.edu.cn",
+      "extractScriptUrl": "local://parsers/school-generic.js",
+      "title": "中国人民大学",
+      "initialUrl": "http://jiaowu.ruc.edu.cn"
+    },
+    {
+      "id": "csf_zhongguorenmindaxuejiaowu",
+      "delaySeconds": 3,
+      "level": "master",
+      "targetUrl": "https://yjs2.ruc.edu.cn/gsapp/sys/wdkbapp/*default/index.do",
+      "extractScriptUrl": "/api/schools/csf_zhongguorenmindaxuejiaowu/script?script_type=provider",
+      "title": "中国人民大学研究生教育信息系统",
+      "initialUrl": "https://yjs2.ruc.edu.cn",
+      "systemType": "class_schedule_flutter",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "cup_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/cup_01/script?script_type=provider",
+      "title": "中国石油大学(北京)本科教务系统",
+      "initialUrl": "https://bk.cup.edu.cn/student/",
+      "systemType": "cup",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "cup_02",
+      "delaySeconds": 0,
+      "level": "master",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/cup_02/script?script_type=provider",
+      "title": "中国石油大学(北京)研究生教务系统",
+      "initialUrl": "https://gmis.cup.edu.cn/gmis/student/default/index",
+      "systemType": "cup",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "generic-chengfang",
+      "delaySeconds": 3,
+      "level": "general",
+      "targetUrl": "https://example.com/course",
+      "extractScriptUrl": "local://parsers/chengfang-generic.js",
+      "title": "乘方教务",
+      "initialUrl": "https://example.com/login"
+    },
+    {
+      "id": "ynufe_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ynufe_01/script?script_type=provider",
+      "title": "云南财经大学本科教务系统",
+      "initialUrl": "https://xjwis.ynufe.edu.cn/jsxsd/",
+      "systemType": "ynufe",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "imut_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/imut_01/script?script_type=provider",
+      "title": "内蒙古工业大学教务处适配",
+      "initialUrl": "http://jw.imut.edu.cn/academic/login/imut/loginIds6Valid.jsp",
+      "systemType": "imut",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_urp_a4f6a7",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_urp_a4f6a7/script?script_type=provider",
+      "title": "内蒙古科技大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "URP教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_79ad25",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_79ad25/script?script_type=provider",
+      "title": "内蒙古财经大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "树维",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_332661",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_332661/script?script_type=provider",
+      "title": "包头职业技术学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "正方教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "wakeup_type_pku",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/pku_01/script?script_type=provider",
+      "title": "北京大学",
+      "initialUrl": "http://elective.pku.edu.cn/",
+      "executionSchoolIds": [
+        "pku_01",
+        "zhengfang_01"
+      ],
+      "systemType": "wakeup_rule",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "wakeup_type_pku_master",
+      "delaySeconds": 0,
+      "level": "master",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/pku_01/script?script_type=provider",
+      "title": "北京大学",
+      "initialUrl": "http://elective.pku.edu.cn/",
+      "executionSchoolIds": [
+        "pku_01",
+        "zhengfang_01"
+      ],
+      "systemType": "wakeup_rule",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_058200",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_058200/script?script_type=provider",
+      "title": "北京财贸职业学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "强智教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_441957",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_441957/script?script_type=provider",
+      "title": "华中农业大学-本研一体化（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "正方教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "hqu",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/hqu/script?script_type=provider",
+      "title": "华侨大学教务",
+      "initialUrl": "https://atrust.hqu.edu.cn/portal/?redirectid=0.6668972084789097#/login",
+      "systemType": "hqu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_198a41",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_198a41/script?script_type=provider",
+      "title": "华北水利水电（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "青果教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_urp_856a16",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_urp_856a16/script?script_type=provider",
+      "title": "华北理工大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "URP教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "scut_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/scut_01/script?script_type=provider",
+      "title": "华南理工大学webvpn适配教务",
+      "initialUrl": "https://xsjw2018-jw.webvpn.scut.edu.cn/",
+      "systemType": "scut",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "scut_02",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/scut_02/script?script_type=provider",
+      "title": "华南理工大学内网适配教务",
+      "initialUrl": "http://xsjw2018.jw.scut.edu.cn/",
+      "systemType": "scut",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "scut_master_01",
+      "delaySeconds": 0,
+      "level": "master",
+      "targetUrl": "https://yjsjw.scut.edu.cn/psc/ps_4/EMPLOYEE/SA/c/SA_LEARNER_SERVICES.SSR_SSENRL_LIST.GBL",
+      "extractScriptUrl": "/api/schools/scut_master_01/script?script_type=provider",
+      "title": "华南理工大学研究生教务系统",
+      "initialUrl": "https://yjsjw.scut.edu.cn/psp/ps_4/EMPLOYEE/SA/",
+      "systemType": "scut_peoplesoft",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_7c09f1",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_7c09f1/script?script_type=provider",
+      "title": "南京中医药大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "自研教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "csf_1nanjingdaxuebenkejiaowu",
+      "delaySeconds": 3,
+      "level": "undergraduate",
+      "targetUrl": "https://ehallapp.nju.edu.cn/jwapp/sys/wdkb/*default/index.do#/xskcb",
+      "extractScriptUrl": "/api/schools/csf_1nanjingdaxuebenkejiaowu/script?script_type=provider",
+      "title": "南京大学本科生教务系统（beta）",
+      "initialUrl": "https://authserver.nju.edu.cn/authserver/login?service=https%3A%2F%2Fehallapp.nju.edu.cn%2Fjwapp%2Fsys%2Fwdkb%2F*default%2Findex.do%23%2Fxskcb",
+      "systemType": "class_schedule_flutter",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "csf_1nanjingdaxuebenkexuanke",
+      "delaySeconds": 3,
+      "level": "undergraduate",
+      "targetUrl": "https://xk.nju.edu.cn/xsxkapp/sys/xsxkapp/*default/grablessons.do",
+      "extractScriptUrl": "/api/schools/csf_1nanjingdaxuebenkexuanke/script?script_type=provider",
+      "title": "南京大学本科生选课系统",
+      "initialUrl": "https://xk.nju.edu.cn",
+      "systemType": "class_schedule_flutter",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "csf_1nanjingdaxueyanjiujiaowu",
+      "delaySeconds": 3,
+      "level": "master",
+      "targetUrl": "https://ehallapp.nju.edu.cn/gsapp/sys/wdkbapp/*default/index.do#/xskcb",
+      "extractScriptUrl": "/api/schools/csf_1nanjingdaxueyanjiujiaowu/script?script_type=provider",
+      "title": "南京大学研究生教务系统（test）",
+      "initialUrl": "https://authserver.nju.edu.cn/authserver/login?service=https%3A%2F%2Fehallapp.nju.edu.cn%2Fgsapp%2Fsys%2Fwdkbapp%2F*default%2Findex.do%23%2Fxskcb",
+      "systemType": "class_schedule_flutter",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "csf_1nanjingdaxueyanjiuxuanke",
+      "delaySeconds": 3,
+      "level": "master",
+      "targetUrl": "https://yjsxk.nju.edu.cn/yjsxkapp/sys/xsxkapp/xsxkCourse/loadStdCourseInfo.do",
+      "extractScriptUrl": "/api/schools/csf_1nanjingdaxueyanjiuxuanke/script?script_type=provider",
+      "title": "南京大学研究生选课系统",
+      "initialUrl": "https://yjsxk.nju.edu.cn/yjsxkapp/sys/xsxkapp/index_nju.html",
+      "systemType": "class_schedule_flutter",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "njnu",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/njnu/script?script_type=provider",
+      "title": "南京师范大学金智教务",
+      "initialUrl": "https://authserver.nnu.edu.cn/authserver/login?service=https://hsnnu.nnu.edu.cn/login",
+      "systemType": "njnu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "njfu_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/njfu_01/script?script_type=provider",
+      "title": "南京林业大学",
+      "initialUrl": "https://jwxt.njfu.edu.cn/sso.jsp",
+      "systemType": "njfu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_9389dd",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_9389dd/script?script_type=provider",
+      "title": "南宁师范大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "强智教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "xmcu_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/xmcu_01/script?script_type=provider",
+      "title": "厦门城市职业学院青果教务",
+      "initialUrl": "https://eone-443.webvpn.xmcu.edu.cn/",
+      "systemType": "xmcu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "jlu_master_01",
+      "delaySeconds": 2,
+      "level": "master",
+      "targetUrl": "https://yjs.jlu.edu.cn/gsapp/sys/wdkbapp/*default/index.do",
+      "extractScriptUrl": "/api/schools/jlu_master_01/script?script_type=provider",
+      "title": "吉林大学研究生管理系统",
+      "initialUrl": "https://yjs.jlu.edu.cn/",
+      "systemType": "jlu_gsapp",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_2ea5b4",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_2ea5b4/script?script_type=provider",
+      "title": "哈尔滨华德学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "正方教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_hit",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_hit/script?script_type=provider",
+      "title": "哈尔滨工业大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "自研教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "school-051-商丘工学院",
+      "delaySeconds": 3,
+      "level": "undergraduate",
+      "targetUrl": "https://example.com/course",
+      "extractScriptUrl": "local://parsers/school-generic.js",
+      "title": "商丘工学院",
+      "initialUrl": "https://jwxt.sqgxy.edu.cn/"
+    },
+    {
+      "id": "ais_system_e48de5",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_e48de5/script?script_type=provider",
+      "title": "商丘工学院（AIShedule）",
+      "initialUrl": "",
+      "systemType": "树维",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_11f1f6",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_11f1f6/script?script_type=provider",
+      "title": "商丘师范学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "树维",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ksu_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ksu_01/script?script_type=provider",
+      "title": "喀什大学正方教务",
+      "initialUrl": "https://cas.ksu.edu.cn/cas/login?service=https://jwnet.ksu.edu.cn/sso/ddlogin",
+      "systemType": "ksu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_2a8e6f",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_2a8e6f/script?script_type=provider",
+      "title": "喀什大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "正方教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_f5031d",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_f5031d/script?script_type=provider",
+      "title": "四川工商学院（AIShedule）",
+      "initialUrl": "",
+      "systemType": "正方教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "school-026-四川科技职业学院",
+      "delaySeconds": 3,
+      "level": "undergraduate",
+      "targetUrl": "https://example.com/course",
+      "extractScriptUrl": "local://parsers/school-generic.js",
+      "title": "四川科技职业学院",
+      "initialUrl": "https://jw.scstc.cn/"
+    },
+    {
+      "id": "ais_system_c00a0c",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_c00a0c/script?script_type=provider",
+      "title": "四川科技职业学院（AIShedule）",
+      "initialUrl": "",
+      "systemType": "金窗教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_336dbd",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_336dbd/script?script_type=provider",
+      "title": "四川轻化工大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "正方教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "taru_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/taru_01/script?script_type=provider",
+      "title": "塔里木大学正方教务",
+      "initialUrl": "https://auth.taru.edu.cn/cas/login?service=https%3A%2F%2Fhall.taru.edu.cn%2FserviceHall",
+      "systemType": "taru",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "dlmu_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/dlmu_01/script?script_type=provider",
+      "title": "大连海事大学教务",
+      "initialUrl": "http://jw.xpaas.dlmu.edu.cn/eams",
+      "systemType": "dlmu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "tcu_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/tcu_01/script?script_type=provider",
+      "title": "天津城建大学URP教务",
+      "initialUrl": "https://authserver.tcu.edu.cn/authserver/login?service=https%3A%2F%2Fjwxs.tcu.edu.cn%2Flogin",
+      "systemType": "tcu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_11af37",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_11af37/script?script_type=provider",
+      "title": "太原科技大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "正方教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_30731e",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_30731e/script?script_type=provider",
+      "title": "宁夏师范学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "正方教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_9e51ef",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_9e51ef/script?script_type=provider",
+      "title": "安徽医学高等专科学校（AIShedule）",
+      "initialUrl": "https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE",
+      "systemType": "金智教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_9cc6d5",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_9cc6d5/script?script_type=provider",
+      "title": "安徽医科大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "树维",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_327f6a",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_327f6a/script?script_type=provider",
+      "title": "安徽建筑大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "正方教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_9ff041",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_9ff041/script?script_type=provider",
+      "title": "安徽科技工程大学",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "树维",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ahszu_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ahszu_01/script?script_type=provider",
+      "title": "宿州学院青果教务",
+      "initialUrl": "http://211.86.128.194/suzxyjw/cas/login.action",
+      "systemType": "ahszu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_sdu",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_sdu/script?script_type=provider",
+      "title": "山东大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "强智教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_a7e443",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_a7e443/script?script_type=provider",
+      "title": "山东女子学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "青果教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_022059",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_022059/script?script_type=provider",
+      "title": "山东师范大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "正方教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_079fa6",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_079fa6/script?script_type=provider",
+      "title": "山东水利职业学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "树维",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "school-008-山东第一医科大学",
+      "delaySeconds": 3,
+      "level": "undergraduate",
+      "targetUrl": "https://example.com/course",
+      "extractScriptUrl": "local://parsers/school-generic.js",
+      "title": "山东第一医科大学",
+      "initialUrl": "https://jwc.sdfmu.edu.cn/"
+    },
+    {
+      "id": "ais_system_88bc86",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_88bc86/script?script_type=provider",
+      "title": "山东药品职业学院（AIShedule）",
+      "initialUrl": "http://jwxt.sddfvc.cn/mobile/student/mobile_kcb_xq?api_token=",
+      "systemType": "自研教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "sddfvc",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/sddfvc/script?script_type=provider",
+      "title": "山东药品食品职业学院教务",
+      "initialUrl": "http://cas.sddfvc.edu.cn/login?type=usernamepassword&service=http%3A%2F%2Ffazhan.sddfvc.edu.cn%2Fjs%2Ffzzx%2Flogin",
+      "systemType": "sddfvc",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_951959",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_951959/script?script_type=provider",
+      "title": "山西工程科技职业大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "自研教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "sxgcxy_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/sxgcxy_01/script?script_type=provider",
+      "title": "山西工程职业学院超星教务适配",
+      "initialUrl": "https://sxevc.jw.chaoxing.com/admin/login",
+      "systemType": "sxgcxy",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_bb2aa2",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_bb2aa2/script?script_type=provider",
+      "title": "广东交通职业技术学院（AIShedule）",
+      "initialUrl": "http://jw.gdcp.cn/xsgrkbcx!getKbRq.action?xnxqdm=",
+      "systemType": "乘方教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_66ec12",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_66ec12/script?script_type=provider",
+      "title": "广东农工商（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "强智教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "gdpu_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/gdpu_01/script?script_type=provider",
+      "title": "广东药科大学正方教务",
+      "initialUrl": "https://webvpn.gdpu.edu.cn/https/77726476706e69737468656265737421f3f652d220347845300d8db9d6562d/lyuapServer/login?service=https%3A%2F%2Fjwsys.gdpu.edu.cn%2Fsso%2Flyiotlogin",
+      "systemType": "gdpu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_9aaeff",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_9aaeff/script?script_type=provider",
+      "title": "广州中医药大学（AIShedule）",
+      "initialUrl": "http://jw.gzucm.edu.cn/xsgrkbcx!getKbRq.action?xnxqdm=",
+      "systemType": "乘方教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_06ed76",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_06ed76/script?script_type=provider",
+      "title": "广州华商学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "强智教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_6537f8",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_6537f8/script?script_type=provider",
+      "title": "广州商学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "正方教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_6bec5a",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_6bec5a/script?script_type=provider",
+      "title": "广州工商学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "树维",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "gzst",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/gzst/script?script_type=provider",
+      "title": "广州松田职业学院教务",
+      "initialUrl": "https://jw.educationgroup.cn/gzstzyxy_jsxsd/",
+      "systemType": "gzst",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_9e1524",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_9e1524/script?script_type=provider",
+      "title": "广西外国语学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "正方教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "gxdlxy_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/gxdlxy_01/script?script_type=provider",
+      "title": "广西电力职业技术学院强智教务",
+      "initialUrl": "https://jw.gxdlxy.com/jsxsd/framework/xsMain.jsp",
+      "systemType": "gxdlxy",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "wakeup_type_qz",
+      "delaySeconds": 0,
+      "level": "general",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/qingguo_01/script?script_type=provider",
+      "title": "强智教务",
+      "initialUrl": "",
+      "executionSchoolIds": [
+        "qingguo_01"
+      ],
+      "systemType": "wakeup_rule",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "generic-qiangzhi",
+      "delaySeconds": 3,
+      "level": "general",
+      "targetUrl": "",
+      "extractScriptUrl": "local://parsers/qiangzhi-generic.js",
+      "title": "强智教务",
+      "initialUrl": ""
+    },
+    {
+      "id": "zhku_00",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/zhku_00/script?script_type=provider",
+      "title": "强智教务 - 学期理论课表",
+      "initialUrl": "https://edu-admin.zhku.edu.cn/",
+      "systemType": "zhku",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "xzit_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/xzit_01/script?script_type=provider",
+      "title": "徐州工程学院教务系统",
+      "initialUrl": "http://jwglxt.xzit.edu.cn/jwglxt/xtgl/login_slogin.html",
+      "systemType": "xzit",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_yn_f46b4a",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_yn_f46b4a/script?script_type=provider",
+      "title": "德阳通用电子科技学校（AIShedule）",
+      "initialUrl": "http://dytyzj.aixiaoyuan.cn/ynedut/portal/queryServiceTypes.htm",
+      "systemType": "YN智慧校园",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "wakeup_type_cf",
+      "delaySeconds": 0,
+      "level": "general",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/qingguo_01/script?script_type=provider",
+      "title": "成方教务",
+      "initialUrl": "",
+      "executionSchoolIds": [
+        "qingguo_01"
+      ],
+      "systemType": "wakeup_rule",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_19af3b",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_19af3b/script?script_type=provider",
+      "title": "成都信息工程大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "树维",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_fce83d",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_fce83d/script?script_type=provider",
+      "title": "成都大学（AIShedule）",
+      "initialUrl": "https://kb.chaoxing.com/res/pc/curriculum/schedule.html",
+      "systemType": "超星",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_13d123",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_13d123/script?script_type=provider",
+      "title": "成都工业学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "强智教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "capu",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/capu/script?script_type=provider",
+      "title": "成都航空职业技术大学金智新教务",
+      "initialUrl": "https://jwxt.cap.edu.cn/jwapp/sys/homeapp/home/index.html?av=&contextPath=/jwapp#/",
+      "systemType": "capu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_62ca92",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_62ca92/script?script_type=provider",
+      "title": "成都艺术职业大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "正方教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "yxhmc",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/yxhmc/script?script_type=provider",
+      "title": "成都银杏酒店管理学院教务",
+      "initialUrl": "http://zfjw.gingkoc.edu.cn/xtgl/login_slogin.html",
+      "systemType": "yxhmc",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "generic-jiaowu-v6",
+      "delaySeconds": 3,
+      "level": "general",
+      "targetUrl": "https://example.com/course",
+      "extractScriptUrl": "local://parsers/jiaowu-v6-generic.js",
+      "title": "教务管理系统V6.0",
+      "initialUrl": "https://example.com/login"
+    },
+    {
+      "id": "wakeup_type_urp_new",
+      "delaySeconds": 0,
+      "level": "general",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/urp_01/script?script_type=provider",
+      "title": "新URP教务",
+      "initialUrl": "",
+      "executionSchoolIds": [
+        "urp_01"
+      ],
+      "systemType": "wakeup_rule",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "wakeup_type_zf_new",
+      "delaySeconds": 0,
+      "level": "general",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/zhengfang_01/script?script_type=provider",
+      "title": "新正方教务",
+      "initialUrl": "",
+      "executionSchoolIds": [
+        "zhengfang_01"
+      ],
+      "systemType": "wakeup_rule",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_f7b228",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_f7b228/script?script_type=provider",
+      "title": "新疆大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "青果教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "xjie_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/xjie_01/script?script_type=provider",
+      "title": "新疆工程学院强智适配",
+      "initialUrl": "https://authserver.xjie.edu.cn/authserver/login?service=https%3A%2F%2Fjwxt.xjie.edu.cn%2Fjsxsd%2F",
+      "systemType": "xjie",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_1a6af3",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_1a6af3/script?script_type=provider",
+      "title": "昆明医科大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "青果教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "starlink",
+      "delaySeconds": 0,
+      "level": "general",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/starlink/script?script_type=provider",
+      "title": "星链课表分享码导入",
+      "initialUrl": "https://api.starlinkkb.cn/",
+      "systemType": "global_tools",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "jnu_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/jnu_01/script?script_type=provider",
+      "title": "暨南大学金智教务系统",
+      "initialUrl": "https://jw.jnu.edu.cn",
+      "systemType": "jnu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "generic-treew",
+      "delaySeconds": 3,
+      "level": "general",
+      "targetUrl": "https://example.com/course",
+      "extractScriptUrl": "local://parsers/treew-generic.js",
+      "title": "树维教务",
+      "initialUrl": "https://example.com/login"
+    },
+    {
+      "id": "guit_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/guit_01/script?script_type=provider",
+      "title": "桂林信息科技学院",
+      "initialUrl": "https://172-16-18-132.webvpn.guit.edu.cn",
+      "systemType": "guit",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "glmu_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/glmu_01/script?script_type=provider",
+      "title": "桂林医科大学教务",
+      "initialUrl": "https://ejwc.glmu.edu.cn/",
+      "systemType": "glmu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "wakeup_type_zf",
+      "delaySeconds": 0,
+      "level": "general",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/zhengfang_01/script?script_type=provider",
+      "title": "正方教务",
+      "initialUrl": "",
+      "executionSchoolIds": [
+        "zhengfang_01"
+      ],
+      "systemType": "wakeup_rule",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "generic-zhengfang",
+      "delaySeconds": 3,
+      "level": "general",
+      "targetUrl": "",
+      "extractScriptUrl": "local://parsers/zhengfang-generic.js",
+      "title": "正方教务",
+      "initialUrl": ""
+    },
+    {
+      "id": "zhengfang_01",
+      "delaySeconds": 0,
+      "level": "general",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/zhengfang_01/script?script_type=provider",
+      "title": "正方教务html通用获取",
+      "initialUrl": "",
+      "systemType": "zhengfang_jiaowu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_4f919e",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_4f919e/script?script_type=provider",
+      "title": "武汉信息传播职业技术学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "强智教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "wbu_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/wbu_01/script?script_type=provider",
+      "title": "武汉商学院-超星教务系统",
+      "initialUrl": "https://webvpn.wbu.edu.cn/",
+      "systemType": "wbu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_whu",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_whu/script?script_type=provider",
+      "title": "武汉大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "正方教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "school-012-武汉职业技术学院",
+      "delaySeconds": 3,
+      "level": "undergraduate",
+      "targetUrl": "https://example.com/course",
+      "extractScriptUrl": "local://parsers/school-generic.js",
+      "title": "武汉职业技术学院",
+      "initialUrl": "http://jwxt.wtc.edu.cn/admin/login"
+    },
+    {
+      "id": "ais_system_8be1a6",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_8be1a6/script?script_type=provider",
+      "title": "武汉职业技术学院（AIShedule）",
+      "initialUrl": "",
+      "systemType": "树维",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "whcb_1",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/whcb_1/script?script_type=provider",
+      "title": "武汉船舶职业技术学院",
+      "initialUrl": "http://jw.wspc.edu.cn/jwapp/sys/wdkb/*default/index.do?EMAP_LANG=zh#/xskcb",
+      "systemType": "whcb",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_aic_fc1d6d",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_aic_fc1d6d/script?script_type=provider",
+      "title": "武汉警官职业学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "AIC智能校园",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_2d3761",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_2d3761/script?script_type=provider",
+      "title": "江汉大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "青果教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ujs_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ujs_01/script?script_type=provider",
+      "title": "江苏大学教务系统",
+      "initialUrl": "https://jwxt.ujs.edu.cn/sso/jziotlogin",
+      "systemType": "ujs",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "jsnu_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/jsnu_01/script?script_type=provider",
+      "title": "江苏师范大学适配教务",
+      "initialUrl": "https://i.jsnu.edu.cn/home",
+      "systemType": "jsnu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_e02260",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_e02260/script?script_type=provider",
+      "title": "江西水利职业学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "联亦科技",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "jxust",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/jxust/script?script_type=provider",
+      "title": "江西理工大学强智教务",
+      "initialUrl": "https://authserver.jxust.edu.cn/authserver/login?service=https://jw.jxust.edu.cn/jsxsd/",
+      "systemType": "jxust",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "jxfu_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/jxfu_01/script?script_type=provider",
+      "title": "江西飞行学院适配教务",
+      "initialUrl": "https://jwxt.jxfu.edu.cn/",
+      "systemType": "jxfu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "school-017-河北农业大学",
+      "delaySeconds": 3,
+      "level": "undergraduate",
+      "targetUrl": "https://example.com/course",
+      "extractScriptUrl": "local://parsers/school-generic.js",
+      "title": "河北农业大学",
+      "initialUrl": "https://jiaowu.hebau.edu.cn/index.htm"
+    },
+    {
+      "id": "hbguhx",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/hbguhx/script?script_type=provider",
+      "title": "河北地质大学华信学院强智教务",
+      "initialUrl": "http://61.182.88.214:8090",
+      "systemType": "hbguhx",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "school-003-河南中医药大学",
+      "delaySeconds": 3,
+      "level": "undergraduate",
+      "targetUrl": "https://example.com/course",
+      "extractScriptUrl": "local://parsers/school-generic.js",
+      "title": "河南中医药大学",
+      "initialUrl": "https://jwxt.hactcm.edu.cn/"
+    },
+    {
+      "id": "ais_system_394562",
+      "delaySeconds": 0,
+      "level": "master",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_394562/script?script_type=provider",
+      "title": "河南中医药大学（AIShedule）",
+      "initialUrl": "https://cnodejs.org/topic/5203a71844e76d216a727d2e",
+      "systemType": "自研教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "hiit_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/hiit_01/script?script_type=provider",
+      "title": "河南信息科技学院",
+      "initialUrl": "http://39.164.230.243:9527/#/authserver/login?redirect_uri=aHR0cDovLzM5LjE2NC4yMzAuMjQzOjkxL2VhbXMvbG9naW4uYWN0aW9u",
+      "systemType": "hiit",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_0b3e26",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_0b3e26/script?script_type=provider",
+      "title": "河南农业大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "青果教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "haut_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/haut_01/script?script_type=provider",
+      "title": "河南工业大学正方教务",
+      "initialUrl": "https://jwglxt.haut.edu.cn/jwglxt/xtgl/login_slogin.html",
+      "systemType": "haut",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "hnsf_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/hnsf_01/script?script_type=provider",
+      "title": "河南师范大学适配教务",
+      "initialUrl": "https://jwc.htu.edu.cn/",
+      "systemType": "hnsf",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "hnsf_02",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/hnsf_02/script?script_type=provider",
+      "title": "河南师范大学适配教务",
+      "initialUrl": "https://jwc.htu.edu.cn/",
+      "systemType": "hnsf",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_0bbf4f",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_0bbf4f/script?script_type=provider",
+      "title": "河南理工大学（AIShedule）",
+      "initialUrl": "https://cdn.bootcss.com/vConsole/3.2.0/vconsole.min.js",
+      "systemType": "树维",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "hnzy_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/hnzy_01/script?script_type=provider",
+      "title": "河南职业技术学院课表",
+      "initialUrl": "https://one.hnzj.edu.cn/common-service/kcb-pc/personage/personage",
+      "systemType": "hnzy",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "huel_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/huel_01/script?script_type=provider",
+      "title": "河南财经政法大学",
+      "initialUrl": "https://xk.huel.edu.cn",
+      "systemType": "huel",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_57f52e",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_57f52e/script?script_type=provider",
+      "title": "河西学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "青果教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_96b6d5",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_96b6d5/script?script_type=provider",
+      "title": "泉州师范学院（AIShedule）",
+      "initialUrl": "https://cnodejs.org/topic/5203a71844e76d216a727d2e",
+      "systemType": "自研教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_11cfc7",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_11cfc7/script?script_type=provider",
+      "title": "泰州职业技术学院（AIShedule）",
+      "initialUrl": "https://cnodejs.org/topic/5203a71844e76d216a727d2e",
+      "systemType": "自研教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ujn_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ujn_01/script?script_type=provider",
+      "title": "济南大学教务系统",
+      "initialUrl": "https://sso.ujn.edu.cn/tpass/login?service=http%3A%2F%2Fjwgl.ujn.edu.cn%2Fsso%2Fdriotlogin",
+      "systemType": "ujn",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "jyvtc_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/jyvtc_01/script?script_type=provider",
+      "title": "济源职业技术学院教务系统",
+      "initialUrl": "https://jwgl.jyvtc.edu.cn/jyvtcjw/",
+      "systemType": "jyvtc",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "hblgxy_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/hblgxy_01/script?script_type=provider",
+      "title": "淮北理工学院强智适配",
+      "initialUrl": "https://a.hblgxy.edu.cn:5111/jsxsd/",
+      "systemType": "hblgxy",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_78cb84",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_78cb84/script?script_type=provider",
+      "title": "深圳信息职业技术学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "正方教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_f676e5",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_f676e5/script?script_type=provider",
+      "title": "湖北交通职业技术学院_有ajax（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "正方教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "huat",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/huat/script?script_type=provider",
+      "title": "湖北汽车工业学院",
+      "initialUrl": "https://cas.huat.edu.cn/authserver/login?service=http%3A%2F%2Fneweas.huat.edu.cn%2Flogin",
+      "systemType": "huat",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_995b69",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_995b69/script?script_type=provider",
+      "title": "湖南中医药（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "强智教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "hniu_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/hniu_01/script?script_type=provider",
+      "title": "湖南信息职业技术学院强智适配",
+      "initialUrl": "https://authserver.hniu.cn/authserver/login?service=https%3A%2F%2Fehall.hniu.cn%3A443%2Flogin%3Fservice%3Dhttps%3A%2F%2Fehall.hniu.cn%2Fnew%2Findex.html%3Fbrowser%3Dno%25EF%25BC%2589#StudentAffairsA",
+      "systemType": "hniu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "hnvcc_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/hnvcc_01/script?script_type=provider",
+      "title": "湖南商务职业技术学院强智适配",
+      "initialUrl": "http://jwxt.hnvcc.edu.cn/",
+      "systemType": "hnvcc",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "hnust_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/hnust_01/script?script_type=provider",
+      "title": "湖南科技大学适配教务",
+      "initialUrl": "https://kdjw.hnust.edu.cn/",
+      "systemType": "hnust",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "huse",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/huse/script?script_type=provider",
+      "title": "湖南科技学院",
+      "initialUrl": "http://jw.huse.cn/jsxsd",
+      "systemType": "huse",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_094119",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_094119/script?script_type=provider",
+      "title": "湖南软件职业技术学院（AIShedule）",
+      "initialUrl": "http://222.243.161.213:81/hnrjzyxyhd",
+      "systemType": "强智教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_60ae35",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_60ae35/script?script_type=provider",
+      "title": "湛江科技学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "正方教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_eb003c",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_eb003c/script?script_type=provider",
+      "title": "烟台南山学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "青果教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_urp_665b00",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_urp_665b00/script?script_type=provider",
+      "title": "烟台大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "URP教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_67fba8",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_67fba8/script?script_type=provider",
+      "title": "燕山大学（AIShedule）",
+      "initialUrl": "https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE",
+      "systemType": "金智教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "gsmc_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/gsmc_01/script?script_type=provider",
+      "title": "甘肃医学院正方教务",
+      "initialUrl": "https://jw.gsmc.edu.cn/jwglxt/xtgl/login_slogin.html",
+      "systemType": "gsmc",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_d6ea12",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_d6ea12/script?script_type=provider",
+      "title": "盐城师范学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "正方教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "fjcpc",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/fjcpc/script?script_type=provider",
+      "title": "福建船政交通职业学院教务",
+      "initialUrl": "https://webvpn.fjcpc.edu.cn/",
+      "systemType": "fjcpc",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "generic-lianyi",
+      "delaySeconds": 3,
+      "level": "general",
+      "targetUrl": "https://example.com/course",
+      "extractScriptUrl": "local://parsers/lianyi-generic.js",
+      "title": "联亦科技教务",
+      "initialUrl": "https://example.com/login"
+    },
+    {
+      "id": "suda_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/suda_01/script?script_type=provider",
+      "title": "苏州大学教务系统",
+      "initialUrl": "http://xk.suda.edu.cn/",
+      "systemType": "suda",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "mmpt",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/mmpt/script?script_type=provider",
+      "title": "茂名职业技术学院课表",
+      "initialUrl": "https://jwc.mmpt.edu.cn/xtgl/login_slogin.html",
+      "systemType": "mmpt",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "school-015-荆州理工职业学院",
+      "delaySeconds": 3,
+      "level": "undergraduate",
+      "targetUrl": "https://example.com/course",
+      "extractScriptUrl": "local://parsers/school-generic.js",
+      "title": "荆州理工职业学院",
+      "initialUrl": "https://www.jzlg.edu.cn/jwgl/"
+    },
+    {
+      "id": "ais_crp_0b9c14",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_crp_0b9c14/script?script_type=provider",
+      "title": "荆州理工职业学院（AIShedule）",
+      "initialUrl": "",
+      "systemType": "crp",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "hynu_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/hynu_01/script?script_type=provider",
+      "title": "衡阳师范学院强智适配",
+      "initialUrl": "https://hysfjw.hynu.edu.cn/jsxsd/",
+      "systemType": "hynu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "csf_xibeinonglinkejidaxuebksjiaowu",
+      "delaySeconds": 3,
+      "level": "undergraduate",
+      "targetUrl": "https://newehall.nwafu.edu.cn/jwapp/sys/wdkbby/*default/index.do#/xskcb",
+      "extractScriptUrl": "/api/schools/csf_xibeinonglinkejidaxuebksjiaowu/script?script_type=provider",
+      "title": "西北农林科技大学本科生教务系统",
+      "initialUrl": "https://authserver.nwafu.edu.cn/authserver/login?service=https%3A%2F%2Fnewehall.nwafu.edu.cn%2Fjwapp%2Fsys%2Fwdkbby%2F*default%2Findex.do",
+      "systemType": "class_schedule_flutter",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "xjtu",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "https://ehall.xjtu.edu.cn/new/index.html",
+      "extractScriptUrl": "/api/schools/xjtu/script?script_type=provider",
+      "title": "西安交通大学",
+      "initialUrl": "https://ehall.xjtu.edu.cn/new/index.html",
+      "systemType": "zhengfang",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "xjtu_master_01",
+      "delaySeconds": 0,
+      "level": "master",
+      "targetUrl": "https://gmis.xjtu.edu.cn/pyxx/pygl/xskbcx/index",
+      "extractScriptUrl": "/api/schools/xjtu_master_01/script?script_type=provider",
+      "title": "西安交通大学研究生管理信息系统",
+      "initialUrl": "https://gmis.xjtu.edu.cn/pyxx/pygl/xskbcx/index",
+      "systemType": "xjtu_master",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_47c35f",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_47c35f/script?script_type=provider",
+      "title": "西安建筑科技大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "自研教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "xawl_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/xawl_01/script?script_type=provider",
+      "title": "西安文理学院正方教务",
+      "initialUrl": "http://jwgl.xawl.edu.cn/jwglxt/",
+      "systemType": "xawl",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_eurasia_547495",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_eurasia_547495/script?script_type=provider",
+      "title": "西安欧亚学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "eurasia",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "xaut_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/xaut_01/script?script_type=provider",
+      "title": "西安理工大学适配教务",
+      "initialUrl": "http://jwgl.xaut.edu.cn/",
+      "systemType": "xaut",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "school-037-西安翻译学院",
+      "delaySeconds": 3,
+      "level": "undergraduate",
+      "targetUrl": "https://example.com/course",
+      "extractScriptUrl": "local://parsers/school-generic.js",
+      "title": "西安翻译学院",
+      "initialUrl": "https://jwc.xafy.edu.cn/"
+    },
+    {
+      "id": "ais_system_9c9554",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_9c9554/script?script_type=provider",
+      "title": "西安翻译学院（AIShedule）",
+      "initialUrl": "",
+      "systemType": "青果教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_3e5a83",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_3e5a83/script?script_type=provider",
+      "title": "西安航空学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "树维",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_f2a7f7",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_f2a7f7/script?script_type=provider",
+      "title": "贵州工程应用技术学院（AIShedule）",
+      "initialUrl": "https://jwxt.gues.edu.cn",
+      "systemType": "自研教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_053652",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_053652/script?script_type=provider",
+      "title": "贵州师范大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "正方教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "generic-chaoxing",
+      "delaySeconds": 3,
+      "level": "general",
+      "targetUrl": "https://example.com/course",
+      "extractScriptUrl": "local://parsers/chaoxing-generic.js",
+      "title": "超星教务",
+      "initialUrl": "https://example.com/login"
+    },
+    {
+      "id": "chaoxing",
+      "delaySeconds": 0,
+      "level": "general",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/chaoxing/script?script_type=provider",
+      "title": "超星教务系统",
+      "initialUrl": "",
+      "systemType": "chaoxing_jiaowu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_270b10",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_270b10/script?script_type=provider",
+      "title": "辽宁科技学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "树维",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_5e4325",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_5e4325/script?script_type=provider",
+      "title": "辽宁装备制造职业技术学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "树维",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_82ef20",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_82ef20/script?script_type=provider",
+      "title": "郑州升达经贸管理学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "青果教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "school-055-郑州大学",
+      "delaySeconds": 3,
+      "level": "undergraduate",
+      "targetUrl": "https://example.com/course",
+      "extractScriptUrl": "local://parsers/school-generic.js",
+      "title": "郑州大学",
+      "initialUrl": "https://jw.v.zzu.edu.cn/eams/login.action"
+    },
+    {
+      "id": "ais_zzu",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_zzu/script?script_type=provider",
+      "title": "郑州大学（AIShedule）",
+      "initialUrl": "",
+      "systemType": "树维",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "cqrk_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/cqrk_01/script?script_type=provider",
+      "title": "重庆人文科技学院强智适配",
+      "initialUrl": "https://https-auth-cqrk-edu-cn-443.webvpn.cqrk.edu.cn:8480/cas/login?service=http%3A%2F%2Fportal.cqrk.edu.cn&rewrite=1",
+      "systemType": "cqrk",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_1cbebd",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_1cbebd/script?script_type=provider",
+      "title": "重庆人文科技学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "强智教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "cqcivc",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/cqcivc/script?script_type=provider",
+      "title": "重庆化工职业学院正方教务",
+      "initialUrl": "http://dc.cqcivc.cn/cas/login?service=http://jwxt.cqcivc.edu.cn/sso/zllogin",
+      "systemType": "cqcivc",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "school-058-重庆医科大学",
+      "delaySeconds": 3,
+      "level": "undergraduate",
+      "targetUrl": "https://example.com/course",
+      "extractScriptUrl": "local://parsers/school-generic.js",
+      "title": "重庆医科大学",
+      "initialUrl": "https://jiaowu.cqmu.edu.cn:8080/eams/manageLogin.action"
+    },
+    {
+      "id": "cqu",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/cqu/script?script_type=provider",
+      "title": "重庆大学教务",
+      "initialUrl": "https://my.cqu.edu.cn/",
+      "systemType": "cqu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_2acfe5",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_2acfe5/script?script_type=provider",
+      "title": "重庆科技学院（AIShedule）",
+      "initialUrl": "http://web.cqust.edu.cn/",
+      "systemType": "树维",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "generic-jinzhi",
+      "delaySeconds": 3,
+      "level": "general",
+      "targetUrl": "https://example.com/course",
+      "extractScriptUrl": "local://parsers/jinzhi-generic.js",
+      "title": "金智教务",
+      "initialUrl": "https://example.com/login"
+    },
+    {
+      "id": "generic-jinchuang",
+      "delaySeconds": 3,
+      "level": "general",
+      "targetUrl": "https://example.com/course",
+      "extractScriptUrl": "local://parsers/jinchuang-generic.js",
+      "title": "金窗教务",
+      "initialUrl": "https://example.com/login"
+    },
+    {
+      "id": "ais_system_a216c7",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_a216c7/script?script_type=provider",
+      "title": "长春大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "强智教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_v6_0_2347b4",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_v6_0_2347b4/script?script_type=provider",
+      "title": "长春师范大学（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "教务管理系统V6.0",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_c7b9a0",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_c7b9a0/script?script_type=provider",
+      "title": "长春汽车工业高等专科学校（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "金智教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "cust_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/cust_01/script?script_type=provider",
+      "title": "长春理工大学教务系统",
+      "initialUrl": "https://mysso.cust.edu.cn/cas/login?service=https://jwgl.cust.edu.cn/welcome",
+      "systemType": "cust",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "yu_01",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/yu_01/script?script_type=provider",
+      "title": "长江大学教务系统适配",
+      "initialUrl": "https://cas-yangtzeu-edu-cn.atrust.yangtzeu.edu.cn/authserver/login?service=https%3A%2F%2Fatrust.yangtzeu.edu.cn%3A4443%2Fpassport%2Fv1%2Fauth%2Fcas%3FsfDomain%3DCAS",
+      "systemType": "yangtzeu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_24f736",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_24f736/script?script_type=provider",
+      "title": "陇东学院_新版（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "青果教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_f4cf3f",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_f4cf3f/script?script_type=provider",
+      "title": "青岛大学（AIShedule）",
+      "initialUrl": "https://cnodejs.org/topic/5203a71844e76d216a727d2e",
+      "systemType": "自研教务",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "generic-qingguo",
+      "delaySeconds": 3,
+      "level": "general",
+      "targetUrl": "",
+      "extractScriptUrl": "local://parsers/qingguo-generic.js",
+      "title": "青果教务",
+      "initialUrl": ""
+    },
+    {
+      "id": "qingguo_01",
+      "delaySeconds": 0,
+      "level": "general",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/qingguo_01/script?script_type=provider",
+      "title": "青果教务html通用获取",
+      "initialUrl": "",
+      "systemType": "qingguo_jiaowu",
+      "scriptVersion": "1.0.0"
+    },
+    {
+      "id": "ais_system_7f6b13",
+      "delaySeconds": 0,
+      "level": "undergraduate",
+      "targetUrl": "",
+      "extractScriptUrl": "/api/schools/ais_system_7f6b13/script?script_type=provider",
+      "title": "齐齐哈尔医学院（AIShedule）",
+      "initialUrl": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+      "systemType": "自研教务",
+      "scriptVersion": "1.0.0"
+    }
+  ]
 }
-

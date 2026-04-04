@@ -1,0 +1,540 @@
+// Source: 参考文件/aishedule-master/正方教务/个性化正方/华中农业大学-本研一体化/provider.js
+
+/**
+ * @Author: xiaoxiao
+ * @Date: 2022-03-01 22:04:08
+ * @LastEditTime: 2022-10-17 21:48:37
+ * @LastEditors: xiaoxiao
+ * @Description:
+ * @FilePath: \AISchedule\新正方教务\华中农业大学-本研一体化\provider.js
+ * @QQ：357914968
+ */
+
+async function request(tag, data, url) {
+  return await fetch(url, {
+    method: tag,
+    body: data,
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  })
+    .then((rp) => rp.text())
+    .then((v) => v)
+}
+function AIScheduleLoading({
+  titleText = '加载中',
+  contentText = 'loading...',
+} = {}) {
+  console.log('start......')
+  AIScheduleComponents.addMeta()
+  const title = AIScheduleComponents.createTitle(titleText)
+  const content = AIScheduleComponents.createContent(contentText)
+  const card = AIScheduleComponents.createCard([title, content])
+  const mask = AIScheduleComponents.createMask(card)
+
+  let dyn
+  let count = 0
+  function dynLoading() {
+    let t = ['loading', 'loading.', 'loading..', 'loading...']
+    if (count == 4) count = 0
+    content.innerText = t[count++]
+  }
+
+  this.show = () => {
+    console.log('show......')
+    document.body.appendChild(mask)
+    dyn = setInterval(dynLoading, 1000)
+  }
+  this.close = () => {
+    document.body.removeChild(mask)
+    clearInterval(dyn)
+  }
+}
+async function scheduleHtmlProvider(
+  iframeContent = '',
+  frameContent = '',
+  dom = document
+) {
+  //除函数名外都可编辑
+  //以下为示例，您可以完全重写或在此基础上更改
+  let ts = `
+  导入失败，请确保当前位于课表页面!
+   `
+  //     alert(ts)
+
+  await loadTool('AIScheduleTools')
+  let loadd = new AIScheduleLoading()
+  loadd.show()
+  let htt = null
+  let xnm = ''
+  let xqm = ''
+  let tag = 'json'
+
+  let currentUrl = location.href
+  if(currentUrl.search("index_initMenu")!==-1){
+    // 在首页
+    xqm = document.getElementById("dqxnxq").value;
+    let xqxh = xqm.split("-");
+    xnm = xqxh[0];
+    xqm = xqxh[1];
+     htt = JSON.parse(
+        await request("post"
+            ,"localeKey=zh_CN&xnm="+xnm+"&xqm="+xqm
+            , "/kbcx/xskbcx_cxXsKb.html?gnmkdm=index")
+    ).kbList
+    tag = 'json'
+  }else if(currentUrl.search("bjkbdy_cxBjkbdyIndex")!==-1){
+    //在推荐课表查询页
+    htt = dom.getElementById("ylkbTable").outerHTML
+    tag = 'html'
+  }else {
+    await AIScheduleAlert("暂不支持此课表")
+    loadd.close()
+    return "do not continue"
+  }
+  loadd.close()
+
+  console.log(htt)
+  return JSON.stringify({ tag:tag,listArr: htt, xqm: xqm, xnm: xnm })
+}
+
+// Merged parser.js
+
+/**
+ * @Author: xiaoxiao
+ * @Date: 2022-09-18 19:57:55
+ * @LastEditTime: 2022-10-17 20:59:29
+ * @LastEditors: xiaoxiao
+ * @Description:
+ * @FilePath: \AISchedule\新正方教务\华中农业大学-本研一体化\parser.js
+ * @QQ: 357914968
+ */
+function resolveCourseConflicts(result) {
+  let splitTag = '&'
+  //将课拆成单节，并去重
+  let allResultSet = new Set()
+  result.forEach((singleCourse) => {
+    singleCourse.weeks.forEach((week) => {
+      singleCourse.sections.forEach((value) => {
+        let course = { sections: [], weeks: [] }
+        course.name = singleCourse.name
+        course.teacher =
+          singleCourse.teacher == undefined ? '' : singleCourse.teacher
+        course.position =
+          singleCourse.position == undefined ? '' : singleCourse.position
+        course.day = singleCourse.day
+        course.weeks.push(week)
+        course.sections.push(value)
+        allResultSet.add(JSON.stringify(course))
+      })
+    })
+  })
+  let allResult = JSON.parse(
+    '[' + Array.from(allResultSet).toString() + ']'
+  ).sort(function (a, b) {
+    //return b.day - e.day;
+    return a.day - b.day || a.sections[0] - b.sections[0]
+  })
+
+  //将冲突的课程进行合并
+  let contractResult = []
+  while (allResult.length !== 0) {
+    let firstCourse = allResult.shift()
+    if (firstCourse == undefined) continue
+    let weekTag = firstCourse.day
+    //   console.log(firstCourse)
+    for (
+      let i = 0;
+      allResult[i] !== undefined && weekTag === allResult[i].day;
+      i++
+    ) {
+      if (firstCourse.weeks[0] === allResult[i].weeks[0]) {
+        if (firstCourse.sections[0] === allResult[i].sections[0]) {
+          let index = firstCourse.name
+            .split(splitTag)
+            .indexOf(allResult[i].name)
+          if (index === -1) {
+            firstCourse.name += splitTag + allResult[i].name
+            firstCourse.teacher += splitTag + allResult[i].teacher
+            firstCourse.position += splitTag + allResult[i].position
+            // firstCourse.position = firstCourse.position.replace(/undefined/g, '')
+            allResult.splice(i, 1)
+            i--
+          } else {
+            let teacher = firstCourse.teacher.split(splitTag)
+            let position = firstCourse.position.split(splitTag)
+            teacher[index] =
+              teacher[index] === allResult[i].teacher
+                ? teacher[index]
+                : teacher[index] + ',' + allResult[i].teacher
+            position[index] =
+              position[index] === allResult[i].position
+                ? position[index]
+                : position[index] + ',' + allResult[i].position
+            firstCourse.teacher = teacher.join(splitTag)
+            firstCourse.position = position.join(splitTag)
+            // firstCourse.position = firstCourse.position.replace(/undefined/g, '');
+            allResult.splice(i, 1)
+            i--
+          }
+        }
+      }
+    }
+    contractResult.push(firstCourse)
+  }
+  //将每一天内的课程进行合并
+  let finallyResult = []
+  while (contractResult.length != 0) {
+    let firstCourse = contractResult.shift()
+    if (firstCourse == undefined) continue
+    let weekTag = firstCourse.day
+    for (
+      let i = 0;
+      contractResult[i] !== undefined && weekTag === contractResult[i].day;
+      i++
+    ) {
+      if (
+        firstCourse.weeks[0] === contractResult[i].weeks[0] &&
+        firstCourse.name === contractResult[i].name &&
+        firstCourse.position === contractResult[i].position &&
+        firstCourse.teacher === contractResult[i].teacher
+      ) {
+        if (
+          firstCourse.sections[firstCourse.sections.length - 1] + 1 ===
+          contractResult[i].sections[0]
+        ) {
+          firstCourse.sections.push(contractResult[i].sections[0])
+          contractResult.splice(i, 1)
+          i--
+        } else break
+        // delete (contractResult[i])
+      }
+    }
+    finallyResult.push(firstCourse)
+  }
+  //将课程的周次进行合并
+  contractResult = JSON.parse(JSON.stringify(finallyResult))
+  finallyResult.length = 0
+  while (contractResult.length != 0) {
+    let firstCourse = contractResult.shift()
+    if (firstCourse == undefined) continue
+    let weekTag = firstCourse.day
+    for (
+      let i = 0;
+      contractResult[i] !== undefined && weekTag === contractResult[i].day;
+      i++
+    ) {
+      if (
+        firstCourse.sections.sort((a, b) => a - b).toString() ===
+          contractResult[i].sections.sort((a, b) => a - b).toString() &&
+        firstCourse.name === contractResult[i].name &&
+        firstCourse.position === contractResult[i].position &&
+        firstCourse.teacher === contractResult[i].teacher
+      ) {
+        firstCourse.weeks.push(contractResult[i].weeks[0])
+        contractResult.splice(i, 1)
+        i--
+      }
+    }
+    finallyResult.push(firstCourse)
+  }
+  console.log(finallyResult)
+  return finallyResult
+}
+function getWeeks(Str) {
+  function range(con, tag) {
+    let retWeek = []
+    con
+      .slice(0, -1)
+      .split(',')
+      .forEach((w) => {
+        let tt = w.split('-')
+        let start = parseInt(tt[0])
+        let end = parseInt(tt[tt.length - 1])
+        if (tag == 1 || tag == 2)
+          retWeek.push(
+            ...Array(end + 1 - start)
+              .fill(start)
+              .map((x, y) => x + y)
+              .filter((f) => {
+                return f % tag == 0
+              })
+          )
+        else
+          retWeek.push(
+            ...Array(end + 1 - start)
+              .fill(start)
+              .map((x, y) => x + y)
+              .filter((v) => {
+                return v % 2 != 0
+              })
+          )
+      })
+    return retWeek
+  }
+  Str = Str.replace(/\(|\)|\{|\}|\||第/g, '').replace(/到/g, '-')
+  let reWeek = []
+  let week1 = []
+  while (Str.search(/周/) != -1) {
+    let index = Str.search(/周/)
+    if (Str[index + 1] == '单' || Str[index + 1] == '双') {
+      week1.push(Str.slice(0, index + 2).replace('周', ''))
+      index += 2
+    } else {
+      week1.push(Str.slice(0, index + 1).replace('周', ''))
+      index += 1
+    }
+
+    Str = Str.slice(index)
+    index = Str.search(/\d/)
+    if (index != -1) Str = Str.slice(index)
+    else Str = ''
+  }
+  if (Str.length != 0) week1.push(Str)
+
+  week1.forEach((v) => {
+    console.log(v)
+    if (v.slice(-1) == '双') reWeek.push(...range(v, 2))
+    else if (v.slice(-1) == '单') reWeek.push(...range(v, 3))
+    else reWeek.push(...range(v + '全', 1))
+  })
+  return reWeek
+}
+function getSections(Str) {
+  Str = Str.replace(/节/g, '').split(',')
+  let res = []
+  Str.forEach((ss) => {
+    let arr = ss.split('-')
+    for (let i = Number(arr[0]); i <= arr[arr.length - 1]; i++) {
+      res.push(i)
+    }
+  })
+  console.log(Str, res)
+  return res
+}
+function cutOutStringByteLength(str,long) {
+  let seeString = [];
+  let countByteLength = 0;
+  for(let i=0;i<str.length;i++){
+    let charCode = str.charCodeAt(i);
+    if (charCode >= 0 && charCode <= 128){
+      countByteLength += 1;
+    }else{
+      countByteLength += 2;
+    }
+    if (countByteLength <= long){
+      seeString.push(str[i]);
+    }else {
+      break;
+    }
+  }
+  return seeString.join("");
+}
+
+function scheduleHtmlParser(html) {
+  //除函数名外都可编辑
+  //传入的参数为上一步函数获取到的html
+  //可使用正则匹配
+  //可使用解析dom匹配，工具内置了$，跟jquery使用方法一样，直接用就可以了，参考：https://juejin.im/post/5ea131f76fb9a03c8122d6b9
+  //以下为示例，您可以完全重写或在此基础上更改
+
+  let result = []
+  let message = ''
+
+  let providerResult = JSON.parse(html)
+  if (providerResult.tag === 'json'){
+    providerResult.listArr.forEach((course) => {
+      result.push({
+        name: course.kcmc,
+        position: course.cdmc,
+        day: Number(course.xqj),
+        weeks: getWeeks(course.zcd),
+        sections: getSections(course.jc),
+        teacher: course.xm,
+      })
+    })
+  }else if(providerResult.tag === 'html'){
+    let $ = cheerio.load(providerResult.listArr,{decodeEntities: false})
+    let bbb = $('div[class = "tab-pane fade active in"]')
+    if(bbb.attr('id') == 'table1' ){
+      let trs = bbb.find('table tbody tr')
+      trs.each(function(index,em){
+        if(index>=2){ //跳过表头
+          $(this).find('.td_wrap').each(function(__,em1){
+            let weekday=$(this).attr('id').slice(0,1)
+            $(this).find('div').each(function(index2,em2){
+              let re = {weeks:[],sections:[]}
+              re.day = Number(weekday);
+              re.name = $(this).find('p[class="title"]').length != 0?$(this).find('p[class="title"]').text() : $(this).find('u').text()//处理调课
+              let namePs = $(this).find('p[class="title"]');
+              if(namePs.length === 0){
+                re.name = $(this).find('u').text();
+              }else {
+                let span = namePs.find('span');
+                if(span.length !== 0 && span.text().length === 1){
+                  re.name = namePs.text().slice(1)
+                }else {
+                  re.name = namePs.text()
+                }
+              }
+              re.name = re.name.slice(0,-1)
+              re.name = cutOutStringByteLength(re.name,40)
+              $(this).children('p').each(function(inn,em){
+                let text = $(this).find('span').attr('data-original-title')
+                switch(text){
+                  case '节/周':
+                    let tt = $(this).text();
+                    re.sections = getSections(tt.match(/(?<=\().*?(?=\))/)[0])
+                    re.weeks = getWeeks(tt.match(/(?<=节\)).*?$/)[0])
+                    console.log($(this).text());
+                    break;
+                  case '上课地点': re.position = $(this).text().replace(/北校区|南校区/g,"").trim();
+                    re.position = cutOutStringByteLength(re.position,40);
+                    break;
+                  case '教师': re.teacher = $(this).text().replace(/\(.*?\)/g,"").trim();
+                    re.teacher = cutOutStringByteLength(re.teacher,40);
+                    break;
+                }
+              })
+              if(re.weeks.length == 0||re.sections.length == 0){
+                return
+              }
+              result.push(re)
+            })
+          })
+        }
+      })
+    }
+    if(bbb.attr('id') == 'table2' ){
+      let tbs = bbb.find('table tbody')
+      tbs.each(function(index,em){
+        if($(this).attr('id')!=undefined){  //跳过表头
+          let re = {weeks:[],sections:[]}
+          re.day =  Number($(this).attr('id').replace('xq_',""))
+          $(this).children('tr').each(function(index1,em1){
+            re.weeks = []
+            if(index1>0){   //跳过星期列
+              let tds = $(this).find('td')
+              let sp_tr = null;
+              if(tds.length ==2) {
+                re.sections = getSections(tds.eq(0).text())
+                sp_tr = tds.eq(1).find('div')
+              }else {
+                sp_tr = tds.eq(0).find('div')
+              }
+              re.name = $(this).find('span[class="title"]').length != 0?$(this).find('span[class="title"]').text() : $(this).find('u').text()
+              re.name = re.name.slice(0,-1)
+              re.name = cutOutStringByteLength(re.name,40)
+              sp_tr.find('p font').each(function(index2,em2){
+                switch($(this).find('span').last().attr('class')){
+                  case 'glyphicon glyphicon-calendar': re.weeks = getWeeks($(this).text().replace("周数：","").trim());break;
+                  case 'glyphicon glyphicon-map-marker':re.position=$(this).text().replace(/校区：|南校区|北校区|上课地点：/g,"").trim();
+                    re.position = cutOutStringByteLength(re.position,40)
+                    break;
+                  case 'glyphicon glyphicon-user':re.teacher = $(this).text().replace(/教师：|\(.*?\)/g,"").trim();
+                    re.teacher = cutOutStringByteLength(re.teacher,40);
+                    break;
+                }
+              })
+              console.log(re)
+            }
+            if(re.weeks.length == 0) return;
+            result.push(JSON.parse(JSON.stringify(re)))
+          })
+        }
+      })
+    }
+  }
+
+
+  if (result.length == 0) message = '没有获取到课表'
+  else result = resolveCourseConflicts(result)
+
+  if (message.length != 0) {
+    result.length = 0
+    result.push({
+      name: '遇到错误,请加群:628325112,找开发者进行反馈',
+      teacher: '开发者-萧萧',
+      position: message,
+      day: 1,
+      weeks: [1],
+      sections: [{ section: 1 }, { section: 2 }],
+    })
+  }
+
+  console.info(result)
+  return result
+}
+
+// Merged timer.js
+
+/**
+ * @Author: xiaoxiao
+ * @Date: 2022-10-17 20:59:33
+ * @LastEditTime: 2022-10-17 20:59:34
+ * @LastEditors: xiaoxiao
+ * @Description:
+ * @FilePath: \AISchedule\新正方教务\华中农业大学-本研一体化\timer.js
+ * @QQ: 357914968
+ */
+/**
+ * 时间配置函数，此为入口函数，不要改动函数名
+ */
+async function timeRequest(tag, data, url) {
+  return await fetch(url, {
+    method: tag,
+    body: data,
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  })
+    .then((rp) => rp.json())
+    .then((v) => v)
+}
+async function scheduleTimer({ providerRes, parserRes } = {}) {
+  try {
+    let res = JSON.parse(providerRes)
+    console.log(res)
+    if (!res.xnm && !res.xqm) {
+      return {}
+    } else {
+      let times = await timeRequest(
+        'post',
+        'xnm=' +
+          res.xnm +
+          '&xqm=' +
+          res.xqm +
+          '&xqh_id=' +
+          res.listArr[0].xqh_id,
+        '/kbcx/xskbcx_cxRsd.html?gnmkdm=index'
+      )
+
+      let timeJson = {
+        totalWeek: 24, // 总周数：[1, 30]之间的整数
+        startSemester: '', // 开学时间：时间戳，13位长度字符串，推荐用代码生成
+        startWithSunday: false, // 是否是周日为起始日，该选项为true时，会开启显示周末选项
+        showWeekend: true, // 是否显示周末
+        forenoon: 4, // 上午课程节数：[1, 10]之间的整数
+        afternoon: 4, // 下午课程节数：[0, 10]之间的整数
+        night: 2, // 晚间课程节数：[0, 10]之间的整数
+        sections: [],
+      }
+      times.forEach((element) => {
+        timeJson.sections.push({
+          section: element.jcmc,
+          startTime: element.qssj.slice(0, -3),
+          endTime: element.jssj.slice(0, -3),
+        })
+      })
+      timeJson.night = times.length - 8
+
+      console.log(timeJson)
+      if (timeJson.sections.length == 0) timeJson = {}
+      return timeJson
+    }
+  } catch (e) {
+    console.error(e)
+    return {}
+  }
+  // PS: 夏令时什么的还是让用户在夏令时的时候重新导入一遍吧，在这个函数里边适配吧！奥里给！————不愿意透露姓名的嘤某人
+}

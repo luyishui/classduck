@@ -1,0 +1,41 @@
+{
+  "id": "ais_system_198a41",
+  "name": "华北水利水电（AIShedule）",
+  "level": "undergraduate",
+  "system_type": "青果教务",
+  "login_url": "https://juejin.im/post/5ea131f76fb9a03c8122d6b9",
+  "target_url": "",
+  "fetch_config": {
+    "url": "",
+    "method": "POST",
+    "headers": {},
+    "body_template": "",
+    "credentials": "include"
+  },
+  "term_mapping": {
+    "first": "1",
+    "second": "2",
+    "short": ""
+  },
+  "data_path": "",
+  "field_mapping": {
+    "name": "name",
+    "position": "position",
+    "teacher": "teacher",
+    "weeks": "weeks",
+    "day": "day",
+    "sections": "sections"
+  },
+  "timer_config": {
+    "total_week": 20,
+    "start_semester": "2026-02-24",
+    "start_with_sunday": false,
+    "forenoon": 5,
+    "afternoon": 4,
+    "night": 3,
+    "sections": []
+  },
+  "script_version": "1.0.0",
+  "pre_extract_delay": 0,
+  "notes": "Imported from AIShedule (青果教务/华北水利水电/provider.js)"
+}

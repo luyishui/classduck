@@ -13,6 +13,11 @@ class AppTheme {
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppTokens.pageBackground,
       useMaterial3: true,
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: AppTokens.duckYellow,
+        selectionColor: AppTokens.duckYellow.withValues(alpha: 0.28),
+        selectionHandleColor: AppTokens.duckYellow,
+      ),
       appBarTheme: const AppBarTheme(
         centerTitle: true,
         backgroundColor: Colors.transparent,

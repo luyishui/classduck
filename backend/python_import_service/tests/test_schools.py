@@ -22,6 +22,10 @@ def test_list_schools_v1() -> None:
     assert "data" in payload
     assert any(item["id"] == "xjtu" for item in payload["data"])
 
+    levels = {item["id"]: item.get("level") for item in payload["data"]}
+    assert levels.get("xjtu") == "undergraduate"
+    assert levels.get("sora") == "general"
+
 
 def test_get_school_config() -> None:
     response = client.get("/api/schools/xjtu/config")

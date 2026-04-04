@@ -6,7 +6,7 @@ import '../data/import_api_service.dart';
 import '../domain/import_course.dart';
 import '../domain/import_table.dart';
 import '../domain/school_config.dart';
-import 'doubao_import_parser.dart';
+import 'ai_import_parser.dart';
 import 'xjtu_schedule_html_parser.dart';
 
 class ImportExecutionResult {
@@ -21,17 +21,14 @@ class ImportExecutionResult {
   final int importedCount;
 }
 
-enum ImportConflictMode {
-  createNew,
-  overwriteExisting,
-}
+enum ImportConflictMode { createNew, overwriteExisting }
 
 class ImportEngine {
   ImportEngine({
     ScheduleRepository? scheduleRepository,
     ImportApiService? apiService,
-  })  : _scheduleRepository = scheduleRepository ?? ScheduleRepository(),
-        _apiService = apiService ?? ImportApiService();
+  }) : _scheduleRepository = scheduleRepository ?? ScheduleRepository(),
+       _apiService = apiService ?? ImportApiService();
 
   final ScheduleRepository _scheduleRepository;
   final ImportApiService _apiService;
@@ -59,10 +56,16 @@ class ImportEngine {
     required String rawJson,
     String year = '',
     String term = '',
+    String? schoolIdOverride,
     ImportConflictMode mode = ImportConflictMode.createNew,
   }) async {
+    final String validateSchoolId =
+        (schoolIdOverride ?? config.id).trim().isEmpty
+        ? config.id
+        : (schoolIdOverride ?? config.id).trim();
+
     final Map<String, dynamic> validated = await _apiService.validateImport(
-      schoolId: config.id,
+      schoolId: validateSchoolId,
       rawData: rawJson,
       year: year,
       term: term,
@@ -74,7 +77,8 @@ class ImportEngine {
     }
 
     final Map<String, dynamic> data = validated['data'] as Map<String, dynamic>;
-    final List<dynamic> coursesRaw = data['courses'] as List<dynamic>? ?? <dynamic>[];
+    final List<dynamic> coursesRaw =
+        data['courses'] as List<dynamic>? ?? <dynamic>[];
     final String semesterName = data['semester_name'] as String? ?? '';
 
     if (coursesRaw.isEmpty) {
@@ -84,22 +88,23 @@ class ImportEngine {
     final List<ImportCourse> courses = coursesRaw
         .whereType<Map<String, dynamic>>()
         .map((Map<String, dynamic> item) {
-      return ImportCourse(
-        name: item['name'] as String? ?? '',
-        classroom: item['position'] as String?,
-        teacher: item['teacher'] as String?,
-        weeks: (item['weeks'] as List<dynamic>? ?? <dynamic>[])
-            .whereType<int>()
-            .toList(growable: false),
-        weekTime: item['day'] as int? ?? 1,
-        startTime: item['start_section'] as int? ?? 1,
-        timeCount: item['duration'] as int? ?? 1,
-      );
-    }).toList(growable: false);
+          return ImportCourse(
+            name: item['name'] as String? ?? '',
+            classroom: item['position'] as String?,
+            teacher: item['teacher'] as String?,
+            weeks: (item['weeks'] as List<dynamic>? ?? <dynamic>[])
+                .whereType<int>()
+                .toList(growable: false),
+            weekTime: item['day'] as int? ?? 1,
+            startTime: item['start_section'] as int? ?? 1,
+            timeCount: item['duration'] as int? ?? 1,
+          );
+        })
+        .toList(growable: false);
 
     final String tableName = semesterName.isNotEmpty
         ? semesterName
-        : 'Imported - ${config.title}';
+        : 'Imported - ${config.displayTitle}';
 
     final ImportTable parsed = ImportTable(name: tableName, courses: courses);
     return _storeParsedTable(parsed, mode: mode);
@@ -137,22 +142,22 @@ class ImportEngine {
   }
 
   // ────────────────────────────────────────────
-  // 豆包 AI 导入通路：用户粘贴豆包返回的 JSON 文本 → 本地解析 → 存库
+  // AI 导入通路：用户粘贴 AI 返回的 JSON 文本 → 本地解析 → 存库
   //
   // 【实现思路】
-  // 1. 调用 DoubaoImportParser.parse() 对用户粘贴的原始文本进行 JSON 提取与结构化解析。
+  // 1. 调用 AiImportParser.parse() 对用户粘贴的原始文本进行 JSON 提取与结构化解析。
   // 2. 解析器能容忍 markdown 代码块包裹、多种字段命名风格、中文星期/周次等。
   // 3. 解析成功后得到 ImportTable（含课表名 + ImportCourse 列表），
   //    交由 _storeParsedTable() 写入 SQLite。
   // 4. 此通路完全离线，不依赖后端。
   // ────────────────────────────────────────────
 
-  Future<ImportExecutionResult> importFromDoubaoText(
+  Future<ImportExecutionResult> importFromAiText(
     String text, {
-    String tableName = '豆包导入课表',
+    String tableName = 'AI导入课表',
     ImportConflictMode mode = ImportConflictMode.createNew,
   }) async {
-    final ImportTable parsed = DoubaoImportParser.parse(
+    final ImportTable parsed = AiImportParser.parse(
       text,
       fallbackTableName: tableName,
     );
@@ -180,27 +185,31 @@ class ImportEngine {
       await _scheduleRepository.clearAllCourseTables();
     }
 
-    final created = await _scheduleRepository.createCourseTable(name: parsed.name);
+    final created = await _scheduleRepository.createCourseTable(
+      name: parsed.name,
+    );
     final String now = DateTime.now().toUtc().toIso8601String();
 
     await _scheduleRepository.addCourses(
       tableId: created.id!,
-      courses: parsed.courses.map((ImportCourse item) {
-        return CourseEntity(
-          tableId: created.id!,
-          name: item.name,
-          classroom: item.classroom,
-          classNumber: item.classNumber,
-          teacher: item.teacher,
-          weeksJson: jsonEncode(item.weeks),
-          weekTime: item.weekTime,
-          startTime: item.startTime,
-          timeCount: item.timeCount,
-          importType: 1,
-          createdAt: now,
-          updatedAt: now,
-        );
-      }).toList(growable: false),
+      courses: parsed.courses
+          .map((ImportCourse item) {
+            return CourseEntity(
+              tableId: created.id!,
+              name: item.name,
+              classroom: item.classroom,
+              classNumber: item.classNumber,
+              teacher: item.teacher,
+              weeksJson: jsonEncode(item.weeks),
+              weekTime: item.weekTime,
+              startTime: item.startTime,
+              timeCount: item.timeCount,
+              importType: 1,
+              createdAt: now,
+              updatedAt: now,
+            );
+          })
+          .toList(growable: false),
     );
 
     return ImportExecutionResult(
@@ -214,7 +223,7 @@ class ImportEngine {
     // This is a transition implementation.
     // Real WebView + JS parser execution will replace this mocked parser result.
     return ImportTable(
-      name: 'Imported - ${config.title}',
+      name: 'Imported - ${config.displayTitle}',
       courses: <ImportCourse>[
         ImportCourse(
           name: 'Imported Math',
@@ -245,11 +254,17 @@ class ImportEngine {
     required String html,
     required String pageUrl,
   }) {
-    final String source = '${config.id} ${config.title} ${pageUrl.toLowerCase()}';
-    if (source.contains('西安交通') || source.contains('xjtu') || source.contains('gmis.xjtu.edu.cn')) {
-      return XjtuScheduleHtmlParser.parse(html, schoolName: config.title);
+    final String source =
+        '${config.id} ${config.title} ${pageUrl.toLowerCase()}';
+    if (source.contains('西安交通') ||
+        source.contains('xjtu') ||
+        source.contains('gmis.xjtu.edu.cn')) {
+      return XjtuScheduleHtmlParser.parse(
+        html,
+        schoolName: config.displayTitle,
+      );
     }
 
-    throw UnsupportedError('该学校暂未完成抓取解析器：${config.title}');
+    throw UnsupportedError('该学校暂未完成抓取解析器：${config.displayTitle}');
   }
 }

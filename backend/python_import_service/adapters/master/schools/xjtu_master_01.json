@@ -1,0 +1,57 @@
+{
+  "id": "xjtu_master_01",
+  "level": "master",
+  "title": "西安交通大学研究生管理信息系统",
+  "import_url": "https://gmis.xjtu.edu.cn/pyxx/pygl/xskbcx/index",
+  "target_url": "https://gmis.xjtu.edu.cn/pyxx/pygl/xskbcx/index",
+  "system_type": "xjtu_master",
+  "delay_seconds": 0,
+  "source": "manual_rule",
+  "source_path": "E:/work/Projects/getshedule/检查/xjtu源代码.txt",
+  "source_adapter_id": "xjtu_master_01",
+  "resource_folder": "manual",
+  "license": "INTERNAL",
+  "maintainer": "classduck",
+  "asset_js_path": "xjtu_master_01_provider.js",
+  "runtime": {
+    "id": "xjtu_master_01",
+    "name": "西安交通大学研究生管理信息系统",
+    "level": "master",
+    "system_type": "xjtu_master",
+    "login_url": "https://gmis.xjtu.edu.cn/pyxx/pygl/xskbcx/index",
+    "target_url": "https://gmis.xjtu.edu.cn/pyxx/pygl/xskbcx/index",
+    "fetch_config": {
+      "url": "",
+      "method": "POST",
+      "headers": {},
+      "body_template": "",
+      "credentials": "include"
+    },
+    "term_mapping": {
+      "first": "1",
+      "second": "2",
+      "short": ""
+    },
+    "data_path": "",
+    "field_mapping": {
+      "name": "name",
+      "position": "position",
+      "teacher": "teacher",
+      "weeks": "weeks",
+      "day": "day",
+      "sections": "sections"
+    },
+    "timer_config": {
+      "total_week": 20,
+      "start_semester": "2026-02-24",
+      "start_with_sunday": false,
+      "forenoon": 4,
+      "afternoon": 4,
+      "night": 3,
+      "sections": []
+    },
+    "script_version": "1.0.0",
+    "pre_extract_delay": 0,
+    "notes": "XJTU 研究生课表适配：解析 td_day_section 课程块。"
+  }
+}

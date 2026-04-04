@@ -1,0 +1,58 @@
+{
+  "id": "dlmu_01",
+  "level": "undergraduate",
+  "title": "大连海事大学教务",
+  "import_url": "http://jw.xpaas.dlmu.edu.cn/eams",
+  "target_url": "",
+  "system_type": "dlmu",
+  "delay_seconds": 0,
+  "source": "shiguang_warehouse",
+  "source_path": "shiguang_warehouse/resources/DLMU/adapters.yaml#DLMU_01",
+  "source_adapter_id": "DLMU_01",
+  "source_school_id": "DLMU",
+  "resource_folder": "DLMU",
+  "license": "MIT",
+  "maintainer": "whynusn",
+  "asset_js_path": "dlmu_01.js",
+  "runtime": {
+    "id": "dlmu_01",
+    "name": "大连海事大学教务",
+    "level": "undergraduate",
+    "system_type": "dlmu",
+    "login_url": "http://jw.xpaas.dlmu.edu.cn/eams",
+    "target_url": "",
+    "fetch_config": {
+      "url": "",
+      "method": "POST",
+      "headers": {},
+      "body_template": "",
+      "credentials": "include"
+    },
+    "term_mapping": {
+      "first": "1",
+      "second": "2",
+      "short": ""
+    },
+    "data_path": "",
+    "field_mapping": {
+      "name": "name",
+      "position": "position",
+      "teacher": "teacher",
+      "weeks": "weeks",
+      "day": "day",
+      "sections": "sections"
+    },
+    "timer_config": {
+      "total_week": 20,
+      "start_semester": "2026-02-24",
+      "start_with_sunday": false,
+      "forenoon": 5,
+      "afternoon": 4,
+      "night": 3,
+      "sections": []
+    },
+    "script_version": "1.0.0",
+    "pre_extract_delay": 0,
+    "notes": "Imported from shiguang_warehouse/DLMU/DLMU_01 | 大连海事大学适配教务，可能与`海大在线`中课程不一致"
+  }
+}

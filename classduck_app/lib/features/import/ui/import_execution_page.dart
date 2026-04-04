@@ -7,10 +7,12 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../schedule/data/schedule_repository.dart';
+import '../../../shared/constants/survey_links.dart';
 import '../../../shared/theme/app_tokens.dart';
 import '../application/import_engine.dart';
 import '../data/import_api_service.dart';
 import '../domain/school_config.dart';
+import '../../settings/ui/survey_webview_page.dart';
 
 String normalizeImportUrl(String url) {
   final String trimmed = url.trim();
@@ -36,10 +38,68 @@ Map<String, String> inferImportTermTokens(
       ? (termMapping['first'] as String? ?? '1')
       : (termMapping['second'] as String? ?? '2');
 
-  return <String, String>{
-    'year': schoolYear,
-    'term': term,
-  };
+  return <String, String>{'year': schoolYear, 'term': term};
+}
+
+bool shouldEnableGeneralSurveyFlow(SchoolConfig config) {
+  final String level = config.level.toLowerCase();
+  if (level == 'general') {
+    return true;
+  }
+  final String id = config.id.toLowerCase();
+  final String title = config.title;
+  return id.contains('general') || title.contains('通用');
+}
+
+class GeneralImportSurveyDialog extends StatelessWidget {
+  const GeneralImportSurveyDialog.success({super.key}) : _success = true;
+
+  const GeneralImportSurveyDialog.failure({super.key}) : _success = false;
+
+  final bool _success;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(
+        _success ? '导入成功，邀请共建' : '一起补齐适配',
+        style: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          color: Colors.black87,
+        ),
+      ),
+      content: Text(
+        _success
+            ? '你已通过通用教务成功导入课程，欢迎填写问卷中的“导入上报”部分。\n\n'
+                '你的反馈会帮助更多同学一键导入；审核通过后可获得项目参与证明，并可按你的意愿在学校适配列表署名。'
+            : '暂未匹配到可导入课程。若你找不到学校且通用教务导入失败，欢迎填写问卷中的“适配申请”部分。\n\n'
+                '适配成功后你将成为项目贡献者，可获得参与证明，并帮助后续同学更快完成导入。',
+        style: const TextStyle(fontSize: 15, height: 1.5, color: Colors.black87),
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          style: TextButton.styleFrom(
+            foregroundColor: AppTokens.textMuted,
+            textStyle: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          child: Text(_success ? '稍后填写' : '暂不申请'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          style: FilledButton.styleFrom(
+            backgroundColor: AppTokens.duckYellow,
+            foregroundColor: Colors.white,
+            textStyle: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          child: const Text('去填问卷'),
+        ),
+      ],
+    );
+  }
 }
 
 /// 教务导入页面 —— 一体化 WebView 设计
@@ -71,10 +131,7 @@ class ImportExecutionPage extends StatefulWidget {
 }
 
 class ImportWebFallbackPanel extends StatelessWidget {
-  const ImportWebFallbackPanel({
-    super.key,
-    required this.onOpen,
-  });
+  const ImportWebFallbackPanel({super.key, required this.onOpen});
 
   final VoidCallback onOpen;
 
@@ -108,7 +165,10 @@ class ImportWebFallbackPanel extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTokens.duckYellow,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
               ),
             ),
           ],
@@ -140,11 +200,7 @@ class ImportConflictDialog extends StatelessWidget {
         children: <Widget>[
           const Text(
             '检测到您当前已存在课表数据，请选择本次导入的处理方式：',
-            style: TextStyle(
-              fontSize: 15,
-              height: 1.5,
-              color: Colors.black87,
-            ),
+            style: TextStyle(fontSize: 15, height: 1.5, color: Colors.black87),
           ),
           const SizedBox(height: 20),
           Row(
@@ -153,14 +209,26 @@ class ImportConflictDialog extends StatelessWidget {
                 child: SizedBox(
                   height: 44,
                   child: ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(ImportConflictMode.createNew),
+                    onPressed: () =>
+                        Navigator.of(context).pop(ImportConflictMode.createNew),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTokens.duckYellow,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      textStyle: const TextStyle(fontWeight: FontWeight.w700),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      textStyle: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
                     ),
-                    child: const Text('新增为独立课表'),
+                    child: const Text(
+                      '新增课表',
+                      maxLines: 1,
+                      softWrap: false,
+                      overflow: TextOverflow.fade,
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
               ),
@@ -169,11 +237,18 @@ class ImportConflictDialog extends StatelessWidget {
                 child: SizedBox(
                   height: 44,
                   child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(ImportConflictMode.overwriteExisting),
+                    onPressed: () => Navigator.of(
+                      context,
+                    ).pop(ImportConflictMode.overwriteExisting),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppTokens.duckYellow,
-                      side: const BorderSide(color: AppTokens.duckYellow, width: 1.4),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      side: const BorderSide(
+                        color: AppTokens.duckYellow,
+                        width: 1.4,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       textStyle: const TextStyle(fontWeight: FontWeight.w700),
                     ),
                     child: const Text('覆盖原有课表'),
@@ -206,14 +281,17 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
   bool _importing = false;
   String? _capturedHtml;
   String? _capturedUrl;
+  String? _lastWebErrorDesc;
+  String? _lastWebErrorHost;
+  DateTime _lastWebErrorAt = DateTime.fromMillisecondsSinceEpoch(0);
 
   // JS 注入路径数据：WebView 中 JS 脚本回传的原始课表 JSON
   String? _rawJsonFromJs;
+  String? _activeImportSchoolId;
+  String? _providerCaptureError;
 
   bool get _isGeneralPortal {
-    final String id = widget.config.id.toLowerCase();
-    final String title = widget.config.title;
-    return id.contains('general') || title.contains('通用');
+    return shouldEnableGeneralSurveyFlow(widget.config);
   }
 
   String _effectiveInitialUrl() {
@@ -281,12 +359,17 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
             return;
           }
 
+          if (error.isForMainFrame == false) {
+            return;
+          }
+
           setState(() {
             _webViewLoading = false;
           });
 
           final String desc = error.description.toLowerCase();
           if (!desc.contains('err_cache_miss')) {
+            _notifyWebLoadError(error);
             return;
           }
           _recoverFromCacheMiss();
@@ -308,7 +391,10 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
     await _loadUrlDirect(_effectiveInitialUrl(), controller: controller);
   }
 
-  Future<void> _loadUrlDirect(String url, {WebViewController? controller}) async {
+  Future<void> _loadUrlDirect(
+    String url, {
+    WebViewController? controller,
+  }) async {
     final WebViewController? target = controller ?? _webController;
     if (target == null) {
       return;
@@ -337,9 +423,9 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
 
       if (mounted && !_cacheMissRecoveredHintShown) {
         _cacheMissRecoveredHintShown = true;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('登录页缓存异常，已自动清理缓存并重试。')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('登录页缓存异常，已自动清理缓存并重试。')));
       }
     } finally {
       _cacheMissRecovering = false;
@@ -347,14 +433,89 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
   }
 
   String _buildCacheMissRecoveryUrl() {
-    final String base = _currentUrl.trim().isNotEmpty && _currentUrl != 'about:blank'
+    final String base =
+        _currentUrl.trim().isNotEmpty && _currentUrl != 'about:blank'
         ? _currentUrl
         : _effectiveInitialUrl();
     return normalizeImportUrl(base);
   }
 
+  void _notifyWebLoadError(WebResourceError error) {
+    final String desc = error.description.trim();
+    if (desc.isEmpty) {
+      return;
+    }
+
+    final DateTime now = DateTime.now();
+    final String host = _hostHintFromUrl(_currentUrl);
+    if (_lastWebErrorDesc == desc &&
+        _lastWebErrorHost == host &&
+        now.difference(_lastWebErrorAt) < const Duration(seconds: 45)) {
+      return;
+    }
+    _lastWebErrorDesc = desc;
+    _lastWebErrorHost = host;
+    _lastWebErrorAt = now;
+
+    final String message = _friendlyWebLoadError(desc);
+    final String content = host.isEmpty ? message : '$message（当前域名: $host）';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(content),
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: '重试',
+          onPressed: () {
+            final String target = _currentUrl.trim().isEmpty
+                ? _effectiveInitialUrl()
+                : _currentUrl;
+            unawaited(_loadUrlDirect(target));
+          },
+        ),
+      ),
+    );
+  }
+
+  String _hostHintFromUrl(String rawUrl) {
+    if (rawUrl.trim().isEmpty) {
+      return '';
+    }
+    final Uri? uri = Uri.tryParse(normalizeImportUrl(rawUrl));
+    return uri?.host ?? '';
+  }
+
+  String _friendlyWebLoadError(String raw) {
+    final String lower = raw.toLowerCase();
+    if (lower.contains('err_name_not_resolved') ||
+        lower.contains('host lookup')) {
+      return '网站域名解析失败，请检查网络或模拟器 DNS 配置后重试';
+    }
+    if (lower.contains('err_internet_disconnected')) {
+      return '当前设备未联网，请连接网络后重试';
+    }
+    if (lower.contains('err_timed_out')) {
+      return '网站响应超时，可能需要校园网/VPN，请稍后重试';
+    }
+    if (lower.contains('err_connection_refused') ||
+        lower.contains('err_connection_reset')) {
+      return '网站拒绝连接，请稍后重试或更换网络';
+    }
+    if (lower.contains('err_ssl') || lower.contains('cert')) {
+      return '网站证书校验失败，请检查设备时间和网络环境';
+    }
+    if (lower.contains('err_cleartext_not_permitted')) {
+      return '当前页面为不安全链接，系统已拦截，请改用 https 地址';
+    }
+    return '网站加载失败，请确认网址和网络后重试';
+  }
+
   @override
   void dispose() {
+    try {
+      ScaffoldMessenger.maybeOf(context)?.clearSnackBars();
+    } catch (_) {
+      // 页面已销毁时忽略清理异常。
+    }
     _urlController.dispose();
     super.dispose();
   }
@@ -368,8 +529,7 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
             // ── 顶部 URL 导航栏 ──
             _buildUrlBar(context),
             // ── 加载进度条 ──
-            if (_webViewLoading)
-              const LinearProgressIndicator(minHeight: 2),
+            if (_webViewLoading) const LinearProgressIndicator(minHeight: 2),
             // ── WebView 主体（原生端）/ 替代提示（Web 端）──
             Expanded(
               child: Stack(
@@ -378,20 +538,27 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
                     _buildWebFallback()
                   else if (_webController != null)
                     WebViewWidget(controller: _webController!),
-                  if (_isGeneralPortal && (_currentUrl == 'about:blank' || _currentUrl.isEmpty))
+                  if (_isGeneralPortal &&
+                      (_currentUrl == 'about:blank' || _currentUrl.isEmpty))
                     Align(
                       alignment: Alignment.topCenter,
                       child: Container(
                         margin: const EdgeInsets.only(top: 10),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withAlpha(235),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: const Color(0xFFE9DFC8)),
                         ),
                         child: const Text(
-                          '请输入教务网址并填写账号密码，登录后点击下载按钮导入课表。',
-                          style: TextStyle(fontSize: 12, color: Color(0xFF5B4D3D)),
+                          '请输入您的教务网站地址并填写账号密码，登录后点击下载按钮导入课表。',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF5B4D3D),
+                          ),
                         ),
                       ),
                     ),
@@ -426,13 +593,11 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
   }
 
   String _resolveInitialUrl(SchoolConfig config) {
-    final String id = config.id.toLowerCase();
-    final String title = config.title;
-    final bool isXjtu = id.contains('xjtu') || title.contains('西安交通大学');
-    if (isXjtu) {
-      return 'https://gmis.xjtu.edu.cn/pyxx/pygl/xskbcx';
+    final String initial = config.initialUrl.trim();
+    if (initial.isNotEmpty) {
+      return initial;
     }
-    return config.initialUrl;
+    return config.targetUrl;
   }
 
   /// 顶部 URL 栏：返回按钮 + 可编辑地址 + ✓ 确认导航
@@ -464,7 +629,7 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
                         Text(
-                          '在此输入教务网址',
+                          '请输入您的教务网站地址',
                           style: TextStyle(
                             fontSize: 10,
                             color: Colors.grey.shade500,
@@ -511,9 +676,9 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
       }
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('当前网址无效，请检查后重试。')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('当前网址无效，请检查后重试。')));
     }
   }
 
@@ -528,7 +693,9 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
 
     if (kIsWeb) {
       // Web 端：在浏览器新标签页打开
-      setState(() { _currentUrl = finalUrl; });
+      setState(() {
+        _currentUrl = finalUrl;
+      });
       _openInBrowser(finalUrl);
     } else {
       _loadUrlDirect(finalUrl);
@@ -612,6 +779,15 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
                   color: Colors.black87,
                 ),
               ),
+              SizedBox(height: 12),
+              Text(
+                '5. 若找不到学校且通用教务导入失败，请填写问卷中的“适配申请”部分，我们会尽快跟进适配。',
+                style: TextStyle(
+                  fontSize: 15,
+                  height: 1.55,
+                  color: Colors.black87,
+                ),
+              ),
             ],
           ),
         ),
@@ -666,6 +842,8 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
 
     try {
       _rawJsonFromJs = null;
+      _activeImportSchoolId = null;
+      _providerCaptureError = null;
       await _tryCaptureRawJsonFromProviderScript();
 
       // 先抓取当前 HTML
@@ -686,9 +864,9 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
       await _runImport();
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('抓取失败: $error')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('抓取失败: $error')));
       setState(() {
         _importing = false;
       });
@@ -707,19 +885,36 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
     final bool hasHtml = (_capturedHtml ?? '').trim().isNotEmpty;
     final bool hasRawJson = (_rawJsonFromJs ?? '').trim().isNotEmpty;
 
+    final String providerError = (_providerCaptureError ?? '').trim();
     if (!hasHtml && !hasRawJson) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('未获取到页面内容，请确认页面已加载完成。')),
-      );
-      setState(() { _importing = false; });
+      final String message = providerError.isNotEmpty
+          ? '导入失败：$providerError'
+          : '未获取到页面内容，请确认页面已加载完成。';
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+      if (_isGeneralPortal) {
+        final bool openSurvey = await _showGeneralFailureSurveyDialog();
+        if (openSurvey && mounted) {
+          await _openSurveyPage(
+            title: '适配申请',
+            url: SurveyLinks.adaptationApplyUrl,
+          );
+        }
+      }
+      setState(() {
+        _importing = false;
+      });
       return;
     }
 
     // 检查冲突
     ImportConflictMode mode = ImportConflictMode.createNew;
+    final int parsedCourseCount = _capturedCourseCount();
     final int tableCount = (await _scheduleRepository.getCourseTables()).length;
-    if (tableCount > 0) {
+    final bool hasActiveScheduleContext = ScheduleRepository.activeTableId != null;
+    if (parsedCourseCount > 0 && tableCount > 0 && hasActiveScheduleContext) {
       if (!mounted) return;
       final ImportConflictMode? selected = await showDialog<ImportConflictMode>(
         context: context,
@@ -727,46 +922,114 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
       );
 
       if (selected == null) {
-        setState(() { _importing = false; });
+        setState(() {
+          _importing = false;
+        });
         return;
       }
       mode = selected;
     }
 
     try {
-      final String payload = hasRawJson ? _rawJsonFromJs! : _capturedHtml!;
-      final ImportExecutionResult result = await _importEngine.importFromRawJson(
-        widget.config,
-        rawJson: payload,
-        mode: mode,
-      );
+      final String importSchoolId =
+          (_activeImportSchoolId ?? _resolveExecutionSchoolIds().first).trim();
+      late final ImportExecutionResult result;
+      if (hasRawJson) {
+        result = await _importEngine.importFromRawJson(
+          widget.config,
+          rawJson: _rawJsonFromJs!,
+          schoolIdOverride: importSchoolId,
+          mode: mode,
+        );
+      } else {
+        try {
+          result = await _importEngine.importFromCapturedHtml(
+            widget.config,
+            html: _capturedHtml!,
+            pageUrl: (_capturedUrl ?? _currentUrl),
+            mode: mode,
+          );
+        } on UnsupportedError {
+          if (providerError.isNotEmpty) {
+            throw StateError(providerError);
+          }
+          throw StateError('未捕获到可解析课表数据，请确认已进入课表页后重试');
+        }
+      }
 
       await _apiService.reportLog(
-        schoolId: widget.config.id,
+        schoolId: importSchoolId,
         status: 'success',
         courseCount: result.importedCount,
       );
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('导入成功！共 ${result.importedCount} 门课程')),
+        SnackBar(content: Text('导入成功！共 ${result.importedCount} 节课')),
       );
+      if (_isGeneralPortal) {
+        final bool openSurvey = await _showGeneralSuccessSurveyDialog();
+        if (openSurvey && mounted) {
+          await _openSurveyPage(
+            title: '导入上报',
+            url: SurveyLinks.importReportUrl,
+          );
+        }
+      }
+      await _showPostImportCheckDialog();
+      if (!mounted) return;
       Navigator.of(context).pop(true);
     } catch (error) {
       await _apiService.reportLog(
-        schoolId: widget.config.id,
+        schoolId: (_activeImportSchoolId ?? widget.config.id),
         status: 'failed',
         errorMessage: _sanitizeForLog(error.toString()),
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('系统维护中，请稍后再试')),
-      );
+      final String friendlyMessage = _friendlyImportError(error);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(friendlyMessage)));
+      if (_isGeneralPortal) {
+        final bool openSurvey = await _showGeneralFailureSurveyDialog();
+        if (openSurvey && mounted) {
+          await _openSurveyPage(
+            title: '适配申请',
+            url: SurveyLinks.adaptationApplyUrl,
+          );
+        }
+      }
     } finally {
       if (mounted) {
-        setState(() { _importing = false; });
+        setState(() {
+          _importing = false;
+        });
       }
     }
+  }
+
+  int _capturedCourseCount() {
+    final String raw = (_rawJsonFromJs ?? '').trim();
+    if (raw.isEmpty) {
+      return 0;
+    }
+
+    try {
+      final dynamic decoded = jsonDecode(raw);
+      if (decoded is List<dynamic>) {
+        return decoded.length;
+      }
+      if (decoded is Map<String, dynamic>) {
+        final dynamic data = decoded['courses'] ?? decoded['courseInfos'] ?? decoded['data'];
+        if (data is List<dynamic>) {
+          return data.length;
+        }
+      }
+    } catch (_) {
+      return 0;
+    }
+
+    return 0;
   }
 
   /// 将 WebView JS 执行结果规范化为 Dart 字符串。
@@ -795,74 +1058,278 @@ class _ImportExecutionPageState extends State<ImportExecutionPage> {
     return masked;
   }
 
+  String _friendlyImportError(Object error) {
+    String message = error.toString().trim();
+    message = message.replaceFirst(RegExp(r'^Exception:\s*'), '');
+
+    if (message.isEmpty) {
+      return '导入失败，请稍后重试';
+    }
+
+    final String lower = message.toLowerCase();
+    if (message.contains('系统维护') || message.contains('维护中') || lower.contains('maintenance')) {
+      return '系统维护中，请稍后再试';
+    }
+
+    if (message.length > 80) {
+      message = '${message.substring(0, 80)}...';
+    }
+    return '导入失败：$message';
+  }
+
+  Future<void> _showPostImportCheckDialog() {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          backgroundColor: Colors.white,
+          title: const Text(
+            '请校对课表',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: AppTokens.textMain,
+            ),
+          ),
+          content: const Text(
+            '导入已完成，请仔细核对课程名称、周次、节次和地点，确认无误后再使用。',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: AppTokens.textMuted,
+              height: 1.6,
+            ),
+          ),
+          actions: <Widget>[
+            SizedBox(
+              width: double.infinity,
+              height: 46,
+              child: FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTokens.duckYellow,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: const Text(
+                  '我会校对',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _openSurveyPage({
+    required String title,
+    required String url,
+  }) async {
+    if (!mounted) {
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) => SurveyWebviewPage(
+          title: title,
+          url: url,
+          shareUrl: SurveyLinks.projectShareUrl,
+        ),
+      ),
+    );
+  }
+
+  Future<bool> _showGeneralSuccessSurveyDialog() async {
+    if (!mounted) {
+      return false;
+    }
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) =>
+          const GeneralImportSurveyDialog.success(),
+    );
+    return confirmed ?? false;
+  }
+
+  Future<bool> _showGeneralFailureSurveyDialog() async {
+    if (!mounted) {
+      return false;
+    }
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) =>
+          const GeneralImportSurveyDialog.failure(),
+    );
+    return confirmed ?? false;
+  }
+
   Future<void> _tryCaptureRawJsonFromProviderScript() async {
     if (_webController == null) {
       return;
     }
 
-    try {
-      final Map<String, dynamic> schoolConfig = await _apiService.getSchoolConfig(widget.config.id);
-      final Map<String, String> tokens = inferImportTermTokens(
-        (schoolConfig['term_mapping'] as Map<String, dynamic>?) ?? <String, dynamic>{},
-      );
-      String script = await _apiService.getProviderScript(widget.config.id);
-      if (script.trim().isEmpty) {
-        return;
-      }
+    final List<String> executionIds = _resolveExecutionSchoolIds();
+    final int maxAttempts = _isGeneralPortal ? 2 : 1;
+    final List<String> candidates = executionIds
+        .take(maxAttempts)
+        .toList(growable: false);
+    String? lastProviderError;
+    for (final String schoolId in candidates) {
+      try {
+        final Map<String, dynamic> schoolConfig = await _apiService
+            .getSchoolConfig(schoolId)
+            .timeout(const Duration(milliseconds: 1500));
+        final Map<String, String> tokens = inferImportTermTokens(
+          (schoolConfig['term_mapping'] as Map<String, dynamic>?) ??
+              <String, dynamic>{},
+        );
+        String script = await _apiService
+            .getProviderScript(schoolId)
+            .timeout(const Duration(milliseconds: 1500));
+        if (script.trim().isEmpty) {
+          continue;
+        }
 
-      script = script
-          .replaceAll('{{YEAR}}', tokens['year'] ?? '')
-          .replaceAll('{{TERM}}', tokens['term'] ?? '')
-          .replaceFirst('(async function()', 'await (async function()');
+        script = script
+            .replaceAll('{{YEAR}}', tokens['year'] ?? '')
+            .replaceAll('{{TERM}}', tokens['term'] ?? '')
+            .replaceFirst(
+              '(async function()',
+              '__classduckDirectResult = await (async function()',
+            )
+            .replaceFirst('(function()', '__classduckDirectResult = (function()');
 
-      final Object rawResult = await _webController!.runJavaScriptReturningResult(
-        '''
+        final Object rawResult = await _webController!
+            .runJavaScriptReturningResult('''
         (async function() {
           let __classduckResult = null;
+          let __classduckDirectResult = null;
+
           window.flutter_inappwebview = {
             callHandler: function(_name, payload) {
               __classduckResult = payload;
               return Promise.resolve(payload);
             }
           };
+
+          window.AndroidBridge = window.AndroidBridge || {
+            showToast: function(_msg) {},
+            notifyTaskCompletion: function() {}
+          };
+
+          window.AndroidBridgePromise = window.AndroidBridgePromise || {
+            showAlert: function(_title, _message, _buttonText) {
+              return Promise.resolve(true);
+            },
+            saveImportedCourses: function(payload) {
+              try {
+                const parsed = typeof payload === 'string' ? JSON.parse(payload) : payload;
+                const normalized = parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Array.isArray(parsed.courses)
+                  ? parsed.courses
+                  : parsed;
+                __classduckResult = JSON.stringify({ success: true, data: normalized });
+              } catch (error) {
+                __classduckResult = JSON.stringify({
+                  success: false,
+                  error: error && error.message ? error.message : String(error)
+                });
+              }
+              return Promise.resolve(true);
+            }
+          };
+
           $script
-          return __classduckResult;
+          return __classduckResult ?? __classduckDirectResult;
         })()
-        ''',
-      );
+        ''')
+            .timeout(const Duration(seconds: 4));
 
-      final String normalized = _normalizeJsResult(rawResult).trim();
-      if (normalized.isEmpty || normalized == 'null') {
-        return;
-      }
+        final String normalized = _normalizeJsResult(rawResult).trim();
+        if (normalized.isEmpty || normalized == 'null') {
+          lastProviderError ??= '规则未返回课表数据，请确认已进入课表页面';
+          continue;
+        }
 
-      final dynamic decoded = jsonDecode(normalized);
-      if (decoded is! Map<String, dynamic>) {
-        return;
-      }
-      if (decoded['success'] != true) {
-        return;
-      }
+        dynamic decoded;
+        try {
+          decoded = jsonDecode(normalized);
+        } catch (_) {
+          lastProviderError ??= '规则返回数据格式异常，请刷新后重试';
+          continue;
+        }
+        if (decoded is List<dynamic>) {
+          _rawJsonFromJs = jsonEncode(decoded);
+          _activeImportSchoolId = schoolId;
+          _providerCaptureError = null;
+          return;
+        }
+        if (decoded is! Map<String, dynamic>) {
+          lastProviderError ??= '规则返回结构异常，请刷新后重试';
+          continue;
+        }
+        if (decoded['success'] != true &&
+            decoded['data'] == null &&
+            decoded['courses'] == null &&
+            decoded['courseInfos'] == null) {
+          final String error =
+              (decoded['error'] as String? ?? decoded['message'] as String? ?? '')
+                  .trim();
+          if (error.isNotEmpty) {
+            lastProviderError = error;
+          }
+          continue;
+        }
 
-      final dynamic data = decoded['data'];
-      if (data == null) {
-        return;
-      }
+        dynamic data = decoded['data'] ?? decoded['courses'] ?? decoded['courseInfos'];
+        if (data == null) {
+          lastProviderError ??= '规则返回空数据，请确认已进入课表页并完成查询';
+          continue;
+        }
 
-      _rawJsonFromJs = jsonEncode(data);
-    } catch (_) {
-      // JS 注入失败时静默回退到 HTML 抓取路径，不阻塞旧链路。
+        if (data is Map<String, dynamic>) {
+          if (data['courses'] is List<dynamic>) {
+            data = data['courses'];
+          } else if (data['courseInfos'] is List<dynamic>) {
+            data = data['courseInfos'];
+          }
+        }
+
+        _rawJsonFromJs = jsonEncode(data);
+        _activeImportSchoolId = schoolId;
+        _providerCaptureError = null;
+        return;
+      } on TimeoutException {
+        lastProviderError = '读取教务规则超时，请检查网络后重试';
+      } catch (_) {
+        // 顺序兜底：当前规则失败时继续尝试下一条。
+      }
     }
+
+    _activeImportSchoolId = candidates.first;
+    _providerCaptureError = lastProviderError;
   }
 
+  List<String> _resolveExecutionSchoolIds() {
+    final List<String> source = widget.config.executableSchoolIds;
+    if (source.isEmpty) {
+      return <String>[widget.config.id];
+    }
+    return source;
+  }
 }
 
 /// 右下角圆形浮动按钮
 class _FloatingActionBtn extends StatelessWidget {
-  const _FloatingActionBtn({
-    required this.icon,
-    required this.onTap,
-  });
+  const _FloatingActionBtn({required this.icon, required this.onTap});
 
   final IconData icon;
   final VoidCallback? onTap;
@@ -879,11 +1346,7 @@ class _FloatingActionBtn extends StatelessWidget {
           color: onTap == null ? const Color(0xFFEDDFC0) : AppTokens.duckYellow,
           shape: BoxShape.circle,
         ),
-        child: Icon(
-          icon,
-          size: 24,
-          color: Colors.white,
-        ),
+        child: Icon(icon, size: 24, color: Colors.white),
       ),
     );
   }

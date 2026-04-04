@@ -1,4 +1,5 @@
 import 'package:classduck_app/features/import/application/import_engine.dart';
+import 'package:classduck_app/features/import/domain/school_config.dart';
 import 'package:classduck_app/features/import/ui/import_execution_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,6 +31,98 @@ void main() {
       expect(tokens['year'], '2025');
       expect(tokens['term'], '12');
     });
+
+    test('shouldEnableGeneralSurveyFlow covers all general-level systems', () {
+      final SchoolConfig generalConfig = SchoolConfig.fromMap(
+        <String, dynamic>{
+          'id': 'custom_general_system_01',
+          'level': 'general',
+          'title': '自定义通用教务',
+          'initialUrl': 'https://example.com/login',
+          'targetUrl': '',
+          'extractScriptUrl': '/api/schools/custom/script?script_type=provider',
+          'delaySeconds': 0,
+        },
+      );
+
+      expect(shouldEnableGeneralSurveyFlow(generalConfig), isTrue);
+    });
+  });
+
+  testWidgets('GeneralImportSurveyDialog success confirms survey action', (
+    WidgetTester tester,
+  ) async {
+    bool? result;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (BuildContext context) {
+            return Scaffold(
+              body: ElevatedButton(
+                onPressed: () async {
+                  result = await showDialog<bool>(
+                    context: context,
+                    builder: (BuildContext context) =>
+                        const GeneralImportSurveyDialog.success(),
+                  );
+                },
+                child: const Text('open-success'),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open-success'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('导入成功，邀请共建'), findsOneWidget);
+    expect(find.text('去填问卷'), findsOneWidget);
+
+    await tester.tap(find.text('去填问卷'));
+    await tester.pumpAndSettle();
+
+    expect(result, isTrue);
+  });
+
+  testWidgets('GeneralImportSurveyDialog failure confirms survey action', (
+    WidgetTester tester,
+  ) async {
+    bool? result;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (BuildContext context) {
+            return Scaffold(
+              body: ElevatedButton(
+                onPressed: () async {
+                  result = await showDialog<bool>(
+                    context: context,
+                    builder: (BuildContext context) =>
+                        const GeneralImportSurveyDialog.failure(),
+                  );
+                },
+                child: const Text('open-failure'),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open-failure'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('一起补齐适配'), findsOneWidget);
+    expect(find.text('去填问卷'), findsOneWidget);
+
+    await tester.tap(find.text('去填问卷'));
+    await tester.pumpAndSettle();
+
+    expect(result, isTrue);
   });
 
   testWidgets('ImportWebFallbackPanel renders message and button', (WidgetTester tester) async {

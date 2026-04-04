@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../shared/theme/app_tokens.dart';
 import '../../../shared/widgets/duck_modal.dart';
 import '../data/release_repository.dart';
+import 'legal_documents_page.dart';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
@@ -61,12 +62,15 @@ class _AboutPageState extends State<AboutPage> {
               child: Column(
                 children: <Widget>[
                   _AboutActionRow(
-                    icon: const _RedBookDot(),
-                    label: '小红书',
+                    icon: const Icon(
+                      Icons.mail_outline_rounded,
+                      color: AppTokens.textMuted,
+                    ),
+                    label: '联系邮箱',
                     trailing: SizedBox(
                       height: 32,
                       child: FilledButton(
-                        onPressed: _copyRedBook,
+                        onPressed: _copyContactEmail,
                         style: FilledButton.styleFrom(
                           elevation: 0,
                           backgroundColor: AppTokens.duckYellow,
@@ -83,6 +87,15 @@ class _AboutPageState extends State<AboutPage> {
                         child: const Text('复制'),
                       ),
                     ),
+                  ),
+                  const Divider(height: 1, color: Color(0xFFF0ECE4)),
+                  _AboutActionRow(
+                    icon: const Icon(
+                      Icons.description_outlined,
+                      color: AppTokens.textMuted,
+                    ),
+                    label: '服务协议',
+                    onTap: _openServiceAgreement,
                   ),
                   const Divider(height: 1, color: Color(0xFFF0ECE4)),
                   _AboutActionRow(
@@ -107,23 +120,6 @@ class _AboutPageState extends State<AboutPage> {
               ),
             ),
             const Spacer(),
-            const Text(
-              '服务协议  |  隐私政策',
-              style: TextStyle(
-                color: Color(0xFFC2BAB1),
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'ICP备案号: 12345678',
-              style: TextStyle(
-                color: Color(0xFFC2BAB1),
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
             const SizedBox(height: 24),
           ],
         ),
@@ -131,19 +127,30 @@ class _AboutPageState extends State<AboutPage> {
     );
   }
 
-  Future<void> _copyRedBook() async {
-    await Clipboard.setData(const ClipboardData(text: '上课鸭官方小红书'));
+  Future<void> _copyContactEmail() async {
+    await Clipboard.setData(const ClipboardData(text: 'classduck@163.com'));
     if (!mounted) {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('小红书账号已复制')),
+      const SnackBar(content: Text('联系邮箱已复制')),
     );
   }
 
+  void _openServiceAgreement() {
+    _openLegalDocuments(initialTab: 0);
+  }
+
   void _openPrivacyPolicy() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('隐私政策页面开发中')),
+    _openLegalDocuments(initialTab: 1);
+  }
+
+  void _openLegalDocuments({required int initialTab}) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) =>
+            LegalDocumentsPage(initialTab: initialTab),
+      ),
     );
   }
 
@@ -438,32 +445,6 @@ class _AboutActionRow extends StatelessWidget {
                 ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RedBookDot extends StatelessWidget {
-  const _RedBookDot();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 18,
-      height: 18,
-      decoration: const BoxDecoration(
-        color: Color(0xFFFF4F59),
-        shape: BoxShape.circle,
-      ),
-      alignment: Alignment.center,
-      child: const Text(
-        '红',
-        style: TextStyle(
-          color: Colors.white,
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          height: 1,
         ),
       ),
     );
