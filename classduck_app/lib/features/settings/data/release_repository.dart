@@ -31,7 +31,8 @@ class ReleaseRepository {
     final Map<String, dynamic> result =
         data is Map<String, dynamic> ? data : payload;
 
-    return ReleaseCheckResult.fromMap(result);
+    // 静态 release.json 没有计算能力，是否更新由客户端比对 latest 与本地版本。
+    return ReleaseCheckResult.fromMap(result, localVersion: currentVersion);
   }
 }
 
@@ -50,17 +51,45 @@ class ReleaseCheckResult {
   final String updateUrl;
   final String releaseNotes;
 
-  factory ReleaseCheckResult.fromMap(Map<String, dynamic> map) {
+  factory ReleaseCheckResult.fromMap(
+    Map<String, dynamic> map, {
+    String? localVersion,
+  }) {
+    final String latestVersion = map['latestVersion'] as String? ?? '0.0.0';
+    final String currentVersion =
+        localVersion ?? map['currentVersion'] as String? ?? '0.0.0';
     final dynamic notes = map['releaseNotes'];
     return ReleaseCheckResult(
-      hasNewVersion: map['hasNewVersion'] as bool? ?? false,
-      latestVersion: map['latestVersion'] as String? ?? '1.0.0',
-      currentVersion: map['currentVersion'] as String? ?? '1.0.0',
+      // 客户端语义化比对 latest 与本地版本；静态 release.json 的 hasNewVersion 不再可信。
+      hasNewVersion: _isNewerVersion(latestVersion, currentVersion),
+      latestVersion: latestVersion,
+      currentVersion: currentVersion,
       updateUrl: map['updateUrl'] as String? ?? '',
       // releaseNotes 可能是数组（release.json）或字符串（后端），统一转字符串。
       releaseNotes: notes is List
           ? notes.map((dynamic e) => e.toString()).join('\n')
           : notes as String? ?? '',
     );
+  }
+
+  /// 语义化版本比较：remote > local 视为有新版本（忽略 v 前缀与构建号 +N）。
+  static bool _isNewerVersion(String remote, String local) {
+    final List<int> rv = _parseVersion(remote);
+    final List<int> lv = _parseVersion(local);
+    final int len = rv.length > lv.length ? rv.length : lv.length;
+    for (int i = 0; i < len; i++) {
+      final int r = i < rv.length ? rv[i] : 0;
+      final int l = i < lv.length ? lv[i] : 0;
+      if (r != l) return r > l;
+    }
+    return false;
+  }
+
+  static List<int> _parseVersion(String version) {
+    final String core = version.replaceFirst('v', '').split('+').first;
+    return core
+        .split('.')
+        .map((String e) => int.tryParse(e.trim()) ?? 0)
+        .toList();
   }
 }

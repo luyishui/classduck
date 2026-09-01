@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import '../../../shared/theme/app_tokens.dart';
 import '../../../shared/theme/course_color_adapter.dart';
 import '../../../shared/widgets/app_share_dialog.dart';
-import '../../../shared/widgets/duck_modal.dart';
 import '../../schedule/domain/course.dart';
 import '../../schedule/domain/course_table.dart';
 import '../../schedule/data/schedule_repository.dart';

@@ -184,13 +184,12 @@ class _AboutPageState extends State<AboutPage> {
         updateUrl: result.updateUrl,
       );
     } catch (_) {
-      // 兜底：后端不可用时继续保留本地默认值，保证更新弹窗链路可用。
-      return const _VersionCheckResult(
-        currentVersion: '1.0.0',
-        latestVersion: '1.1.0',
-        releaseNotes:
-            '1. 新增：课程提醒可自定义提前时间\n2. 优化：导入课表稳定性与速度\n3. 修复：部分机型弹窗错位问题\n4. 细节：多处文案与交互动效调整',
-        updateUrl: 'https://example.com/classduck/android',
+      // 兜底：更新服务不可用时按"无新版本"处理，避免展示假更新信息。
+      return _VersionCheckResult(
+        currentVersion: _currentVersion.replaceFirst('v', ''),
+        latestVersion: _currentVersion.replaceFirst('v', ''),
+        releaseNotes: '当前无法连接更新服务，请稍后重试。',
+        updateUrl: '',
       );
     }
   }

@@ -126,6 +126,15 @@
           androidMirrorUrl: 'https://gh-proxy.com/https://github.com/luyishui/classduck/releases/latest/download/classduck-android-universal.apk',
         };
       },
+      mounted() {
+        // 发版后 release.json 由 CI 更新，页面版本号自动同步。
+        fetch('./release.json')
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (data && data.latestVersion) this.version = data.latestVersion;
+          })
+          .catch(() => {});
+      },
     }).mount('#app');
   </script>
 </body>
