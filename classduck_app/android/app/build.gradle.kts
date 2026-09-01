@@ -29,7 +29,7 @@ fun keystoreValue(key: String): String? {
 }
 
 android {
-    namespace = "com.example.classduck_app"
+    namespace = "io.github.luyishui.classduck"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -45,7 +45,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.classduck_app"
+        applicationId = "io.github.luyishui.classduck"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

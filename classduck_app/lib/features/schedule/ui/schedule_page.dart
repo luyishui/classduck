@@ -10,7 +10,6 @@ import 'package:vibration/vibration.dart';
 
 import '../../import/data/school_config_repository.dart';
 import '../../import/domain/school_config.dart';
-import '../../import/ui/import_school_list_page.dart';
 import '../../import/ui/ai_import_page.dart';
 import '../../settings/data/appearance_state.dart';
 import '../../todo/data/todo_repository.dart';
@@ -409,13 +408,6 @@ class _SchedulePageState extends State<SchedulePage> {
                             ),
                             const SizedBox(height: 10),
                             _AddMenuItem(
-                              icon: Icons.cloud_sync_outlined,
-                              iconColor: const Color(0xFFF59EBC),
-                              title: '教务添加',
-                              onTap: () => _handleAddMenuAction('import'),
-                            ),
-                            const SizedBox(height: 10),
-                            _AddMenuItem(
                               icon: Icons.auto_awesome_rounded,
                               iconColor: const Color(0xFFFFD966),
                               title: 'AI添加',
@@ -483,16 +475,7 @@ class _SchedulePageState extends State<SchedulePage> {
     }
 
     // 统一路由分发：保证任一路径完成后都能刷新课表数据。
-    if (action == 'import') {
-      final bool? imported = await Navigator.of(context).push<bool>(
-        MaterialPageRoute<bool>(
-          builder: (BuildContext context) => const ImportSchoolListPage(),
-        ),
-      );
-      if (imported == true) {
-        await _loadScheduleData();
-      }
-    } else if (action == 'manual') {
+    if (action == 'manual') {
       final bool? saved = await Navigator.of(context).push<bool>(
         MaterialPageRoute<bool>(
           builder: (BuildContext context) => const ManualAddCoursePage(),

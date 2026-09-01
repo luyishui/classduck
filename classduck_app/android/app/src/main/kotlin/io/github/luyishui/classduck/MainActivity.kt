@@ -1,4 +1,4 @@
-package com.example.classduck_app
+package io.github.luyishui.classduck
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -21,7 +21,10 @@ class HttpJsonClient {
 
   /// 发起 GET 请求，并约束响应必须是 JSON object。
   Future<Map<String, dynamic>> getJsonMap(String path) async {
-    final Uri uri = Uri.parse('${AppEnv.apiBaseUrl}$path');
+    // 绝对 URL（如 jsDelivr CDN 上的 release.json）直接使用，其余拼接 baseUrl。
+    final Uri uri = (path.startsWith('http://') || path.startsWith('https://'))
+        ? Uri.parse(path)
+        : Uri.parse('${AppEnv.apiBaseUrl}$path');
     late final http.Response response;
     try {
       response = await _client.get(uri).timeout(_requestTimeout);

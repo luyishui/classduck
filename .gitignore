@@ -10,3 +10,24 @@
 
 artifacts/*
 !artifacts/.gitkeep
+
+# 文档目录（本地工作文档，不随仓库发布）
+说明文档/
+参考文件/
+项目文件/
+artifacts/
+
+# 依赖与构建产物
+backend/node_modules/
+backend/python_import_service/__pycache__/
+backend/python_import_service/data/db/
+classduck_app/build/
+classduck_app/.dart_tool/
+*.log
+
+# 本地环境
+.trae/
+.venv/
+.pytest_cache/
+tmp_body.json
+上课鸭-*.md

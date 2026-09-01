@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../shared/theme/app_tokens.dart';
 import '../../../shared/widgets/duck_modal.dart';
@@ -340,11 +341,19 @@ class _AboutPageState extends State<AboutPage> {
                     width: 136,
                     height: 48,
                     child: FilledButton(
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.of(context).maybePop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('正在跳转到更新页面：${result.updateUrl}')),
+                        final bool opened = await launchUrl(
+                          Uri.parse(result.updateUrl),
+                          mode: LaunchMode.externalApplication,
                         );
+                        if (!opened && mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('无法打开更新页面：${result.updateUrl}'),
+                            ),
+                          );
+                        }
                       },
                       style: FilledButton.styleFrom(
                         elevation: 0,

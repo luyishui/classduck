@@ -176,7 +176,7 @@ class _AiImportPageState extends State<AiImportPage>
     if (launched) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('提示词已复制，已尝试打开豆包（建议超能模式）'),
+          content: const Text('提示词已复制，已尝试打开豆包（建议专家模式）'),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -744,7 +744,7 @@ class _AiImportPageState extends State<AiImportPage>
           ),
           const SizedBox(height: 12),
           Text(
-            '点击下方按钮，复制提示词\n切换到豆包超能模式（请点开“更多”后选择）后发送截图即可',
+            '点击下方按钮，复制提示词\n切换到豆包专家模式（请点开”更多”后选择）后发送截图即可',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 15,
@@ -798,7 +798,7 @@ class _AiImportPageState extends State<AiImportPage>
           ),
           const SizedBox(height: 12),
           const Text(
-            '推荐使用豆包超能模式（请点开“更多”后选择），并请自行甄别识别结果。',
+            '推荐使用豆包专家模式（请点开”更多”后选择），并请自行甄别识别结果。',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 13,
