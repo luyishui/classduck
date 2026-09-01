@@ -13,41 +13,44 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-      - run: flutter pub get
 
       - name: Restore signing keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/classduck-release-keystore.jks
-          cat > android/key.properties <<EOF
-          storeFile=classduck-release-keystore.jks
-          storePassword=${{ secrets.STORE_PASSWORD }}
-          keyAlias=${{ secrets.KEY_ALIAS }}
-          keyPassword=${{ secrets.KEY_PASSWORD }}
-          EOF
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > classduck_app/android/app/classduck-release-keystore.jks
+          printf 'storeFile=classduck-release-keystore.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "${{ secrets.STORE_PASSWORD }}" "${{ secrets.KEY_ALIAS }}" "${{ secrets.KEY_PASSWORD }}" \
+            > classduck_app/android/key.properties
 
       - name: Build universal APK
-        run: flutter build apk --release
+        working-directory: classduck_app
+        run: |
+          flutter pub get
+          flutter build apk --release
+          mkdir -p dist
+          mv build/app/outputs/flutter-apk/app-release.apk dist/classduck-android-universal.apk
 
       - name: Build split-per-abi APKs
-        run: flutter build apk --release --split-per-abi
-
-      - name: Rename artifacts
+        working-directory: classduck_app
         run: |
-          mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/classduck-android-universal.apk
+          flutter build apk --release --split-per-abi
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk dist/classduck-android-arm64.apk
 
       - name: Update release.json and push
         run: |
-          VERSION=$(grep -m1 '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)
+          git checkout main
+          VERSION=$(grep -m1 '^version:' classduck_app/pubspec.yaml | awk '{print $2}' | cut -d+ -f1)
           python - "$VERSION" <<'PY'
           import json, sys
           version = sys.argv[1]
@@ -65,7 +68,7 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git add docs/release.json
           git commit -m "chore: update release.json to $VERSION" || echo "no change"
-          git push
+          git push origin main
 
       - name: Purge jsDelivr cache
         run: curl -i "https://purge.jsdelivr.net/gh/luyishui/classduck@main/docs/release.json"
@@ -73,6 +76,6 @@ jobs:
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*.apk
+          files: classduck_app/dist/*.apk
           generate_release_notes: true
           fail_on_unmatched_files: false
