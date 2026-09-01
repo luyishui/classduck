@@ -1,7 +1,7 @@
 {
   "latestVersion": "1.0.0",
-  "currentVersion": "1.0.0",
-  "hasNewVersion": false,
   "updateUrl": "https://luyishui.github.io/classduck/",
-  "releaseNotes": ["首个公开版本"]
+  "releaseNotes": [
+    "请到下载页获取最新版本并进行更新"
+  ]
 }
