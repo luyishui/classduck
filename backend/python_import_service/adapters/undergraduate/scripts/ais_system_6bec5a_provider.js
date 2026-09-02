@@ -7,7 +7,7 @@
  * @LastEditors: xiaoxiao
  * @Description: 树维教务系统解析
  * @FilePath: \AISchedule\树维\广州工商学院\provider.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 
 /*******
@@ -479,7 +479,7 @@ async function scheduleHtmlProvider(
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\树维\广州工商学院\parser.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 function resolveCourseConflicts(result) {
   //将课拆成单节，并去重
@@ -668,7 +668,7 @@ function scheduleHtmlParser(html) {
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\树维\广州工商学院\timer.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 async function scheduleTimer() {
   return {

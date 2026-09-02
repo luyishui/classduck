@@ -6,7 +6,7 @@
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\新正方教务\广西外国语学院\provider.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 
 async function request (tag, data, url) {
@@ -135,7 +135,7 @@ async function scheduleHtmlProvider (
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\新正方教务\广西外国语学院\parser.js
- * @QQ: 357914968
+ * @source: AISchedule 开源适配器
  */
 function resolveCourseConflicts (result) {
     let splitTag = '&'

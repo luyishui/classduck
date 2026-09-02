@@ -7,7 +7,7 @@
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\树维\郑州大学\Provider.js
- * @QQ: 357914968
+ * @source: AISchedule 开源适配器
  */
 /**
  * loading函数
@@ -535,5 +535,5 @@ async function scheduleHtmlProvider(
  * @LastEditors: xiaoxiao
  * @Description: 
  * @FilePath: \AISchedule\树维\郑州大学\timer.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */

@@ -7,7 +7,7 @@
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\强智教务\iframe强智\山东大学\provider.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 function request(tag, url, data) {
   let ss = ''
@@ -112,7 +112,7 @@ async function scheduleHtmlProvider(
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\强智教务\iframe强智\山东大学\parseer.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 
 /**
@@ -543,7 +543,7 @@ function scheduleHtmlParser(html) {
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\强智教务\iframe强智\山东大学\timer.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 /**
  * @param  {object} xJConf 夏季时间

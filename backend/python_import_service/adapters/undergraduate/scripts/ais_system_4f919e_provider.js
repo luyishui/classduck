@@ -7,7 +7,7 @@
  * @LastEditors: xiaoxiao
  * @Description: 
  * @FilePath: \AISchedule\强智教务\iframe强智\武汉信息传播职业技术学院\provider.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 function request(tag, url, data) {
     let ss = "";

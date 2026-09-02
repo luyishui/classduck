@@ -7,7 +7,7 @@
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\自研教务\南京中医药大学\provider.js
- * @QQ: 357914968
+ * @source: AISchedule 开源适配器
  */
 
 /**
@@ -133,7 +133,7 @@ async function scheduleHtmlProvider(
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\自研教务\南京中医药大学\parser.js
- * @QQ: 357914968
+ * @source: AISchedule 开源适配器
  */
 function resolveCourseConflicts(result) {
   let splitTag = '&'

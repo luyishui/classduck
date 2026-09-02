@@ -7,7 +7,7 @@
  * @LastEditors: xiaoxiao
  * @Description: 树维教务系统解析
  * @FilePath: \AISchedule\树维\商丘工学院\provider.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 
 

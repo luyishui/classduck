@@ -7,7 +7,7 @@
  * @LastEditors: xiaoxiao
  * @Description: 
  * @FilePath: \AISchedule\乘方教务\广州中医药大学\provider.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 let req = async (method,url,data)=>{
     return await fetch(url,{method:method,body:data,mheaders: {

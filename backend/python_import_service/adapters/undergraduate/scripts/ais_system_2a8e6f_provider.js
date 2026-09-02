@@ -6,9 +6,9 @@
  * @LastEditors: xiaoxiao
  * @Description:
  * @喀什大学更换域名后的适配代码
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  * @小凯520修改
- * @QQ:2147800477
+ * @source: AISchedule 开源适配器
  */
 
 async function request (tag, data, url) {
@@ -128,7 +128,7 @@ async function scheduleHtmlProvider (
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\新正方教务\广西外国语学院\parser.js
- * @QQ: 357914968
+ * @source: AISchedule 开源适配器
  */
 function resolveCourseConflicts (result) {
     let splitTag = '&'

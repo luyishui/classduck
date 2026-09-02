@@ -7,7 +7,7 @@
  * @LastEditors: xiaoxiao
  * @Description: 
  * @FilePath: \AISchedule\青果教务\山东女子学院\provider.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 async function request(tag, encod, url) {
     console.log("fetch.....")
@@ -383,7 +383,7 @@ function scheduleHtmlParser(html) {
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\青果教务\新疆大学\timer.js
- * @QQ: 357914968
+ * @source: AISchedule 开源适配器
  */
 
 /**

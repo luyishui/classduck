@@ -7,7 +7,7 @@
  * @LastEditors: xiaoxiao
  * @Description: 
  * @FilePath: \AISchedule\超星\provider.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 
 function AIScheduleLoading({
@@ -180,7 +180,7 @@ function AIScheduleLoading({
  * @LastEditors: xiaoxiao
  * @Description: 
  * @FilePath: \AISchedule\超星\parser.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 
  function resolveCourseConflicts(result) {
@@ -395,7 +395,7 @@ function getWeeks(Str) {
  * @LastEditors: xiaoxiao
  * @Description: 
  * @FilePath: \AISchedule\超星\timer.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 
 

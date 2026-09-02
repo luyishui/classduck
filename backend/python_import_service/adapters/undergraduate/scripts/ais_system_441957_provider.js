@@ -7,7 +7,7 @@
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\新正方教务\华中农业大学-本研一体化\provider.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 
 async function request(tag, data, url) {
@@ -107,7 +107,7 @@ async function scheduleHtmlProvider(
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\新正方教务\华中农业大学-本研一体化\parser.js
- * @QQ: 357914968
+ * @source: AISchedule 开源适配器
  */
 function resolveCourseConflicts(result) {
   let splitTag = '&'
@@ -475,7 +475,7 @@ function scheduleHtmlParser(html) {
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\新正方教务\华中农业大学-本研一体化\timer.js
- * @QQ: 357914968
+ * @source: AISchedule 开源适配器
  */
 /**
  * 时间配置函数，此为入口函数，不要改动函数名

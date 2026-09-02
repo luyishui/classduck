@@ -7,7 +7,7 @@
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\新正方教务\山东师范大学\parser.js
- * @QQ: 357914968
+ * @source: AISchedule 开源适配器
  */
 function resolveCourseConflicts(result) {
     let splitTag = '&'

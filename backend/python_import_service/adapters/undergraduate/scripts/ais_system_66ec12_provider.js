@@ -7,7 +7,7 @@
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\强智教务\iframe强智\山东大学\provider.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 function request(tag, url, data) {
     let ss = ''
@@ -99,7 +99,7 @@ function request(tag, url, data) {
  * @LastEditors: xiaoxiao
  * @Description: 解析dom
  * @FilePath: \AISchedule\强智教务\iframe强智\广东农工商\parser.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 
 /**
@@ -411,7 +411,7 @@ function scheduleHtmlParser(html) {
  * @LastEditors: xiaoxiao
  * @Description: 时间
  * @FilePath: \AISchedule\强智教务\iframe强智\广东农工商\timer.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 /**
  *

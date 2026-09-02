@@ -7,7 +7,7 @@
  * @LastEditors: xiaoxiao
  * @Description: dom获取
  * @FilePath: \AISchedule\哈尔滨工业大学\本部\provider.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 function request(tag, url, data) {
   let ss = ''
@@ -51,7 +51,7 @@ function scheduleHtmlProvider(
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\哈尔滨工业大学\本部\parser.js
- * @QQ: 357914968
+ * @source: AISchedule 开源适配器
  */
 
 /**
@@ -384,7 +384,7 @@ function scheduleHtmlParser(html) {
  * @LastEditors: xiaoxiao
  * @Description: 时间
  * @FilePath: \AISchedule\哈尔滨工业大学\本部\timer.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 /**
  *

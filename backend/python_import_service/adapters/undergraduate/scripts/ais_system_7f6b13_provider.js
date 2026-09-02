@@ -7,7 +7,7 @@
  * @LastEditors: xiaoxiao
  * @Description: 
  * @FilePath: \AISchedule\自研教务\齐齐哈尔医学院\provider.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 function scheduleHtmlProvider(iframeContent = "", frameContent = "", dom = document) {
     //除函数名外都可编辑

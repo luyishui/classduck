@@ -5,59 +5,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="上课鸭 ClassDuck - 简洁好用的校园课表助手，教务网页导入、AI 截图导入、上课提醒、多课表管理。" />
   <title>上课鸭 ClassDuck</title>
-  <link rel="preconnect" href="https://cdn.jsdelivr.net" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk@5/index.css" />
+  <link rel="icon" href="img/logo-128.png" />
   <style>
+    /* 侘寂 · 低饱和纸感 · 主题金 #E7AF1A */
     :root {
-      --ink: #10131a;
-      --paper: #f4f2ec;
-      --card: rgba(255, 255, 255, 0.055);
-      --line: rgba(255, 255, 255, 0.1);
-      --gold: #ffd666;
-      --gold-2: #ffc937;
-      --muted: rgba(244, 242, 236, 0.55);
-      --faint: rgba(244, 242, 236, 0.32);
-      --display: "Space Grotesk", -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      --paper: #f5f1e8;
+      --paper-2: #efe9dc;
+      --ink: #33302a;
+      --ink-soft: #59544b;
+      --faint: #8d8679;
+      --gold: #e7af1a;
+      --gold-soft: #c9a44c;
+      --gold-dim: #d8bd7f;
+      --line: rgba(70, 62, 50, 0.16);
+      --serif: "Songti SC", "STSong", "SimSun", "Noto Serif SC", serif;
+      --sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html { scroll-behavior: smooth; }
     body {
-      background: var(--ink);
-      color: var(--paper);
-      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
-      line-height: 1.6;
-      overflow-x: hidden;
+      background-color: var(--paper);
+      /* 纸纤维噪点 */
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+      color: var(--ink);
+      font-family: var(--sans);
+      line-height: 1.8;
+      -webkit-font-smoothing: antialiased;
     }
+    ::selection { background: var(--gold-dim); color: var(--ink); }
     a { color: inherit; text-decoration: none; }
-    ::selection { background: var(--gold); color: var(--ink); }
 
-    /* 背景装置：网格 + 光晕 + 噪点 */
-    .grid-bg {
-      position: fixed;
-      inset: 0;
-      z-index: -2;
-      background:
-        radial-gradient(760px 420px at 85% -8%, rgba(255, 214, 102, 0.16), transparent 62%),
-        radial-gradient(640px 380px at 5% 18%, rgba(255, 201, 55, 0.08), transparent 60%),
-        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-      background-size: auto, auto, 64px 64px, 64px 64px;
-      mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, black 30%, transparent 100%);
-    }
-    .glow {
-      position: fixed;
-      width: 520px;
-      height: 520px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(255, 214, 102, 0.13), transparent 65%);
-      pointer-events: none;
-      z-index: -1;
-      transform: translate(-50%, -50%);
-      transition: left 0.6s cubic-bezier(0.22, 1, 0.36, 1), top 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-      will-change: left, top;
-    }
-
-    /* 顶部导航 */
+    /* 导航：纸面一行墨线 */
     nav {
       position: sticky;
       top: 0;
@@ -65,408 +43,289 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 18px 34px;
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      background: rgba(16, 19, 26, 0.55);
+      padding: 16px 34px;
+      background: rgba(245, 241, 232, 0.86);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       border-bottom: 1px solid var(--line);
-      transition: background 0.3s ease;
     }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-family: var(--display);
-      font-weight: 700;
-      font-size: 17px;
-      letter-spacing: 0.4px;
-    }
-    .brand .mark {
-      width: 30px;
-      height: 30px;
-      display: grid;
-      place-items: center;
-      border-radius: 9px;
-      background: linear-gradient(135deg, var(--gold), var(--gold-2));
-      color: var(--ink);
-    }
-    .brand .mark svg { width: 17px; height: 17px; }
-    .brand small { color: var(--faint); font-weight: 400; margin-left: 4px; font-size: 12px; }
-    nav .right { display: flex; align-items: center; gap: 22px; font-size: 13.5px; color: var(--muted); }
-    nav .right a { display: inline-flex; align-items: center; gap: 6px; transition: color 0.2s ease; }
-    nav .right a:hover { color: var(--paper); }
-    nav .right svg { width: 15px; height: 15px; }
-    .pill {
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand img { width: 30px; height: 30px; border-radius: 8px; }
+    .brand .name { font-family: var(--serif); font-size: 17px; font-weight: 600; letter-spacing: 2px; }
+    .brand small { color: var(--faint); font-size: 11.5px; letter-spacing: 1px; margin-left: 4px; }
+    nav .links { display: flex; align-items: center; gap: 26px; font-size: 13.5px; color: var(--ink-soft); letter-spacing: 1px; }
+    nav .links a { transition: color 0.25s ease; }
+    nav .links a:hover { color: var(--gold-soft); }
+    .stamp {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 5px 13px;
+      padding: 4px 14px;
+      border: 1.5px solid var(--gold-soft);
       border-radius: 999px;
-      background: var(--gold);
-      color: var(--ink);
-      font-weight: 700;
-      font-size: 12px;
-      border: none;
-      cursor: default;
+      color: var(--gold-soft);
+      font-size: 11.5px;
+      letter-spacing: 2px;
     }
-    .pill svg { width: 12px; height: 12px; }
+    .stamp svg { width: 12px; height: 12px; }
 
     /* Hero */
-    .hero { position: relative; padding: 120px 34px 96px; text-align: center; }
-    .hero .kicker {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-family: var(--display);
-      font-size: 12.5px;
-      letter-spacing: 3.2px;
-      text-transform: uppercase;
-      color: var(--gold);
-      border: 1px solid rgba(255, 214, 102, 0.4);
-      border-radius: 999px;
-      padding: 7px 16px;
+    .hero { text-align: center; padding: 96px 26px 84px; }
+    .hero .logo {
+      width: 108px;
+      height: 108px;
+      border-radius: 26px;
+      box-shadow: 0 2px 14px rgba(80, 65, 30, 0.08);
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fade-in 0.9s ease 0.1s forwards;
     }
-    .hero .kicker svg { width: 13px; height: 13px; }
     .hero h1 {
-      margin: 34px auto 0;
-      font-family: var(--display);
-      font-size: clamp(64px, 14vw, 148px);
-      font-weight: 700;
-      line-height: 0.98;
-      letter-spacing: -0.03em;
-      max-width: 900px;
+      margin-top: 34px;
+      font-family: var(--serif);
+      font-size: clamp(40px, 7vw, 64px);
+      font-weight: 600;
+      letter-spacing: 10px;
+      text-indent: 10px;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fade-in 0.9s ease 0.25s forwards;
     }
-    .hero h1 .out {
-      color: transparent;
-      -webkit-text-stroke: 1.5px var(--paper);
-    }
-    .hero h1 .gold {
-      background: linear-gradient(120deg, var(--gold), var(--gold-2) 60%, #ffe9a8);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
+    .hero .sub {
+      margin-top: 16px;
+      font-size: 15px;
+      color: var(--ink-soft);
+      letter-spacing: 3px;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fade-in 0.9s ease 0.4s forwards;
     }
     .hero .lead {
-      margin: 30px auto 0;
-      max-width: 620px;
-      font-size: 16.5px;
-      color: var(--muted);
+      margin: 22px auto 0;
+      max-width: 520px;
+      font-size: 13.5px;
+      color: var(--faint);
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fade-in 0.9s ease 0.55s forwards;
     }
-    .hero .meta {
-      margin-top: 22px;
+    .cta {
+      margin-top: 46px;
       display: flex;
-      gap: 12px;
+      gap: 18px;
       justify-content: center;
       flex-wrap: wrap;
-      font-size: 12.5px;
-      color: var(--faint);
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fade-in 0.9s ease 0.7s forwards;
     }
-    .hero .meta span { display: inline-flex; align-items: center; gap: 6px; }
-    .hero .meta svg { width: 13px; height: 13px; color: var(--gold); }
-    .cta { margin-top: 46px; display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
     .btn {
       display: inline-flex;
       align-items: center;
-      gap: 10px;
-      padding: 17px 34px;
-      border-radius: 16px;
-      font-size: 15px;
-      font-weight: 700;
-      font-family: var(--display);
-      border: none;
-      cursor: pointer;
-      transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s ease, background 0.22s ease;
-    }
-    .btn svg { width: 17px; height: 17px; }
-    .btn.primary {
-      background: linear-gradient(135deg, var(--gold), var(--gold-2));
-      color: var(--ink);
-      box-shadow: 0 14px 44px rgba(255, 201, 55, 0.28);
-    }
-    .btn.primary:hover { transform: translateY(-3px) scale(1.015); box-shadow: 0 22px 60px rgba(255, 201, 55, 0.4); }
-    .btn.ghost {
-      background: var(--card);
-      color: var(--paper);
-      border: 1px solid var(--line);
-      backdrop-filter: blur(8px);
-    }
-    .btn.ghost:hover { transform: translateY(-3px); background: rgba(255, 255, 255, 0.1); }
-    .hero .hint { margin-top: 18px; font-size: 12.5px; color: var(--faint); }
-
-    /* 滚动字幕 */
-    .marquee {
-      overflow: hidden;
-      border-top: 1px solid var(--line);
-      border-bottom: 1px solid var(--line);
-      padding: 16px 0;
-      white-space: nowrap;
-      user-select: none;
-    }
-    .marquee .track {
-      display: inline-block;
-      animation: scroll-x 26s linear infinite;
-      font-family: var(--display);
-      font-size: 15px;
+      gap: 9px;
+      padding: 13px 30px;
+      border-radius: 2px;
+      font-size: 13.5px;
       letter-spacing: 2px;
-      color: var(--muted);
-    }
-    .marquee .track span { margin: 0 26px; }
-    .marquee .track svg { width: 15px; height: 15px; vertical-align: -2px; margin-right: 8px; color: var(--gold); }
-    @keyframes scroll-x { to { transform: translateX(-50%); } }
-
-    /* 通用区块 */
-    section { max-width: 1120px; margin: 0 auto; padding: 110px 34px; }
-    .sec-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
-    .sec-head .idx { font-family: var(--display); color: var(--gold); font-size: 14px; letter-spacing: 2px; }
-    .sec-head h2 { font-family: var(--display); font-size: clamp(34px, 5vw, 60px); font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; }
-    .sec-head .note { color: var(--faint); font-size: 13.5px; max-width: 300px; text-align: right; }
-
-    /* 特性：不对称排版 */
-    .features { margin-top: 56px; display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 22px; }
-    .feature {
-      position: relative;
       border: 1px solid var(--line);
-      border-radius: 22px;
-      padding: 34px 30px;
-      background: var(--card);
-      overflow: hidden;
-      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.3s ease, background 0.3s ease;
+      transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+    }
+    .btn svg { width: 15px; height: 15px; }
+    .btn.primary { background: var(--gold); color: #3a2f15; border-color: var(--gold); }
+    .btn.primary:hover { background: var(--gold-soft); border-color: var(--gold-soft); }
+    .btn.ghost { background: transparent; color: var(--ink-soft); }
+    .btn.ghost:hover { border-color: var(--gold-soft); color: var(--gold-soft); }
+    .hero .hint { margin-top: 20px; font-size: 12px; color: var(--faint); letter-spacing: 1px; }
+
+    /* 手绘墨线分隔 */
+    .ink-line { display: block; margin: 0 auto; width: min(560px, 82%); opacity: 0.55; }
+
+    /* 区块 */
+    section { max-width: 980px; margin: 0 auto; padding: 96px 28px; }
+    .sec-head { text-align: center; }
+    .sec-head .kicker { font-size: 11.5px; letter-spacing: 4px; color: var(--gold-soft); }
+    .sec-head h2 { margin-top: 14px; font-family: var(--serif); font-size: clamp(26px, 4vw, 36px); font-weight: 600; letter-spacing: 6px; text-indent: 6px; }
+    .sec-head .note { margin-top: 12px; font-size: 13px; color: var(--faint); }
+
+    /* 特性：留白两列 */
+    .features { margin-top: 52px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px 34px; }
+    .feature {
+      padding: 30px 6px 26px;
+      border-top: 1px solid var(--line);
       opacity: 0;
-      transform: translateY(34px);
+      transform: translateY(16px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
     }
     .feature.revealed { opacity: 1; transform: none; }
-    .feature:hover { transform: translateY(-5px); border-color: rgba(255, 214, 102, 0.5); background: rgba(255, 255, 255, 0.08); }
-    .feature .icon {
-      width: 46px;
-      height: 46px;
-      border-radius: 13px;
-      display: grid;
-      place-items: center;
-      background: rgba(255, 214, 102, 0.12);
-      color: var(--gold);
-    }
-    .feature .icon svg { width: 21px; height: 21px; }
-    .feature h3 { margin-top: 22px; font-family: var(--display); font-size: 21px; }
-    .feature p { margin-top: 10px; color: var(--muted); font-size: 14px; }
-    .feature .num {
-      position: absolute;
-      top: 20px;
-      right: 24px;
-      font-family: var(--display);
-      font-size: 13px;
-      color: var(--faint);
-      letter-spacing: 1px;
-    }
+    .feature .row { display: flex; align-items: center; gap: 12px; }
+    .feature .icon { color: var(--gold-soft); }
+    .feature .icon svg { width: 19px; height: 19px; }
+    .feature h3 { font-family: var(--serif); font-size: 17px; font-weight: 600; letter-spacing: 2px; }
+    .feature p { margin-top: 10px; font-size: 13px; color: var(--faint); max-width: 400px; }
 
-    /* 下载区 */
-    .dl-grid { margin-top: 56px; display: grid; grid-template-columns: 1.55fr 1fr 1fr; gap: 22px; }
+    /* 下载：三张纸卡 */
+    .dl-grid { margin-top: 56px; display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 22px; }
     .card {
+      background: var(--paper-2);
       border: 1px solid var(--line);
-      border-radius: 22px;
-      padding: 32px 28px;
-      background: var(--card);
+      border-radius: 4px;
+      padding: 30px 26px;
       display: flex;
       flex-direction: column;
-      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.3s ease;
       opacity: 0;
-      transform: translateY(34px);
+      transform: translateY(16px);
+      transition: opacity 0.8s ease, transform 0.8s ease, border-color 0.3s ease;
     }
     .card.revealed { opacity: 1; transform: none; }
-    .card:hover { transform: translateY(-5px); border-color: rgba(255, 214, 102, 0.45); }
-    .card.android { background: linear-gradient(160deg, rgba(255, 214, 102, 0.14), rgba(255, 201, 55, 0.03) 55%), var(--card); border-color: rgba(255, 214, 102, 0.45); }
+    .card:hover { border-color: var(--gold-dim); }
+    .card.android { background: rgba(231, 175, 26, 0.07); border-color: rgba(201, 164, 76, 0.5); }
     .card .os { display: flex; align-items: center; justify-content: space-between; }
-    .card .os .ic { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; background: rgba(255, 255, 255, 0.08); color: var(--gold); }
-    .card .os .ic svg { width: 21px; height: 21px; }
-    .card .os .tag { font-family: var(--display); font-size: 11px; letter-spacing: 2px; color: var(--faint); }
-    .card h3 { margin-top: 20px; font-family: var(--display); font-size: 20px; }
-    .card .desc { margin-top: 8px; color: var(--muted); font-size: 13.5px; flex: 1; }
-    .card .acts { margin-top: 22px; display: flex; flex-direction: column; gap: 10px; }
-    .card .acts .btn { width: 100%; justify-content: center; padding: 14px 0; font-size: 14px; border-radius: 13px; }
-    .card .acts .btn.solid { background: var(--gold); color: var(--ink); box-shadow: 0 10px 30px rgba(255, 201, 55, 0.22); }
-    .card .acts .btn.solid:hover { transform: translateY(-2px); }
-    .card .acts .btn.sub { background: transparent; border: 1px solid var(--line); color: var(--muted); font-weight: 600; }
-    .card .acts .btn.sub:hover { color: var(--paper); border-color: rgba(255, 214, 102, 0.4); }
-    .card .acts .btn.off { background: rgba(255, 255, 255, 0.04); color: var(--faint); cursor: not-allowed; border: 1px solid var(--line); }
-    .card .hint { margin-top: 14px; font-size: 12px; color: var(--faint); }
-    .card .hint svg { width: 12px; height: 12px; vertical-align: -1px; margin-right: 4px; color: var(--gold); }
+    .card .os .ic { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--gold-dim); display: grid; place-items: center; color: var(--gold-soft); }
+    .card .os .ic svg { width: 19px; height: 19px; }
+    .card .os .label { font-size: 11px; letter-spacing: 3px; color: var(--gold-soft); }
+    .card h3 { margin-top: 20px; font-family: var(--serif); font-size: 18px; letter-spacing: 3px; }
+    .card .desc { margin-top: 8px; flex: 1; font-size: 12.5px; color: var(--faint); }
+    .card .acts { margin-top: 22px; display: flex; flex-direction: column; gap: 9px; }
+    .card .acts .btn { width: 100%; justify-content: center; padding: 12px 0; font-size: 13px; }
+    .card .acts .btn.solid { background: var(--gold); border-color: var(--gold); color: #3a2f15; }
+    .card .acts .btn.solid:hover { background: var(--gold-soft); border-color: var(--gold-soft); }
+    .card .acts .btn.line { background: transparent; border-color: var(--line); color: var(--ink-soft); }
+    .card .acts .btn.line:hover { border-color: var(--gold-soft); color: var(--gold-soft); }
+    .card .acts .btn.off { background: transparent; border-color: var(--line); color: var(--faint); cursor: not-allowed; opacity: 0.7; }
+    .card .hint { margin-top: 14px; font-size: 11.5px; color: var(--faint); display: flex; align-items: center; gap: 6px; }
+    .card .hint svg { width: 12px; height: 12px; color: var(--gold-soft); }
 
     /* 页脚 */
     footer {
+      margin-top: 40px;
       border-top: 1px solid var(--line);
-      padding: 38px 34px 46px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 16px;
+      padding: 30px 28px 40px;
+      text-align: center;
+      font-size: 12px;
       color: var(--faint);
-      font-size: 13px;
-      max-width: 1120px;
-      margin: 0 auto;
+      letter-spacing: 1px;
     }
-    footer .gh { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
-    footer .gh:hover { color: var(--paper); }
-    footer .gh svg { width: 16px; height: 16px; }
+    footer .gh { display: inline-flex; align-items: center; gap: 7px; color: var(--ink-soft); }
+    footer .gh:hover { color: var(--gold-soft); }
+    footer .gh svg { width: 14px; height: 14px; }
+    footer .sep { margin: 0 10px; opacity: 0.5; }
 
-    @media (max-width: 900px) {
+    @keyframes fade-in { to { opacity: 1; transform: none; } }
+
+    @media (max-width: 860px) {
       .features, .dl-grid { grid-template-columns: 1fr; }
-      section { padding: 84px 22px; }
-      .hero { padding: 90px 22px 70px; }
-      .sec-head { flex-direction: column; align-items: flex-start; }
-      .sec-head .note { text-align: left; }
+      section { padding: 72px 22px; }
+      .hero { padding: 72px 22px 60px; }
+      nav { padding: 14px 20px; }
+      nav .links { gap: 16px; }
+      .brand small { display: none; }
     }
   </style>
 </head>
 <body>
-  <div class="grid-bg"></div>
-  <div class="glow" id="glow"></div>
-
   <div id="app">
     <nav>
       <div class="brand">
-        <span class="mark" data-lucide="feather"></span>
-        <span>上课鸭 <small>ClassDuck</small></span>
+        <img src="img/logo-128.png" alt="上课鸭 logo" />
+        <span class="name">上课鸭 <small>CLASSDUCK</small></span>
       </div>
-      <div class="right">
-        <a href="#features">功能特性</a>
+      <div class="links">
+        <a href="#features">功能</a>
         <a href="#download">下载</a>
-        <a href="https://github.com/luyishui/classduck" target="_blank" rel="noopener">
-          <i data-lucide="github"></i>GitHub
-        </a>
-        <span class="pill"><i data-lucide="tag"></i>v{{ version }}</span>
+        <a href="https://github.com/luyishui/classduck" target="_blank" rel="noopener">GitHub</a>
+        <span class="stamp"><i data-lucide="tag"></i>v{{ version }}</span>
       </div>
     </nav>
 
     <header class="hero">
-      <span class="kicker"><i data-lucide="sparkles"></i>CLASSDUCK · 课表新形态</span>
-      <h1>
-        上课鸭<span class="out">&nbsp;</span><br />
-        <span class="gold">ClassDuck</span>
-      </h1>
-      <p class="lead">简洁好用的校园课表助手。教务网页一键导入、AI 截图识别导入、多课表管理、上课提醒、待办联动——把课表这件事，做得漂亮且安静。</p>
-      <div class="meta">
-        <span><i data-lucide="circle-check"></i>{{ version }} 正式版</span>
-        <span><i data-lucide="shield-check"></i>数据本地存储</span>
-        <span><i data-lucide="coffee"></i>免费 · 无广告</span>
-      </div>
+      <img class="logo" src="img/logo-512.png" alt="上课鸭" />
+      <h1>上课鸭</h1>
+      <p class="sub">CLASSDUCK · 校园课表</p>
+      <p class="lead">朴素克制的课表工具。教务网页导入、AI 截图识别、上课提醒、多课表管理——功能恰好够用，不多打扰。</p>
       <div class="cta">
-        <a class="btn primary" :href="androidUrl">
-          <i data-lucide="download"></i>下载 Android 通用版
-        </a>
-        <a class="btn ghost" :href="androidMirrorUrl">
-          <i data-lucide="zap"></i>镜像下载
-        </a>
+        <a class="btn primary" :href="androidUrl"><i data-lucide="download"></i>下载 Android 通用版</a>
+        <a class="btn ghost" :href="androidMirrorUrl"><i data-lucide="zap"></i>镜像下载</a>
       </div>
-      <p class="hint">Android 7.0 及以上 · 通用版自动适配主流机型 · arm64 高性能版见下方下载区</p>
+      <p class="hint">Android 7.0 及以上 · 免费无广告 · 数据本地存储</p>
     </header>
 
-    <div class="marquee" aria-hidden="true">
-      <div class="track">
-        <template v-for="n in 2" :key="n">
-          <span><i data-lucide="calendar-days"></i>多课表管理</span>
-          <span><i data-lucide="sparkles"></i>AI 截图导入</span>
-          <span><i data-lucide="alarm-clock"></i>上课提醒</span>
-          <span><i data-lucide="list-checks"></i>待办联动</span>
-          <span><i data-lucide="drag"></i>拖拽调课</span>
-          <span><i data-lucide="moon"></i>深色模式</span>
-          <span><i data-lucide="lock"></i>本地存储</span>
-        </template>
-      </div>
-    </div>
+    <svg class="ink-line" viewBox="0 0 560 30" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M4 9 C 80 20, 150 2, 240 10 S 420 24, 556 6" fill="none" stroke="#c9a44c" stroke-width="1.6" stroke-linecap="round" opacity="0.7" />
+      <path d="M4 21 C 90 12, 180 26, 270 17 S 450 8, 556 20" fill="none" stroke="#8d8679" stroke-width="0.9" stroke-linecap="round" opacity="0.5" />
+    </svg>
 
     <section id="features">
       <div class="sec-head">
-        <div>
-          <div class="idx">01 — FEATURES</div>
-          <h2>把课表这件事<br />做得漂亮且安静</h2>
-        </div>
-        <p class="note">围绕校园场景打磨的每一处细节，都不需要你在设置里折腾。</p>
+        <div class="kicker">— 功 能 —</div>
+        <h2>恰到好处的克制</h2>
+        <p class="note">没有繁复的开关与弹窗，日常需要的都在手边。</p>
       </div>
-
       <div class="features">
         <div class="feature">
-          <span class="num">01</span>
-          <span class="icon"><i data-lucide="calendar-days"></i></span>
-          <h3>多课表管理</h3>
-          <p>多学期课表独立管理，周次节次语义清晰，课程颜色自动区分，长按拖动随意调整布局与周数范围。</p>
+          <div class="row"><span class="icon"><i data-lucide="calendar-days"></i></span><h3>多课表管理</h3></div>
+          <p>多学期课表独立管理，周次节次语义清晰，课程颜色自动区分，长按拖动调整布局。</p>
         </div>
         <div class="feature">
-          <span class="num">02</span>
-          <span class="icon"><i data-lucide="sparkles"></i></span>
-          <h3>AI 截图导入</h3>
-          <p>把课表截图发给 AI，复制返回的 JSON 粘贴回来即可导入，再也不用逐条手打课程。</p>
+          <div class="row"><span class="icon"><i data-lucide="sparkles"></i></span><h3>AI 截图导入</h3></div>
+          <p>把课表截图发给 AI，复制返回的 JSON 粘贴回来即可导入，不必逐条手打。</p>
         </div>
         <div class="feature">
-          <span class="num">03</span>
-          <span class="icon"><i data-lucide="alarm-clock"></i></span>
-          <h3>上课提醒</h3>
-          <p>课程开始前准时提醒，提醒时间自定义，也可按课程单独设置，不错过任何一节课。</p>
+          <div class="row"><span class="icon"><i data-lucide="alarm-clock"></i></span><h3>上课提醒</h3></div>
+          <p>课程开始前准时提醒，时间可自定义，也可按课程单独设置。</p>
         </div>
         <div class="feature">
-          <span class="num">04</span>
-          <span class="icon"><i data-lucide="list-checks"></i></span>
-          <h3>待办联动</h3>
-          <p>作业、考试、会议随手记，与课表时间线联动，日程一眼看全。</p>
+          <div class="row"><span class="icon"><i data-lucide="list-checks"></i></span><h3>待办联动</h3></div>
+          <p>作业、考试、会议随手记下，与课表时间线并列，一眼看全。</p>
         </div>
       </div>
     </section>
 
     <section id="download">
       <div class="sec-head">
-        <div>
-          <div class="idx">02 — DOWNLOAD</div>
-          <h2>选择你的平台<br /><span style="color: var(--gold);">立即开始</span></h2>
-        </div>
-        <p class="note">安装包与版本信息自动同步自 GitHub Releases，点击右上角 GitHub 可查看源码与更新日志。</p>
+        <div class="kicker">— 下 载 —</div>
+        <h2>择一而用</h2>
+        <p class="note">安装包与版本信息自动同步自 GitHub Releases，源码见右上角 GitHub。</p>
       </div>
-
       <div class="dl-grid">
         <div class="card android">
           <div class="os">
             <span class="ic"><i data-lucide="smartphone"></i></span>
-            <span class="tag">AVAILABLE</span>
+            <span class="label">现行版本</span>
           </div>
           <h3>Android</h3>
-          <p class="desc">支持 Android 7.0 及以上设备。通用版包含全部 CPU 架构，arm64 版体积更小、启动更快。</p>
+          <p class="desc">支持 Android 7.0 及以上设备。通用版包含全部 CPU 架构；arm64 版体积更小。</p>
           <div class="acts">
             <a class="btn solid" :href="androidUrl"><i data-lucide="download"></i>下载通用版 APK</a>
-            <a class="btn sub" :href="androidArm64Url"><i data-lucide="cpu"></i>arm64 高性能版</a>
-            <a class="btn sub" :href="androidMirrorUrl"><i data-lucide="globe"></i>镜像下载（国内加速）</a>
+            <a class="btn line" :href="androidArm64Url"><i data-lucide="cpu"></i>arm64 高性能版</a>
+            <a class="btn line" :href="androidMirrorUrl"><i data-lucide="globe"></i>镜像下载（国内加速）</a>
           </div>
-          <p class="hint"><i data-lucide="info"></i>安装前请允许"安装未知来源应用"</p>
+          <p class="hint"><i data-lucide="info"></i>安装时请允许"安装未知来源应用"</p>
         </div>
-
         <div class="card">
           <div class="os">
             <span class="ic"><i data-lucide="apple"></i></span>
-            <span class="tag">SOON</span>
+            <span class="label">筹备中</span>
           </div>
           <h3>iOS</h3>
-          <p class="desc">App Store 版本正在准备中，敬请期待。</p>
-          <div class="acts">
-            <button class="btn off" disabled><i data-lucide="hourglass"></i>敬请期待</button>
-          </div>
+          <p class="desc">App Store 版本正在准备中。</p>
+          <div class="acts"><button class="btn off" disabled><i data-lucide="hourglass"></i>敬请期待</button></div>
         </div>
-
         <div class="card">
           <div class="os">
             <span class="ic"><i data-lucide="hexagon"></i></span>
-            <span class="tag">SOON</span>
+            <span class="label">筹备中</span>
           </div>
-          <h3>鸿蒙 HarmonyOS</h3>
-          <p class="desc">HarmonyOS 版本正在准备中，敬请期待。</p>
-          <div class="acts">
-            <button class="btn off" disabled><i data-lucide="hourglass"></i>敬请期待</button>
-          </div>
+          <h3>鸿蒙</h3>
+          <p class="desc">HarmonyOS 版本正在准备中。</p>
+          <div class="acts"><button class="btn off" disabled><i data-lucide="hourglass"></i>敬请期待</button></div>
         </div>
       </div>
     </section>
 
     <footer>
-      <a class="gh" href="https://github.com/luyishui/classduck" target="_blank" rel="noopener">
-        <i data-lucide="github"></i>luyishui/classduck
-      </a>
-      <span>© 2026 上课鸭 ClassDuck · 更新 / 公告自动同步自 GitHub Releases</span>
+      <a class="gh" href="https://github.com/luyishui/classduck" target="_blank" rel="noopener"><i data-lucide="git-branch"></i>luyishui/classduck</a>
+      <span class="sep">·</span>
+      <span>© 2026 上课鸭 ClassDuck</span>
     </footer>
   </div>
 
@@ -495,7 +354,7 @@
         };
       },
       mounted() {
-        // 版本号与 release.json 自动同步（jsDelivr 缓存已由发版流水线主动清除）。
+        // 版本号与 release.json 自动同步（发版流水线会主动清理 jsDelivr 缓存）。
         fetch('./release.json')
           .then((res) => (res.ok ? res.json() : null))
           .then((data) => {
@@ -503,30 +362,18 @@
           })
           .catch(() => {});
         lucide.createIcons();
+        // 滚动淡入：克制节奏与纸张一致
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach((en) => {
+            if (en.isIntersecting) {
+              en.target.classList.add('revealed');
+              io.unobserve(en.target);
+            }
+          });
+        }, { threshold: 0.15 });
+        document.querySelectorAll('.feature, .card').forEach((el) => io.observe(el));
       },
     }).mount('#app');
-
-    // 光晕跟随光标
-    const glow = document.getElementById('glow');
-    let gx = innerWidth * 0.8, gy = 0;
-    addEventListener('pointermove', (e) => { gx = e.clientX; gy = e.clientY; });
-    (function anim() {
-      const curX = parseFloat(glow.style.left || '0');
-      glow.style.left = (curX + (gx - curX) * 0.08) + 'px';
-      glow.style.top = (parseFloat(glow.style.top || '0') + (gy - parseFloat(glow.style.top || '0')) * 0.08) + 'px';
-      requestAnimationFrame(anim);
-    })();
-
-    // 滚动揭示
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach((en) => {
-        if (en.isIntersecting) {
-          en.target.classList.add('revealed');
-          io.unobserve(en.target);
-        }
-      });
-    }, { threshold: 0.12 });
-    document.querySelectorAll('.feature, .card').forEach((el) => io.observe(el));
   </script>
 </body>
 </html>

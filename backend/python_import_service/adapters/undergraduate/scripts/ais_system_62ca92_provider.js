@@ -7,7 +7,7 @@
  * @LastEditors: xiaoxiao
  * @Description: 
  * @FilePath: \AISchedule\正方教务\成都艺术职业大学\provider.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 function request(tag,data,url)
 {
@@ -57,7 +57,7 @@ function scheduleHtmlProvider(iframeContent = "", frameContent = "", dom = docum
  * @LastEditors: xiaoxiao
  * @Description: 
  * @FilePath: \AISchedule\正方教务\成都艺术职业大学\Parser.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */function resolveCourseConflicts(result) {
     let splitTag="&"
 //将课拆成单节，并去重

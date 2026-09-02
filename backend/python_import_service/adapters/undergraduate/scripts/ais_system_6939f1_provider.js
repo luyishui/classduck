@@ -7,7 +7,7 @@
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\树维\wotk\provider.js
- * @QQ: 357914968
+ * @source: AISchedule 开源适配器
  */
 /**
  * loading函数

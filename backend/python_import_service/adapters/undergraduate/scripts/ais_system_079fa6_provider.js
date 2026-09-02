@@ -7,7 +7,7 @@
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\树维\辅修-班级provider.js
- * @QQ: 357914968
+ * @source: AISchedule 开源适配器
  */
 /**
  * loading函数
@@ -542,7 +542,7 @@ async function scheduleHtmlProvider(
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\树维\广州工商学院\parser.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 function resolveCourseConflicts(result) {
   //将课拆成单节，并去重

@@ -7,7 +7,7 @@
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\小爱测试\provider.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 
 async function scheduleHtmlProvider(
@@ -31,7 +31,7 @@ async function scheduleHtmlProvider(
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\小爱测试\parser.js
- * @QQ: 357914968
+ * @source: AISchedule 开源适配器
  */
 function scheduleHtmlParser(html) {
   var jsonArray = []
@@ -107,7 +107,7 @@ function scheduleHtmlParser(html) {
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\小爱测试\timer.js
- * @QQ: 357914968
+ * @source: AISchedule 开源适配器
  */
 
 /**

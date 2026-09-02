@@ -7,7 +7,7 @@
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\eurasia\西安欧亚学院\provider.js
- * @QQ: 357914968
+ * @source: AISchedule 开源适配器
  */
 async function scheduleHtmlProvider(
   iframeContent = '',
@@ -222,7 +222,7 @@ function scheduleHtmlParser(html) {
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\eurasia\西安欧亚学院\timer.js
- * @QQ: 357914968
+ * @source: AISchedule 开源适配器
  *
  *
  * @param xJConf : {lunchTime: {time: number, begin: number}, longRestingTimeBegin: number[], abnormalRestingTime: [{time: number, begin: number}, {time: number, begin: number}], oneCourseTime: number, longRestingTime: number, dinnerTime: {time: number, begin: number}, startTime: string, shortRestingTime: number, courseSum: number, abnormalClassTime: [{time: number, begin: number}]} : 夏季时间

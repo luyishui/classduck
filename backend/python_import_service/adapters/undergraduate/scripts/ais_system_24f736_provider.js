@@ -7,7 +7,7 @@
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\青果教务\陇东学院_新版\provider.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 async function request(tag, encod, url) {
   let formatText = (text, encoding) => {
@@ -511,7 +511,7 @@ function scheduleHtmlParser(html) {
  * @LastEditors: xiaoxiao
  * @Description: 
  * @FilePath: \AISchedule\青果教务\陇东学院\timer.js
- * @QQ：357914968
+ * @source: AISchedule 开源适配器
  */
 function getTimes(xJConf,dJConf){
     //xJConf : 夏季时间配置文件

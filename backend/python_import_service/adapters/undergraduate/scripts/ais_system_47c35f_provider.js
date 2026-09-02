@@ -7,7 +7,7 @@
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\西安建筑科技大学\本科\Provider.js
- * @QQ: 357914968
+ * @source: AISchedule 开源适配器
  */
 async function getjson(method, data, url) {
   return await fetch(url, {
@@ -98,7 +98,7 @@ async function scheduleHtmlProvider(
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\西安建筑科技大学\本科\Parser.js
- * @QQ: 357914968
+ * @source: AISchedule 开源适配器
  */
 function resolveCourseConflicts(result) {
   let splitTag = '&'
@@ -295,7 +295,7 @@ function scheduleHtmlParser(html) {
  * @LastEditors: xiaoxiao
  * @Description:
  * @FilePath: \AISchedule\西安建筑科技大学\本科\timer.js
- * @QQ: 357914968
+ * @source: AISchedule 开源适配器
  */
 function getTimes(xJConf, dJConf) {
   //xJConf : 夏季时间配置文件

@@ -7,7 +7,7 @@
  * @LastEditors: ddos_ling
  * @Description:
  * @FilePath: \AISchedule\新正方教务\深圳信息职业技术学院\provider.js
- * @QQ: 1928668616
+ * @source: AISchedule 开源适配器
  */
 
 async function request(tag, data, url) {
@@ -159,7 +159,7 @@ async function scheduleHtmlProvider(
  * @LastEditors: ddos_ling
  * @Description:
  * @FilePath: \AISchedule\新正方教务\深圳信息职业技术学院\parser.js
- * @QQ: 1928668616
+ * @source: AISchedule 开源适配器
  */
 function resolveCourseConflicts(result) {
   let splitTag = '&'
@@ -504,7 +504,7 @@ function scheduleHtmlParser(html) {
  * @LastEditors: ddos_ling
  * @Description:
  * @FilePath: \AISchedule\新正方教务\深圳信息职业技术学院\timer.js
- * @QQ: 1928668616
+ * @source: AISchedule 开源适配器
  */
 
 /**
