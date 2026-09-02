@@ -3,28 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="上课鸭 ClassDuck - 简洁好用的校园课表助手，支持教务导入、AI 截图导入、上课提醒。" />
   <title>上课鸭 ClassDuck - 下载中心</title>
   <style>
     :root {
-      --bg: #f6f7fb;
+      --bg: #f7f7fb;
+      --text: #1c1e26;
+      --muted: #666c7d;
       --card: #ffffff;
-      --text: #1f2329;
-      --muted: #8a919f;
+      --border: #e8eaf2;
       --accent: #ffd666;
+      --accent-strong: #ffc93d;
       --accent-text: #4a3414;
-      --border: #eceef3;
+      --hero-bg: #15181f;
+      --hero-text: #f2f3f7;
       --disabled-bg: #eceef3;
       --disabled-text: #b3b8c2;
+      --shadow: 0 8px 30px rgba(30, 34, 55, 0.08);
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #17191e;
-        --card: #21242b;
-        --text: #eceef1;
-        --muted: #9aa1ad;
-        --border: #30343d;
-        --disabled-bg: #2a2e36;
-        --disabled-text: #7c828d;
+        --bg: #101218;
+        --text: #eceef3;
+        --muted: #98a0b3;
+        --card: #1a1d26;
+        --border: #2a2e3a;
+        --hero-bg: #0c0e13;
+        --hero-text: #f2f3f7;
+        --disabled-bg: #232733;
+        --disabled-text: #677080;
+        --shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
       }
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -32,88 +40,224 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
       background: var(--bg);
       color: var(--text);
-      line-height: 1.6;
-      padding: 48px 20px 32px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
     }
-    .wrap { max-width: 420px; margin: 0 auto; }
-    #app { text-align: center; }
-    header h1 { font-size: 28px; letter-spacing: 1px; }
-    header .sub { color: var(--muted); font-size: 14px; margin-top: 6px; }
-    header .version {
-      display: inline-block;
-      margin-top: 14px;
-      padding: 4px 14px;
+    a { color: inherit; text-decoration: none; }
+
+    /* 顶部导航 */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 28px;
+      background: color-mix(in srgb, var(--bg) 82%, transparent);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
+    .brand .duck { font-size: 20px; }
+    .brand small { color: var(--muted); font-weight: 400; margin-left: 2px; }
+    nav .links { display: flex; align-items: center; gap: 18px; font-size: 14px; color: var(--muted); }
+    nav .links a:hover { color: var(--text); }
+    .version-badge {
+      padding: 3px 12px;
       border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
       background: var(--accent);
       color: var(--accent-text);
-      font-size: 13px;
-      font-weight: 600;
     }
-    .cards { margin-top: 32px; display: grid; gap: 16px; }
-    .card {
+
+    /* Hero */
+    .hero {
+      background:
+        radial-gradient(1000px 480px at 80% -10%, rgba(255, 214, 102, 0.22), transparent 60%),
+        radial-gradient(800px 420px at 10% 0%, rgba(255, 201, 61, 0.12), transparent 55%),
+        var(--hero-bg);
+      color: var(--hero-text);
+      text-align: center;
+      padding: 88px 24px 96px;
+    }
+    .hero h1 { font-size: clamp(34px, 6vw, 54px); font-weight: 800; letter-spacing: 1px; }
+    .hero h1 .accent { color: var(--accent); }
+    .hero .sub { margin-top: 14px; font-size: 17px; color: rgba(242, 243, 247, 0.85); }
+    .hero .desc { margin: 18px auto 0; max-width: 560px; font-size: 14px; color: rgba(242, 243, 247, 0.6); }
+    .hero .badges { margin-top: 16px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .hero .badges span {
+      font-size: 12px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: rgba(242, 243, 247, 0.85);
+    }
+    .cta-row { margin-top: 36px; display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 14px 30px;
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(255, 201, 61, 0.35); }
+    .btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-strong)); color: var(--accent-text); }
+    .btn.ghost {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--hero-text);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+    }
+    .btn.ghost:hover { box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3); }
+    .hero .hint { margin-top: 16px; font-size: 12px; color: rgba(242, 243, 247, 0.5); }
+
+    /* 区块通用 */
+    section { max-width: 1000px; margin: 0 auto; padding: 72px 24px; }
+    .section-title { text-align: center; font-size: 26px; font-weight: 800; }
+    .section-sub { text-align: center; color: var(--muted); font-size: 14px; margin-top: 8px; }
+
+    /* 特性卡片 */
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-top: 40px; }
+    .feature {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 20px;
-      text-align: left;
+      border-radius: 18px;
+      padding: 24px 20px;
+      box-shadow: var(--shadow);
     }
-    .card h2 { font-size: 17px; display: flex; align-items: center; gap: 8px; }
-    .card .desc { color: var(--muted); font-size: 13px; margin: 8px 0 14px; }
-    .btn {
-      display: block;
-      width: 100%;
-      padding: 12px 0;
-      border: none;
-      border-radius: 12px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      text-decoration: none;
+    .feature .icon { font-size: 30px; }
+    .feature h3 { margin-top: 12px; font-size: 16px; }
+    .feature p { margin-top: 6px; font-size: 13px; color: var(--muted); }
+
+    /* 平台卡片 */
+    .platforms { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; margin-top: 40px; }
+    .platform {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 26px 22px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+    }
+    .platform .os { font-size: 26px; }
+    .platform h3 { margin-top: 8px; font-size: 17px; }
+    .platform .desc { font-size: 13px; color: var(--muted); margin: 6px 0 16px; flex: 1; }
+    .platform .btn { width: 100%; font-size: 14px; padding: 12px 0; }
+    .platform .btn.solid { background: var(--accent); color: var(--accent-text); }
+    .platform .btn.solid:hover { transform: none; box-shadow: 0 6px 18px rgba(255, 201, 61, 0.35); }
+    .platform .btn.sub { background: var(--disabled-bg); color: var(--muted); margin-top: 8px; }
+    .platform .btn.sub:hover { transform: none; box-shadow: none; }
+    .platform .btn.off { background: var(--disabled-bg); color: var(--disabled-text); cursor: not-allowed; }
+
+    /* 页脚 */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 24px 36px;
       text-align: center;
-      background: var(--accent);
-      color: var(--accent-text);
-      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
     }
-    .btn.secondary { background: var(--disabled-bg); color: var(--muted); }
-    .btn.disabled { background: var(--disabled-bg); color: var(--disabled-text); cursor: not-allowed; }
-    .hint { color: var(--muted); font-size: 12px; margin-top: 10px; }
-    footer { color: var(--muted); font-size: 12px; margin-top: 32px; }
+    footer a:hover { color: var(--text); text-decoration: underline; }
+    footer .gh { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 6px; }
   </style>
 </head>
 <body>
-  <div id="app">
-    <div class="wrap">
-      <header>
-        <h1>上课鸭 ClassDuck</h1>
-        <p class="sub">简洁好用的校园课表助手</p>
-        <span class="version">当前版本 {{ version }}</span>
-      </header>
-
-      <div class="cards">
-        <div class="card">
-          <h2>📱 Android</h2>
-          <p class="desc">支持 Android 7.0 及以上设备</p>
-          <a class="btn" :href="androidUrl">下载 APK（通用版）</a>
-          <a class="btn secondary" :href="androidMirrorUrl">镜像下载</a>
-          <p class="hint">需要更高性能？可到 Release 页下载 arm64 高性能版。</p>
-        </div>
-
-        <div class="card">
-          <h2>🍎 iOS</h2>
-          <p class="desc">App Store 版本准备中</p>
-          <button class="btn disabled" disabled>敬请期待</button>
-        </div>
-
-        <div class="card">
-          <h2>🦅 鸿蒙</h2>
-          <p class="desc">HarmonyOS 版本准备中</p>
-          <button class="btn disabled" disabled>敬请期待</button>
-        </div>
-      </div>
-
-      <footer>更新 / 公告自动同步自 GitHub Releases</footer>
+  <nav>
+    <div class="brand">
+      <span class="duck">🦆</span>
+      <span>上课鸭 <small>ClassDuck</small></span>
     </div>
-  </div>
+    <div class="links">
+      <a href="#features">功能特性</a>
+      <a href="#platforms">下载</a>
+      <a href="https://github.com/luyishui/classduck" target="_blank" rel="noopener">GitHub</a>
+      <span class="version-badge">v{{ version }}</span>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <h1>上课鸭<span class="accent"> ClassDuck</span></h1>
+    <p class="sub">简洁好用的校园课表助手</p>
+    <p class="desc">支持教务系统网页导入与 AI 截图识别导入，多课表管理、上课提醒、待办事项，让每一天的上课安排清清楚楚。</p>
+    <div class="badges">
+      <span>🆓 免费使用</span>
+      <span>🚀 轻量无广告</span>
+      <span>🔒 本地存储</span>
+    </div>
+    <div class="cta-row">
+      <a class="btn primary" :href="androidUrl">📲 下载 Android 通用版</a>
+      <a class="btn ghost" :href="androidMirrorUrl">镜像下载</a>
+    </div>
+    <p class="hint">Android 7.0 及以上 · 通用版自动适配主流机型 · 需要更高性能可选 arm64 版（见下方平台卡片）</p>
+  </header>
+
+  <section id="features">
+    <h2 class="section-title">功能特性</h2>
+    <p class="section-sub">一个应用，搞定校园课表的全部日常</p>
+    <div class="features">
+      <div class="feature">
+        <div class="icon">📅</div>
+        <h3>多课表管理</h3>
+        <p>支持多学期课表独立管理，周次、节次语义清晰，课程颜色自动区分。</p>
+      </div>
+      <div class="feature">
+        <div class="icon">🧠</div>
+        <h3>AI 导入课表</h3>
+        <p>截图课表发给 AI，粘贴返回的 JSON 即可导入，无需手动逐条录入。</p>
+      </div>
+      <div class="feature">
+        <div class="icon">⏰</div>
+        <h3>上课提醒</h3>
+        <p>课程开始前准时提醒，提醒时间可自定义，不错过每一节课。</p>
+      </div>
+      <div class="feature">
+        <div class="icon">✅</div>
+        <h3>待办事项</h3>
+        <p>作业、考试、会议随手记，与课表联动，日程一目了然。</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="platforms">
+    <h2 class="section-title">下载</h2>
+    <p class="section-sub">选择你的平台，立即开始使用</p>
+    <div class="platforms">
+      <div class="platform">
+        <div class="os">📱</div>
+        <h3>Android</h3>
+        <p class="desc">支持 Android 7.0 及以上设备。通用版包含全部架构，arm64 版体积更小、性能更优。</p>
+        <a class="btn solid" :href="androidUrl">下载通用版 APK</a>
+        <a class="btn sub" :href="androidArm64Url">下载 arm64 高性能版</a>
+        <a class="btn sub" :href="androidMirrorUrl">镜像下载（国内加速）</a>
+      </div>
+      <div class="platform">
+        <div class="os">🍎</div>
+        <h3>iOS</h3>
+        <p class="desc">App Store 版本正在准备中，敬请期待。</p>
+        <button class="btn off" disabled>敬请期待</button>
+      </div>
+      <div class="platform">
+        <div class="os">🦅</div>
+        <h3>鸿蒙 HarmonyOS</h3>
+        <p class="desc">HarmonyOS 版本正在准备中，敬请期待。</p>
+        <button class="btn off" disabled>敬请期待</button>
+      </div>
+    </div>
+    <p class="section-sub" style="margin-top:28px;">更新日志与安装包均自动同步自 GitHub Releases，点击上方 GitHub 即可查看源码。</p>
+  </section>
+
+  <footer>
+    <a class="gh" href="https://github.com/luyishui/classduck" target="_blank" rel="noopener">🦆 GitHub · luyishui/classduck</a><br />
+    © 2026 上课鸭 ClassDuck · 更新 / 公告自动同步自 GitHub Releases
+  </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
   <script>
@@ -124,12 +268,14 @@
   </script>
   <script>
     const { createApp } = Vue;
+    const base = 'https://github.com/luyishui/classduck/releases/latest/download/';
     createApp({
       data() {
         return {
           version: '1.0.0',
-          androidUrl: 'https://github.com/luyishui/classduck/releases/latest/download/classduck-android-universal.apk',
-          androidMirrorUrl: 'https://gh-proxy.com/https://github.com/luyishui/classduck/releases/latest/download/classduck-android-universal.apk',
+          androidUrl: base + 'classduck-android-universal.apk',
+          androidArm64Url: base + 'classduck-android-arm64.apk',
+          androidMirrorUrl: 'https://gh-proxy.com/' + base + 'classduck-android-universal.apk',
         };
       },
       mounted() {
