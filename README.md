@@ -1,197 +1,84 @@
 # 上课鸭 ClassDuck
 
-上课鸭是一个面向校园场景的课表与待办管理项目。当前仓库以 Flutter 客户端为主，配套一个 Python 导入后端，用于承接学校配置、导入规则、日志上报和版本检查能力。
+上课鸭是一款面向校园场景的课表应用：支持 **AI 截图导入**与教务网页导入、**多课表管理**、**上课提醒**与**待办联动**，数据全部存储在本地，轻量、免费、无广告。
 
-项目目标不是单一页面演示，而是围绕“课表导入 -> 本地落库 -> 课表/待办/我的联动 -> 设置与版本能力”逐步落成一个可持续演进的完整工程。
+- 下载页面：<https://luyishui.github.io/classduck/>
+- 源码仓库：<https://github.com/luyishui/classduck>
+- 当前平台：Android（iOS / HarmonyOS 筹备中）
 
-## 1. 当前定位
+## 功能特性
 
-- 客户端主工程：Flutter，多端目标，当前重点是 Windows、Web 调试和移动端适配。
-- 主力后端：Python FastAPI，运行在 `localhost:8000`，承担导入配置、脚本下发、导入校验、日志上报、版本检查。
-- 旧后端：Node.js/Express，保留在 `backend/src/` 作为过渡参考，不再作为主开发方向。
-- 工程治理：采用“前后端分离 + 契约先行 + 每任务一文档”的方式推进。
+- **多课表管理**：多学期课表独立管理，周次、节次语义清晰，课程颜色自动区分，长按拖动调整课程布局与周数范围。
+- **AI 截图导入**：把课表截图发给 AI（豆包专家模式），复制返回的 JSON 粘贴回来即可导入，无需逐条手打课程。
+- **教务网页导入**：WebView 打开教务系统，登录后自动抓取并标准化课表数据（按学校适配脚本）。
+- **上课提醒**：课程开始前准时提醒，提醒时间可自定义，也可按课程单独设置。
+- **待办联动**：作业、考试、会议随手记下，与课表时间线并列展示。
+- **深色模式**：浅色/深色两套外观，跟随系统或手动切换。
 
-## 2. 仓库结构
+## 下载与更新
+
+Android 安装包发布在 [GitHub Releases](https://github.com/luyishui/classduck/releases)，下载页会自动同步最新版本信息：
+
+- 通用版 APK：包含全部 CPU 架构，适配主流机型
+- arm64 高性能版：体积更小、启动更快
+- 镜像下载：国内网络加速通道
+
+应用内"版本更新"入口会检查最新版本，发现新版后引导到下载页更新。
+
+## 技术架构
+
+| 模块 | 说明 |
+| --- | --- |
+| `classduck_app/` | Flutter 客户端（Android / iOS / 桌面 / Web），SQLite 本地存储 |
+| `backend/python_import_service/` | Python FastAPI 导入服务：学校配置、导入标准化、日志上报、版本检查 |
+| `backend/src/` | 旧 Node.js（Express）服务，过渡参考 |
+| `contracts/` | 前后端契约（OpenAPI / JSON Schema / 变更记录） |
+| `docs/` | GitHub Pages 下载页与静态版本信息（release.json） |
+| `.github/workflows/` | Android 打包发布流水线 |
+
+## 仓库结构
 
 ```text
 classduck/
-├── classduck_app/            # Flutter 客户端主工程
-├── backend/                  # 后端工作区
-│   ├── python_import_service/# 当前主力后端，FastAPI
-│   └── src/                  # 旧 Node.js 服务，过渡参考
-├── contracts/                # 前后端契约、schema、变更记录
-├── deploy/                   # 部署模板与环境说明
-├── 说明文档/                  # 系统架构、模块逻辑、部署说明、设计记录
-├── 项目文件/                  # 每个任务的过程沉淀与验收记录
-├── 参考文件/                  # PRD、Pen、历史项目，仅供参考
-└── 上课鸭-总实施方案.md        # 顶层实施方案
+├── classduck_app/                # Flutter 客户端主工程
+├── backend/
+│   ├── python_import_service/    # 主力后端（FastAPI）
+│   └── src/                      # 旧 Node.js 服务（过渡）
+├── contracts/                    # 契约与 schema
+├── docs/                         # 下载页 + release.json
+├── deploy/                       # 部署模板与说明
+└── .github/workflows/            # 打包发布 CI
 ```
 
-## 3. 核心模块
+## 本地开发
 
-### 3.1 Flutter 客户端
-
-- `lib/app/`：应用壳、主题、环境配置、初始化。
-- `lib/features/schedule/`：课表主页面、课程侧边栏、课表配置、课程数据读取与展示。
-- `lib/features/import/`：学校选择、导入执行、导入服务、导入引擎。
-- `lib/features/todo/`：待办主页、类型侧边栏、新建待办、完成状态迁移。
-- `lib/features/profile/`：我的主页、统计卡片、今日状态、已上课程/已完成待办弹窗。
-- `lib/features/settings/`：提醒通知、外观主题、关于页面、版本检查。
-- `lib/data/local/`：SQLite 本地数据访问层。
-- `lib/shared/`：设计 token、复用组件、公共工具。
-
-### 3.2 Python 导入后端
-
-- `api/`：学校配置、导入校验、日志上报、版本检查接口。
-- `services/`：学校配置加载、导入标准化、日志持久化、版本比对。
-- `models/` / `schemas/`：Pydantic 模型与请求体定义。
-- `data/school_configs/`：学校配置 JSON。
-- `data/scripts/`：导入脚本。
-- `tests/`：pytest 测试。
-
-### 3.3 契约与部署
-
-- `contracts/openapi/`：OpenAPI 规范。
-- `contracts/schemas/`：JSON Schema。
-- `contracts/changelog/`：契约变更记录。
-- `deploy/`：环境模板、部署脚本、回滚说明。
-
-## 4. 当前业务主链路
-
-### 4.1 课表链路
-
-1. 进入课程表页。
-2. 通过“手动添加 / 教务添加 / 拍照添加 / 大学课程导入”等入口导入数据。
-3. 导入结果写入本地 SQLite。
-4. 课表页按当前激活课表读取并展示课程数据。
-5. 侧边栏负责节次、周数、开学日期、多课表切换等配置。
-
-### 4.2 导入链路
-
-当前有三类导入能力：
-
-1. 教务导入新链路：WebView 内脚本抓取原始 JSON，交由 Python 后端做字段映射和标准化。
-2. 教务导入旧链路：抓取 HTML，由 Dart 本地解析器兜底。
-3. 大学课程导入：通过课表截图 + 外部模型结果 JSON 导入。
-
-导入成功后，课程数据会进入本地 SQLite，并回流到课表页、待办联动、统计模块。
-
-### 4.3 待办链路
-
-1. 待办主页分为“未完成 / 已完成”两栏。
-2. 支持任务类型侧边栏、动态课程选项、新建待办、批量按类型删除。
-3. 待办与课程名称存在业务联动，用于统计和新建时的关联课程选择。
-
-## 5. 快速启动
-
-### 5.1 启动 Python 后端
+### 启动 Python 导入服务
 
 ```bash
 cd backend/python_import_service
-
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-可访问：
-
 - 健康检查：`http://localhost:8000/health`
-- Swagger：`http://localhost:8000/docs`
-- 学校列表：`http://localhost:8000/v1/config/schools`
+- 接口文档：`http://localhost:8000/docs`
 
-### 5.2 启动 Flutter 客户端
+### 启动 Flutter 客户端
 
 ```bash
 cd classduck_app
-
 flutter pub get
-flutter analyze
-flutter run -d windows
+flutter run -d <windows | chrome | android设备id>
 ```
 
-常用调试目标：
-
-- Web：`flutter run -d chrome`
-- Windows：`flutter run -d windows`
-- Android：`flutter run -d <device_id>`
-
-### 5.3 运行测试
-
-Python 后端：
+### 运行测试
 
 ```bash
-cd backend/python_import_service
-pytest tests/ -v
+# Python 后端
+cd backend/python_import_service && pytest tests/ -v
+
+# Flutter 客户端
+cd classduck_app && flutter test
 ```
-
-Flutter 客户端：
-
-```bash
-cd classduck_app
-flutter test
-```
-
-## 6. 建议阅读顺序
-
-如果你是第一次接手这个仓库，建议按下面顺序建立上下文：
-
-1. `上课鸭-总实施方案.md`：先看项目总目标、阶段规划和治理原则。
-2. `说明文档/01-系统架构与目录职责.md`：看当前目录职责与模块边界。
-3. `说明文档/02-核心模块函数与交互逻辑.md`：看主要页面和关键函数语义。
-4. `说明文档/04-操作部署指南.md`：看本地运行、联调和发布步骤。
-5. `项目文件/`：按任务编号回溯每轮改动原因、边界和验收结果。
-
-## 7. 当前阶段判断
-
-从仓库现状看，项目已经完成了这些关键基础：
-
-- 三大主页面和多组二级页面已落地。
-- SQLite 本地数据层已接入真实渲染。
-- Python 导入服务已替代旧 Node 服务成为主力后端。
-- 导入链路已从单一 HTML 抓取扩展到“后端校验 + 本地兜底 + 外部模型导入”。
-- 文档沉淀较完整，过程可追溯性较强。
-
-但它还处在“功能主链路基本打通、工程仍需继续收口”的阶段，距离稳定交付还有不少工程化工作要补齐。
-
-## 8. 当前边界与限制
-
-- Web 端不能完成跨域教务 WebView 抓取闭环，主要用于静态交互和页面调试。
-- 后端存在新旧接口并存现象，仍有历史兼容负担。
-- 仓库中保留了旧 Node 后端和大量参考资料，新人接手时容易混淆“参考输入”和“真实运行代码”。
-- 根目录缺少统一入口文档前，理解成本较高。
-
-## 9. 我认为当前最值得改进的问题
-
-### 9.1 移动端课表卡片在“长课程名 + 小容器”场景下仍需持续打磨
-
-当前课表卡片已经支持课程名、教师、地点三段信息，但在窄屏和单节课程场景中，可读性与信息完整性仍要反复权衡。后续应持续完善“字号自适应 + 换行策略 + 居中规则”，确保不同机型都稳定可读。
-
-### 9.2 首次启动与首轮交互性能仍是体验核心瓶颈
-
-目前已做分栏缓存、Tab 懒加载等优化，但安卓模拟器仍可观察到首轮掉帧。建议继续以真实设备和关键埋点为基准，追踪首屏加载链路、课表页首帧、导入页首开耗时，逐步压缩主线程峰值工作量。
-
-### 9.3 自动化验证可用性受本地环境影响较大
-
-Flutter 全量测试在部分 Windows 环境下会受 `sqlite3.dll` 缺失影响，导致仓储层测试不稳定。建议补齐环境依赖说明和一键校验脚本，降低“代码没问题但环境先失败”的调试成本。
-
-### 9.4 AI 导入链路的提示词与页面文案需要持续对齐
-
-AI 导入依赖提示词质量与页面引导一致性。后续应将“提示词模板、推荐模型模式、红字风险提示”纳入固定清单，避免页面文案和真实导入规范再次偏移。
-
-### 9.5 导入配置规模增长后，需要更严格的数据质量约束
-
-学校配置持续扩充后，去重口径、分栏统计、展示标题规范会直接影响用户感知。建议把“配置归一化 + 去重 + 分栏计数一致性”固化为发布前必过校验。
-
-### 9.6 文档与实现的同步机制需要工程化
-
-当前任务文档沉淀较全，但迭代频率高时仍容易出现“功能已改、说明未跟进”。建议把 README 关键段落和阶段文档纳入每轮收口检查项，保证新人接手时看到的是最新口径。
-
-## 10. 后续建议
-
-1. 以这个 README 为总入口，后续所有新增模块先补入口说明再开发。
-2. 制定旧 Node 后端退场计划，明确只保留 Python 主后端。
-3. 补一轮自动化测试矩阵，优先覆盖导入、SQLite、待办联动和关键状态机。
-4. 收敛 API 版本策略，明确哪些接口继续保留，哪些进入废弃阶段。
-5. 继续保持“每任务一文档”，但同步增加阶段性总览，降低回溯成本。
