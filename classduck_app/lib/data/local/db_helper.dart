@@ -1,13 +1,15 @@
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
 class DbHelper {
   static const String databaseName = 'classduck.db';
-  static const int databaseVersion = 3;
+  static const int databaseVersion = 4;
 
   static const String tableCourseTable = 'course_table';
   static const String tableCourse = 'course';
   static const String tableTodo = 'todo_item';
+  static const String tableSetting = 'app_setting';
 
   static const String createCourseTableSql = '''
 CREATE TABLE course_table (
@@ -59,6 +61,15 @@ CREATE TABLE todo_item (
 );
 ''';
 
+  static const String createSettingSql = '''
+CREATE TABLE IF NOT EXISTS app_setting (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+''';
+
+  static final Map<String, String> _webSettings = <String, String>{};
+
   Future<Database> open() async {
     final String dbPath = await getDatabasesPath();
     final String filePath = p.join(dbPath, databaseName);
@@ -73,6 +84,7 @@ CREATE TABLE todo_item (
         await db.execute(createCourseTableSql);
         await db.execute(createCourseSql);
         await db.execute(createTodoSql);
+        await db.execute(createSettingSql);
       },
       onUpgrade: (Database db, int oldVersion, int newVersion) async {
         if (oldVersion < 2) {
@@ -95,7 +107,41 @@ CREATE TABLE todo_item (
             );
           }
         }
+        if (oldVersion < 4) {
+          await db.execute(createSettingSql);
+        }
       },
+    );
+  }
+
+  Future<String?> getSetting(String key) async {
+    if (kIsWeb) {
+      return _webSettings[key];
+    }
+    final Database db = await open();
+    final List<Map<String, Object?>> rows = await db.query(
+      tableSetting,
+      columns: const <String>['value'],
+      where: 'key = ?',
+      whereArgs: <Object>[key],
+      limit: 1,
+    );
+    if (rows.isEmpty) {
+      return null;
+    }
+    return rows.first['value'] as String?;
+  }
+
+  Future<void> setSetting(String key, String value) async {
+    if (kIsWeb) {
+      _webSettings[key] = value;
+      return;
+    }
+    final Database db = await open();
+    await db.insert(
+      tableSetting,
+      <String, Object?>{'key': key, 'value': value},
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 }

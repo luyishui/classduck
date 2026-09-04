@@ -15,7 +15,7 @@ class AboutPage extends StatefulWidget {
 }
 
 class _AboutPageState extends State<AboutPage> {
-  static const String _currentVersion = 'v1.0.2';
+  static const String _currentVersion = 'v1.0.3';
   final ReleaseRepository _releaseRepository = ReleaseRepository();
 
   @override

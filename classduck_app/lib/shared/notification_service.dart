@@ -39,4 +39,44 @@ class NotificationService {
       payload: payload,
     );
   }
+
+  static Future<bool> requestPermission() async {
+    final AndroidFlutterLocalNotificationsPlugin? androidPlugin =
+        _plugin.resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+    if (androidPlugin != null) {
+      final bool? granted =
+          await androidPlugin.requestNotificationsPermission();
+      return granted ?? false;
+    }
+
+    final IOSFlutterLocalNotificationsPlugin? iosPlugin =
+        _plugin.resolvePlatformSpecificImplementation<
+            IOSFlutterLocalNotificationsPlugin>();
+    if (iosPlugin != null) {
+      final bool? granted = await iosPlugin.requestPermissions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      return granted ?? false;
+    }
+
+    return true;
+  }
+
+  static Future<void> showTestNotification({
+    String title = '🦆 上课鸭通知测试',
+    String body = '提醒与通知功能已正常启用，上课鸭将准时提醒您的课程！',
+  }) async {
+    await showSimpleNotification(
+      id: 99999,
+      title: title,
+      body: body,
+    );
+  }
+
+  static Future<void> cancelAll() async {
+    await _plugin.cancelAll();
+  }
 }

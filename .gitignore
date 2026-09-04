@@ -31,3 +31,4 @@ classduck_app/.dart_tool/
 .pytest_cache/
 tmp_body.json
 上课鸭-*.md
+.playwright-mcp/

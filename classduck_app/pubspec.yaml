@@ -78,6 +78,7 @@ flutter:
 
   assets:
     - assets/config/schools.builtin.json
+    - assets/images/
     - docs/legal/privacy-policy-draft.md
     - docs/legal/service-agreement-draft.md
 

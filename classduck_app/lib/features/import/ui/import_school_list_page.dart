@@ -129,15 +129,13 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
         });
       }
     } finally {
-      if (!mounted) {
-        return;
-      }
-      if (_loading) {
-        setState(() {
-          _loading = false;
-        });
-      }
-      _logPerf(
+      if (mounted) {
+        if (_loading) {
+          setState(() {
+            _loading = false;
+          });
+        }
+        _logPerf(
         '_load',
         totalWatch,
         extras: <String, Object?>{
@@ -148,6 +146,7 @@ class _ImportSchoolListPageState extends State<ImportSchoolListPage> {
           'error': _error != null,
         },
       );
+      }
     }
   }
 

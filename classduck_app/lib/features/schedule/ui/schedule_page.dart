@@ -48,14 +48,13 @@ class _SchedulePageState extends State<SchedulePage> {
   Map<String, Color> _adjacentColorByCourseName = const <String, Color>{};
   int _currentWeek = 1;
   int _displayWeek = 1;
+  late final PageController _weekPageController;
   final Map<int, _ScheduleConfig> _tableConfigs = <int, _ScheduleConfig>{};
   final GlobalKey _gridAreaKey = GlobalKey();
   _QuickAddSelection? _quickAddSelection;
   _CourseDragPayload? _activeCourseDrag;
   _CourseDragHover? _courseDragHover;
   String? _courseDragRejectMessage;
-  double _weekSwipeAccumulatedDx = 0;
-  bool _suppressWeekSwipeForQuickSelection = false;
   double _gridColWidth = 0;
   double _gridRowHeight = 0;
 
@@ -75,6 +74,7 @@ class _SchedulePageState extends State<SchedulePage> {
   @override
   void initState() {
     super.initState();
+    _weekPageController = PageController(initialPage: math.max(0, _displayWeek - 1));
     _bootstrap();
   }
 
@@ -98,6 +98,7 @@ class _SchedulePageState extends State<SchedulePage> {
 
   @override
   void dispose() {
+    _weekPageController.dispose();
     super.dispose();
   }
 
@@ -173,6 +174,9 @@ class _SchedulePageState extends State<SchedulePage> {
       _applyConfigToTimeline(config);
       _currentWeek = _computeCurrentWeek(config);
       _displayWeek = _currentWeek <= 0 ? 1 : _currentWeek;
+      if (_weekPageController.hasClients) {
+        _weekPageController.jumpToPage(_displayWeek - 1);
+      }
 
       setState(() {
         _activeTableId = active.id;
@@ -290,68 +294,39 @@ class _SchedulePageState extends State<SchedulePage> {
                           ),
                           const SizedBox(height: 3),
                           Expanded(
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.translucent,
-                              onHorizontalDragStart:
-                                  (DragStartDetails details) {
-                                    _weekSwipeAccumulatedDx = 0;
-                                    _suppressWeekSwipeForQuickSelection = false;
-                                    if (_activeCourseDrag != null) {
-                                      _suppressWeekSwipeForQuickSelection =
-                                          true;
-                                      return;
-                                    }
-
+                            child: PageView.builder(
+                              controller: _weekPageController,
+                              physics: (_quickAddSelection != null || _activeCourseDrag != null)
+                                  ? const NeverScrollableScrollPhysics()
+                                  : const PageScrollPhysics(),
+                              itemCount: config.termWeeks.clamp(1, 60).toInt(),
+                              onPageChanged: (int index) {
+                                final int newWeek = index + 1;
+                                if (_displayWeek != newWeek) {
+                                  setState(() {
+                                    _displayWeek = newWeek;
                                     if (_quickAddSelection != null) {
-                                      final bool insideQuickSelection =
-                                          _isPointInsideQuickAddSelection(
-                                            details.globalPosition,
-                                          );
-                                      if (insideQuickSelection) {
-                                        _suppressWeekSwipeForQuickSelection =
-                                            true;
-                                        return;
-                                      }
                                       _clearQuickAddSelection();
                                     }
-                                  },
-                              onHorizontalDragUpdate:
-                                  (DragUpdateDetails details) {
-                                    if (_suppressWeekSwipeForQuickSelection) {
-                                      return;
-                                    }
-                                    _weekSwipeAccumulatedDx += details.delta.dx;
-                                  },
-                              onHorizontalDragEnd: (DragEndDetails details) {
-                                if (_suppressWeekSwipeForQuickSelection) {
-                                  _weekSwipeAccumulatedDx = 0;
-                                  _suppressWeekSwipeForQuickSelection = false;
-                                  return;
+                                  });
                                 }
-                                final double velocity =
-                                    details.primaryVelocity ?? 0;
-                                if (velocity.abs() >= 120) {
-                                  _handleWeekSwipe(velocity);
-                                } else if (_weekSwipeAccumulatedDx.abs() >=
-                                    28) {
-                                  _handleWeekSwipe(_weekSwipeAccumulatedDx);
-                                }
-                                _weekSwipeAccumulatedDx = 0;
-                                _suppressWeekSwipeForQuickSelection = false;
                               },
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  image: appearance.backgroundBytes == null
-                                      ? null
-                                      : DecorationImage(
-                                          image: MemoryImage(
-                                            appearance.backgroundBytes!,
+                              itemBuilder: (BuildContext context, int index) {
+                                final int week = index + 1;
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    image: appearance.backgroundBytes == null
+                                        ? null
+                                        : DecorationImage(
+                                            image: MemoryImage(
+                                              appearance.backgroundBytes!,
+                                            ),
+                                            fit: BoxFit.cover,
                                           ),
-                                          fit: BoxFit.cover,
-                                        ),
-                                ),
-                                child: _buildScheduleGrid(),
-                              ),
+                                  ),
+                                  child: _buildScheduleGrid(week: week),
+                                );
+                              },
                             ),
                           ),
                           if (_loadingConfig ||
@@ -634,28 +609,6 @@ class _SchedulePageState extends State<SchedulePage> {
         local.dy <= box.size.height;
   }
 
-  bool _isPointInsideQuickAddSelection(Offset globalPosition) {
-    final _QuickAddSelection? selection = _quickAddSelection;
-    if (selection == null || _gridColWidth <= 0 || _gridRowHeight <= 0) {
-      return false;
-    }
-    final RenderBox? box =
-        _gridAreaKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null) {
-      return false;
-    }
-
-    final Offset local = box.globalToLocal(globalPosition);
-    final double left = (selection.dayStart - 1) * _gridColWidth;
-    final double right = selection.dayEnd * _gridColWidth;
-    final double top = (selection.periodStart - 1) * _gridRowHeight;
-    final double bottom = selection.periodEnd * _gridRowHeight;
-
-    return local.dx >= left &&
-        local.dx <= right &&
-        local.dy >= top &&
-        local.dy <= bottom;
-  }
 
   bool _weeksOverlap(List<int> dragWeeks, List<int> existingWeeks) {
     if (dragWeeks.isEmpty || existingWeeks.isEmpty) {
@@ -1104,10 +1057,10 @@ class _SchedulePageState extends State<SchedulePage> {
 
     await showGeneralDialog<void>(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: true,
       barrierLabel: 'schedule-sidebar',
-      barrierColor: Colors.transparent,
-      transitionDuration: const Duration(milliseconds: 300),
+      barrierColor: const Color(0x66000000),
+      transitionDuration: const Duration(milliseconds: 260),
       pageBuilder:
           (
             BuildContext dialogContext,
@@ -1260,31 +1213,29 @@ class _SchedulePageState extends State<SchedulePage> {
                   );
                 }
 
-                return Stack(
-                  children: <Widget>[
-                    Positioned.fill(
-                      child: GestureDetector(
-                        onTap: () => Navigator.of(dialogContext).pop(),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
-                          child: Container(color: const Color(0x66000000)),
-                        ),
-                      ),
+                final double screenWidth = MediaQuery.of(dialogContext).size.width;
+                final double sidebarWidth = (screenWidth * 0.76).clamp(270.0, 290.0);
+
+                return Align(
+                  alignment: Alignment.centerLeft,
+                  child: Material(
+                    color: const Color(0xFFFFFDF6),
+                    borderRadius: const BorderRadius.horizontal(
+                      right: Radius.circular(20),
                     ),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Material(
-                        color: const Color(0xFFFFFDF6),
-                        child: SizedBox(
-                          width: 340,
-                          child: SafeArea(
-                            child: ListView(
-                              padding: const EdgeInsets.fromLTRB(
-                                20,
-                                18,
-                                20,
-                                24,
-                              ),
+                    clipBehavior: Clip.antiAlias,
+                    elevation: 8,
+                    shadowColor: Colors.black26,
+                    child: SizedBox(
+                      width: sidebarWidth,
+                      child: SafeArea(
+                        child: ListView(
+                          padding: const EdgeInsets.fromLTRB(
+                            16,
+                            18,
+                            16,
+                            24,
+                          ),
                               children: <Widget>[
                                 Row(
                                   children: <Widget>[
@@ -2005,45 +1956,29 @@ class _SchedulePageState extends State<SchedulePage> {
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    );
+                  },
                 );
               },
-            );
-          },
-      transitionBuilder:
-          (
-            BuildContext context,
-            Animation<double> animation,
-            Animation<double> secondaryAnimation,
-            Widget child,
-          ) {
-            final CurvedAnimation curve = CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-              reverseCurve: Curves.easeInCubic,
-            );
-            final Animation<Offset> slide = Tween<Offset>(
-              begin: const Offset(-0.22, 0),
-              end: Offset.zero,
-            ).animate(curve);
-            final Animation<double> scale = Tween<double>(
-              begin: 0.985,
-              end: 1,
-            ).animate(curve);
-            return FadeTransition(
-              opacity: curve,
-              child: SlideTransition(
-                position: slide,
-                child: ScaleTransition(
-                  scale: scale,
-                  alignment: Alignment.centerLeft,
-                  child: child,
-                ),
-              ),
-            );
-          },
-    );
+        transitionBuilder:
+            (
+              BuildContext context,
+              Animation<double> animation,
+              Animation<double> secondaryAnimation,
+              Widget child,
+            ) {
+              final CurvedAnimation curve = CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutCubic,
+                reverseCurve: Curves.easeInCubic,
+              );
+              final Animation<Offset> slide = Tween<Offset>(
+                begin: const Offset(-1, 0),
+                end: Offset.zero,
+              ).animate(curve);
+              return SlideTransition(position: slide, child: child);
+            },
+      );
 
     tableNameController.dispose();
   }
@@ -2066,6 +2001,9 @@ class _SchedulePageState extends State<SchedulePage> {
     _applyConfigToTimeline(config);
     _currentWeek = _computeCurrentWeek(config);
     _displayWeek = _currentWeek <= 0 ? 1 : _currentWeek;
+    if (_weekPageController.hasClients) {
+      _weekPageController.jumpToPage(_displayWeek - 1);
+    }
     if (!mounted) {
       return;
     }
@@ -2397,7 +2335,7 @@ class _SchedulePageState extends State<SchedulePage> {
     );
   }
 
-  Widget _buildScheduleGrid() {
+  Widget _buildScheduleGrid({int? week}) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final double leftWidth = screenWidth < 380 ? 30 : 32;
 
@@ -2405,7 +2343,12 @@ class _SchedulePageState extends State<SchedulePage> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final List<_RenderedCourseBlock> blocks = _buildRenderedBlocks(_courses);
+    final _ScheduleConfig config = _activeConfig();
+    final int targetWeek = week ?? _effectiveDisplayWeek(config);
+    final bool isCurrentDisplayWeek = targetWeek == _displayWeek;
+
+    final List<_RenderedCourseBlock> blocks =
+        _buildRenderedBlocks(_courses, targetWeek);
     final Set<String> occupiedCells = <String>{
       for (final _RenderedCourseBlock block in blocks)
         for (
@@ -2483,11 +2426,13 @@ class _SchedulePageState extends State<SchedulePage> {
                     child: LayoutBuilder(
                       builder: (BuildContext context, BoxConstraints constraints) {
                         final double colWidth = constraints.maxWidth / 7;
-                        _gridColWidth = colWidth;
-                        _gridRowHeight = rowHeight;
+                        if (isCurrentDisplayWeek) {
+                          _gridColWidth = colWidth;
+                          _gridRowHeight = rowHeight;
+                        }
 
                         final _QuickAddSelection? selection =
-                            _quickAddSelection;
+                            isCurrentDisplayWeek ? _quickAddSelection : null;
                         final bool showSelection = selection != null;
                         final int selectionDayStart =
                             selection?.dayStart.clamp(1, 7).toInt() ?? 1;
@@ -2520,7 +2465,7 @@ class _SchedulePageState extends State<SchedulePage> {
                             selectionPeriodEnd - selectionPeriodStart + 1;
 
                         return Stack(
-                          key: _gridAreaKey,
+                          key: isCurrentDisplayWeek ? _gridAreaKey : null,
                           clipBehavior: Clip.none,
                           children: <Widget>[
                             for (int row = 0; row < _periodTimes.length; row++)
@@ -2560,12 +2505,14 @@ class _SchedulePageState extends State<SchedulePage> {
                                     height: rowHeight,
                                     child: GestureDetector(
                                       behavior: HitTestBehavior.opaque,
-                                      onTap: () {
-                                        _showQuickAddSelectionForCell(
-                                          dayColumn: dayColumn,
-                                          period: period,
-                                        );
-                                      },
+                                      onTap: isCurrentDisplayWeek
+                                          ? () {
+                                              _showQuickAddSelectionForCell(
+                                                dayColumn: dayColumn,
+                                                period: period,
+                                              );
+                                            }
+                                          : null,
                                     ),
                                   ),
                             for (final _RenderedCourseBlock block in blocks)
@@ -2575,7 +2522,7 @@ class _SchedulePageState extends State<SchedulePage> {
                                 rowHeight: rowHeight,
                                 color: _colorForCourse(block.course),
                               ),
-                            if (_activeCourseDrag != null)
+                            if (isCurrentDisplayWeek && _activeCourseDrag != null)
                               _buildCourseDragLayer(
                                 colWidth: colWidth,
                                 rowHeight: rowHeight,
@@ -3057,9 +3004,13 @@ class _SchedulePageState extends State<SchedulePage> {
     );
   }
 
-  List<_RenderedCourseBlock> _buildRenderedBlocks(List<CourseEntity> source) {
+  List<_RenderedCourseBlock> _buildRenderedBlocks(
+    List<CourseEntity> source, [
+    int? week,
+  ]) {
     final List<_RenderedCourseBlock> result = <_RenderedCourseBlock>[];
     final _ScheduleConfig config = _activeConfig();
+    final int targetWeek = week ?? _effectiveDisplayWeek(config);
 
     for (int dayColumn = 1; dayColumn <= 7; dayColumn++) {
       final int weekday = _weekdayForColumn(dayColumn, config.weekStartDay);
@@ -3075,8 +3026,8 @@ class _SchedulePageState extends State<SchedulePage> {
                   (CourseEntity c) =>
                       c.weekTime == weekday &&
                       _coversPeriod(c, period) &&
-                      !_isCourseInDisplayedWeek(c) &&
-                      _shouldShowAsInactiveCourse(c, config),
+                      !_isCourseInWeek(c, targetWeek, config) &&
+                      _shouldShowAsInactiveCourseInWeek(c, targetWeek, config),
                 )
                 .toList(growable: false)
               ..sort(
@@ -3089,7 +3040,7 @@ class _SchedulePageState extends State<SchedulePage> {
                   (CourseEntity c) =>
                       c.weekTime == weekday &&
                       _coversPeriod(c, period) &&
-                      _isCourseInDisplayedWeek(c),
+                      _isCourseInWeek(c, targetWeek, config),
                 )
                 .toList(growable: false)
               ..sort(
@@ -3196,8 +3147,7 @@ class _SchedulePageState extends State<SchedulePage> {
     return matched;
   }
 
-  bool _isCourseInDisplayedWeek(CourseEntity course) {
-    final _ScheduleConfig config = _activeConfig();
+  bool _isCourseInWeek(CourseEntity course, int week, _ScheduleConfig config) {
     if (_currentWeek <= 0 || _isSemesterEnded(config)) {
       return false;
     }
@@ -3205,24 +3155,39 @@ class _SchedulePageState extends State<SchedulePage> {
     if (weeks.isEmpty) {
       return true;
     }
-    final int displayWeek = _effectiveDisplayWeek(config);
-    return weeks.contains(displayWeek);
+    return weeks.contains(week);
   }
 
-  bool _shouldShowAsInactiveCourse(
+  bool _isCourseInDisplayedWeek(CourseEntity course) {
+    final _ScheduleConfig config = _activeConfig();
+    return _isCourseInWeek(course, _effectiveDisplayWeek(config), config);
+  }
+
+  bool _shouldShowAsInactiveCourseInWeek(
     CourseEntity course,
+    int week,
     _ScheduleConfig config,
   ) {
     if (_currentWeek <= 0 || _isSemesterEnded(config)) {
       return true;
     }
 
-    final int displayWeek = _effectiveDisplayWeek(config);
     final List<int> weeks = _parseWeeks(course.weeksJson);
     if (weeks.isEmpty) {
       return false;
     }
-    return weeks.any((int week) => week > displayWeek);
+    return weeks.any((int w) => w > week);
+  }
+
+  bool _shouldShowAsInactiveCourse(
+    CourseEntity course,
+    _ScheduleConfig config,
+  ) {
+    return _shouldShowAsInactiveCourseInWeek(
+      course,
+      _effectiveDisplayWeek(config),
+      config,
+    );
   }
 
   List<int> _parseWeeks(String weeksJson) {
@@ -3380,13 +3345,6 @@ class _SchedulePageState extends State<SchedulePage> {
     return week > config.termWeeks;
   }
 
-  void _handleWeekSwipe(double directionValue) {
-    if (directionValue < 0) {
-      _shiftDisplayWeek(1);
-    } else {
-      _shiftDisplayWeek(-1);
-    }
-  }
 
   int _countFutureOverlapCourses(_RenderedCourseBlock block) {
     if (!block.active) {
@@ -3418,28 +3376,41 @@ class _SchedulePageState extends State<SchedulePage> {
     return count;
   }
 
-  void _shiftDisplayWeek(int delta) {
+  void _jumpToWeek(int targetWeek, {bool animated = true}) {
     final _ScheduleConfig config = _activeConfig();
     final int minWeek = 1;
     final int maxWeek = config.termWeeks.clamp(1, 60).toInt();
-    final int next = (_effectiveDisplayWeek(config) + delta)
-        .clamp(minWeek, maxWeek)
-        .toInt();
-    if (next == _displayWeek) {
-      return;
+    final int next = targetWeek.clamp(minWeek, maxWeek).toInt();
+
+    if (_weekPageController.hasClients) {
+      final int targetPage = next - 1;
+      if (animated) {
+        _weekPageController.animateToPage(
+          targetPage,
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeOutCubic,
+        );
+      } else {
+        _weekPageController.jumpToPage(targetPage);
+      }
     }
-    setState(() {
-      _displayWeek = next;
-    });
+
+    if (next != _displayWeek) {
+      setState(() {
+        _displayWeek = next;
+        if (_quickAddSelection != null) {
+          _clearQuickAddSelection();
+        }
+      });
+    }
   }
 
+
   void _resetDisplayWeekToCurrent() {
-    if (_currentWeek <= 0 || _displayWeek == _currentWeek) {
+    if (_currentWeek <= 0) {
       return;
     }
-    setState(() {
-      _displayWeek = _currentWeek;
-    });
+    _jumpToWeek(_currentWeek, animated: true);
   }
 
   List<DateTime> _weekDatesForDisplay(_ScheduleConfig config, int displayWeek) {

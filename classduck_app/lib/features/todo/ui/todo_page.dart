@@ -221,6 +221,7 @@ class _TodoPageState extends State<TodoPage>
                     const SizedBox(height: 10),
                     Container(
                       height: 44,
+                      clipBehavior: Clip.antiAlias,
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
                         color: tabContainerColor,
@@ -228,9 +229,11 @@ class _TodoPageState extends State<TodoPage>
                       ),
                       child: TabBar(
                         controller: _tabController,
+                        splashFactory: NoSplash.splashFactory,
+                        overlayColor: WidgetStateProperty.all(Colors.transparent),
                         indicator: BoxDecoration(
                           color: tabIndicatorColor,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(18),
                         ),
                         indicatorSize: TabBarIndicatorSize.tab,
                         dividerColor: Colors.transparent,
@@ -591,7 +594,7 @@ class _TodoPageState extends State<TodoPage>
       text: '自定义名称',
     );
     bool editingType = false;
-    const Duration sidebarTransitionDuration = Duration(milliseconds: 180);
+    const Duration sidebarTransitionDuration = Duration(milliseconds: 260);
 
     try {
       await showGeneralDialog<void>(
@@ -608,6 +611,9 @@ class _TodoPageState extends State<TodoPage>
             ) {
               return StatefulBuilder(
                 builder: (BuildContext context, StateSetter setModalState) {
+                  final double screenWidth = MediaQuery.of(dialogContext).size.width;
+                  final double sidebarWidth = (screenWidth * 0.76).clamp(270.0, 290.0);
+
                   Future<void> confirmCreateType() async {
                     // 对齐 PRD：确认前需做非空和重名校验。
                     final String name = controller.text.trim();
@@ -642,23 +648,28 @@ class _TodoPageState extends State<TodoPage>
                     alignment: Alignment.centerLeft,
                     child: Material(
                       color: const Color(0xFFFFFDF6),
+                      borderRadius: const BorderRadius.horizontal(
+                        right: Radius.circular(20),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      elevation: 8,
+                      shadowColor: Colors.black26,
                       child: SizedBox(
-                        width: 340,
+                        width: sidebarWidth,
                         child: SafeArea(
                           child: Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
+                            padding: const EdgeInsets.fromLTRB(16, 22, 16, 24),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: <Widget>[
-                                const CircleAvatar(
-                                  radius: 20,
-                                  backgroundColor: Color(0xFFFFEAB1),
-                                  child: Text(
-                                    '鸭',
-                                    style: TextStyle(
-                                      color: AppTokens.textMain,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
+                                Center(
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.asset(
+                                      'assets/images/logo.png',
+                                      width: 44,
+                                      height: 44,
+                                      fit: BoxFit.cover,
                                     ),
                                   ),
                                 ),
@@ -829,10 +840,15 @@ class _TodoPageState extends State<TodoPage>
               Animation<double> secondaryAnimation,
               Widget child,
             ) {
+              final CurvedAnimation curve = CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutCubic,
+                reverseCurve: Curves.easeInCubic,
+              );
               final Animation<Offset> slide = Tween<Offset>(
                 begin: const Offset(-1, 0),
                 end: Offset.zero,
-              ).animate(animation);
+              ).animate(curve);
               return SlideTransition(position: slide, child: child);
             },
       );
@@ -916,14 +932,14 @@ class _TodoCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           InkWell(
             onTap: () => onToggle(!item.isCompleted),
+            borderRadius: BorderRadius.circular(10),
             child: Container(
-              width: 18,
-              height: 18,
-              margin: const EdgeInsets.only(top: 2),
+              width: 20,
+              height: 20,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
@@ -937,7 +953,7 @@ class _TodoCard extends StatelessWidget {
                     : Colors.transparent,
               ),
               child: item.isCompleted
-                  ? const Icon(Icons.check, size: 12, color: Colors.white)
+                  ? const Icon(Icons.check, size: 13, color: Colors.white)
                   : null,
             ),
           ),

@@ -147,7 +147,7 @@ class _SurveyWebviewPageState extends State<SurveyWebviewPage> {
 
     await showDialog<void>(
       context: context,
-      builder: (BuildContext context) {
+      builder: (BuildContext dialogContext) {
         return AlertDialog(
           backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -165,16 +165,19 @@ class _SurveyWebviewPageState extends State<SurveyWebviewPage> {
           ),
           actions: <Widget>[
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(dialogContext).pop(),
               child: const Text('取消'),
             ),
             FilledButton(
               onPressed: () async {
                 await Clipboard.setData(ClipboardData(text: link));
+                if (!dialogContext.mounted) {
+                  return;
+                }
+                Navigator.of(dialogContext).pop();
                 if (!mounted) {
                   return;
                 }
-                Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('链接已复制，正在打开系统分享...')),
                 );

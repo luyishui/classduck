@@ -345,6 +345,11 @@ class _AiImportPageState extends State<AiImportPage>
 
     String? conflictText = conflictTextFor(nameCtrl.text);
 
+    if (!mounted) {
+      nameCtrl.dispose();
+      return null;
+    }
+
     final String? chosen = await showDialog<String>(
       context: context,
       barrierDismissible: false,
@@ -814,57 +819,67 @@ class _AiImportPageState extends State<AiImportPage>
     );
   }
 
-  /// Step 2 底部的三步小提示条：复制提示词 → 发送截图 → 复制结果
+  /// Step 2 底部的三步小提示条：复制提示词 → 截图发豆包 → 复制结果
   Widget _buildMiniSteps() {
-    const List<String> tips = <String>['复制提示词', '发截图给豆包', '复制结果'];
+    const List<String> tips = <String>['复制提示词', '截图发豆包', '复制结果'];
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFF0EDE8)),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: List<Widget>.generate(tips.length, (int i) {
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Container(
-                width: 20,
-                height: 20,
-                alignment: Alignment.center,
-                decoration: const BoxDecoration(
-                  color: AppTokens.duckYellowSoft,
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  '${i + 1}',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFFB98500),
+        children: List<Widget>.generate(tips.length * 2 - 1, (int index) {
+          if (index.isOdd) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 2),
+              child: Icon(
+                Icons.chevron_right_rounded,
+                size: 12,
+                color: AppTokens.textMuted,
+              ),
+            );
+          }
+          final int i = index ~/ 2;
+          return Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Container(
+                  width: 18,
+                  height: 18,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: AppTokens.duckYellowSoft,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '${i + 1}',
+                    style: const TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFFB98500),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                tips[i],
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppTokens.textMuted,
-                ),
-              ),
-              if (i < tips.length - 1)
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
-                  child: Icon(
-                    Icons.chevron_right_rounded,
-                    size: 14,
-                    color: AppTokens.textMuted,
+                const SizedBox(width: 4),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      tips[i],
+                      maxLines: 1,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: AppTokens.textMuted,
+                      ),
+                    ),
                   ),
                 ),
-            ],
+              ],
+            ),
           );
         }),
       ),

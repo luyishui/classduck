@@ -503,47 +503,23 @@ class ScheduleRepository {
   }
 
   Future<int> getDoneCourseCount({DateTime? now}) async {
-    final DateTime localNow = now ?? DateTime.now();
-    final int weekday = localNow.weekday;
-    final int currentPeriod = _guessCurrentPeriod(localNow);
+    final List<CourseTableEntity> tables = await getCourseTables();
+    int total = 0;
 
-    int done = 0;
-    final List<CourseEntity> source;
-    if (kIsWeb) {
-      source = _webCourses;
-    } else {
-      final Database db = await _dbHelper.open();
-      final List<Map<String, Object?>> rows = await db.query(
-        DbHelper.tableCourse,
-      );
-      source = rows.map(CourseEntity.fromMap).toList(growable: false);
-    }
-    for (final CourseEntity course in source) {
-      final int endPeriod = course.startTime + course.timeCount;
-
-      if (course.weekTime < weekday) {
-        done++;
-      } else if (course.weekTime == weekday && endPeriod < currentPeriod) {
-        done++;
+    for (final CourseTableEntity table in tables) {
+      final int? tableId = table.id;
+      if (tableId == null) {
+        continue;
       }
+      final List<CourseEntity> courses = await getCoursesByTableId(tableId);
+      final Set<String> uniqueNames = courses
+          .map((CourseEntity c) => c.name.trim())
+          .where((String name) => name.isNotEmpty)
+          .toSet();
+      total += uniqueNames.length;
     }
 
-    return done;
-  }
-
-  int _guessCurrentPeriod(DateTime now) {
-    final int hm = now.hour * 100 + now.minute;
-
-    if (hm < 800) return 0;
-    if (hm <= 845) return 1;
-    if (hm <= 940) return 2;
-    if (hm <= 1045) return 3;
-    if (hm <= 1145) return 4;
-    if (hm <= 1445) return 5;
-    if (hm <= 1545) return 6;
-    if (hm <= 1645) return 7;
-    if (hm <= 1745) return 8;
-    return 99;
+    return total;
   }
 
   DateTime _parseCourseTime(String raw) {

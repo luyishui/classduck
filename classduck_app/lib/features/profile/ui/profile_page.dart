@@ -188,48 +188,20 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _openDoneCourseModal() async {
-    await _loadStats();
-    // 只读弹窗：按课表分组展示“已上课程”，不在此处提供编辑能力。
-    final Map<String, List<String>> groups = await _buildDoneCourseGroups();
-    if (!mounted) {
-      return;
-    }
-
+    // 只读弹窗：即刻秒开，弹窗内异步拉取各课表课程数据。
     await _showReadonlyGroupedModal(
       title: '已上课程',
       emptyText: '暂无已上课程',
-      groups: groups,
+      loader: _buildDoneCourseGroups,
     );
   }
 
   Future<void> _openDoneTodoModal() async {
-    await _loadStats();
-    // 只读弹窗：按任务类型分组展示“已完成待办”。
-    final List<TodoItem> doneTodos = await _todoRepository.getTodos(completed: true);
-    final Map<String, List<String>> groups = <String, List<String>>{
-      '作业': <String>[],
-      '考试': <String>[],
-      '竞赛': <String>[],
-    };
-
-    for (final TodoItem todo in doneTodos) {
-      final String key = switch (todo.taskType) {
-        'assignment' => '作业',
-        'exam' => '考试',
-        'contest' => '竞赛',
-        _ => todo.taskType,
-      };
-      groups.putIfAbsent(key, () => <String>[]).add(todo.title);
-    }
-
-    if (!mounted) {
-      return;
-    }
-
+    // 只读弹窗：即刻秒开，弹窗内异步拉取已完成待办数据。
     await _showReadonlyGroupedModal(
       title: '已完成待办',
       emptyText: '暂无已完成待办',
-      groups: groups,
+      loader: _buildDoneTodoGroups,
     );
   }
 
@@ -351,6 +323,47 @@ class _ProfilePageState extends State<ProfilePage> {
                                         pending = mood;
                                       });
                                     },
+                                    onDelete: () async {
+                                      if (_moodOptions.length <= 1) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(content: Text('至少保留一个今日状态')),
+                                        );
+                                        return;
+                                      }
+                                      final bool? ok = await showDialog<bool>(
+                                        context: context,
+                                        builder: (BuildContext dialogCtx) {
+                                          return AlertDialog(
+                                            title: const Text('删除今日状态'),
+                                            content: Text('确认删除“$mood”吗？'),
+                                            actions: <Widget>[
+                                              TextButton(
+                                                onPressed: () => Navigator.of(dialogCtx).pop(false),
+                                                child: const Text('取消'),
+                                              ),
+                                              FilledButton(
+                                                onPressed: () => Navigator.of(dialogCtx).pop(true),
+                                                child: const Text('删除'),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      );
+                                      if (ok != true) {
+                                        return;
+                                      }
+                                      setState(() {
+                                        _moodOptions.remove(mood);
+                                        if (_todayMoodLabel == mood) {
+                                          _todayMoodLabel = _moodOptions.first;
+                                        }
+                                      });
+                                      setModalState(() {
+                                        if (pending == mood) {
+                                          pending = _moodOptions.first;
+                                        }
+                                      });
+                                    },
                                   ),
                                 ),
                               )
@@ -435,7 +448,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<Map<String, List<String>>> _buildDoneCourseGroups() async {
-    // 按“课表 -> 课程项”组织数据，便于对应 PRD 的分组抽屉结构。
+    // 按“课表 -> 课程门数”组织真实数据，展示学生实际各门课程。
     final List<CourseTableEntity> tables = await _scheduleRepository.getCourseTables();
     final Map<String, List<String>> groups = <String, List<String>>{};
 
@@ -445,45 +458,46 @@ class _ProfilePageState extends State<ProfilePage> {
       }
 
       final List<CourseEntity> courses = await _scheduleRepository.getCoursesByTableId(table.id!);
-      final List<String> doneNames = courses
-          .where(_isCourseDone)
-          .map((CourseEntity c) => c.name)
+      final List<String> uniqueCourseNames = courses
+          .map((CourseEntity c) => c.name.trim())
+          .where((String name) => name.isNotEmpty)
           .toSet()
-          .toList(growable: false);
+          .toList(growable: false)
+        ..sort();
 
-      groups[table.name] = doneNames;
+      groups[table.name] = uniqueCourseNames;
     }
 
     return groups;
   }
 
-  bool _isCourseDone(CourseEntity course) {
-    // 课程是否“已上完”的简化判定：在当前工作日和节次之前即视为已完成。
-    final DateTime now = DateTime.now();
-    final int nowDay = now.weekday;
-    final int nowPeriod = _guessCurrentPeriod(now);
-    final int endPeriod = course.startTime + course.timeCount;
-    return course.weekTime < nowDay || (course.weekTime == nowDay && endPeriod < nowPeriod);
-  }
+  Future<Map<String, List<String>>> _buildDoneTodoGroups() async {
+    // 只读弹窗：按任务类型分组展示“已完成待办”。
+    final List<TodoItem> doneTodos = await _todoRepository.getTodos(completed: true);
+    final Map<String, List<String>> groups = <String, List<String>>{
+      '作业': <String>[],
+      '考试': <String>[],
+      '竞赛': <String>[],
+    };
 
-  int _guessCurrentPeriod(DateTime now) {
-    final int hm = now.hour * 100 + now.minute;
-    if (hm < 800) return 0;
-    if (hm <= 845) return 1;
-    if (hm <= 940) return 2;
-    if (hm <= 1045) return 3;
-    if (hm <= 1145) return 4;
-    if (hm <= 1445) return 5;
-    if (hm <= 1545) return 6;
-    if (hm <= 1645) return 7;
-    if (hm <= 1745) return 8;
-    return 99;
+    for (final TodoItem todo in doneTodos) {
+      final String key = switch (todo.taskType) {
+        'assignment' => '作业',
+        'exam' => '考试',
+        'contest' => '竞赛',
+        _ => todo.taskType,
+      };
+      groups.putIfAbsent(key, () => <String>[]).add(todo.title);
+    }
+
+    return groups;
   }
 
   Future<void> _showReadonlyGroupedModal({
     required String title,
     required String emptyText,
-    required Map<String, List<String>> groups,
+    Future<Map<String, List<String>>> Function()? loader,
+    Map<String, List<String>>? groups,
   }) {
     return DuckModal.show<void>(
       context: context,
@@ -491,7 +505,8 @@ class _ProfilePageState extends State<ProfilePage> {
       child: _ReadonlyGroupedModal(
         title: title,
         emptyText: emptyText,
-        groups: groups,
+        loader: loader,
+        initialGroups: groups,
       ),
     );
   }
@@ -588,11 +603,13 @@ class _MoodOptionTile extends StatelessWidget {
     required this.label,
     required this.active,
     required this.onTap,
+    this.onDelete,
   });
 
   final String label;
   final bool active;
   final VoidCallback onTap;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -604,15 +621,37 @@ class _MoodOptionTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         child: SizedBox(
           height: 54,
-          child: Center(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppTokens.textMain,
+          child: Row(
+            children: <Widget>[
+              const SizedBox(width: 44),
+              Expanded(
+                child: Center(
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppTokens.textMain,
+                    ),
+                  ),
+                ),
               ),
-            ),
+              if (onDelete != null)
+                SizedBox(
+                  width: 44,
+                  child: IconButton(
+                    onPressed: onDelete,
+                    splashRadius: 18,
+                    icon: const Icon(
+                      Icons.delete,
+                      color: AppTokens.duckYellow,
+                      size: 20,
+                    ),
+                  ),
+                )
+              else
+                const SizedBox(width: 44),
+            ],
           ),
         ),
       ),
@@ -624,12 +663,14 @@ class _ReadonlyGroupedModal extends StatefulWidget {
   const _ReadonlyGroupedModal({
     required this.title,
     required this.emptyText,
-    required this.groups,
+    this.loader,
+    this.initialGroups,
   });
 
   final String title;
   final String emptyText;
-  final Map<String, List<String>> groups;
+  final Future<Map<String, List<String>>> Function()? loader;
+  final Map<String, List<String>>? initialGroups;
 
   @override
   State<_ReadonlyGroupedModal> createState() => _ReadonlyGroupedModalState();
@@ -638,7 +679,34 @@ class _ReadonlyGroupedModal extends StatefulWidget {
 class _ReadonlyGroupedModalState extends State<_ReadonlyGroupedModal> {
   final TextEditingController _searchController = TextEditingController();
   final Set<String> _expanded = <String>{};
+  Map<String, List<String>> _groups = <String, List<String>>{};
+  bool _isLoading = false;
   String _keyword = '';
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialGroups != null) {
+      _groups = widget.initialGroups!;
+    }
+    if (widget.loader != null) {
+      _isLoading = true;
+      widget.loader!().then((Map<String, List<String>> result) {
+        if (mounted) {
+          setState(() {
+            _groups = result;
+            _isLoading = false;
+          });
+        }
+      }).catchError((dynamic _) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -650,7 +718,7 @@ class _ReadonlyGroupedModalState extends State<_ReadonlyGroupedModal> {
   Widget build(BuildContext context) {
     final Map<String, List<String>> filtered = <String, List<String>>{};
 
-    widget.groups.forEach((String group, List<String> items) {
+    _groups.forEach((String group, List<String> items) {
       if (_keyword.isEmpty) {
         filtered[group] = items;
         return;
@@ -700,6 +768,7 @@ class _ReadonlyGroupedModalState extends State<_ReadonlyGroupedModal> {
                   const SizedBox(width: 48),
                 ],
               ),
+              const SizedBox(height: 14),
               Container(
                 height: 40,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -731,8 +800,22 @@ class _ReadonlyGroupedModalState extends State<_ReadonlyGroupedModal> {
                   ],
                 ),
               ),
-              const SizedBox(height: 4),
-              if (filtered.isEmpty)
+              const SizedBox(height: 16),
+              if (_isLoading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 36),
+                  child: Center(
+                    child: SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.6,
+                        color: AppTokens.duckYellow,
+                      ),
+                    ),
+                  ),
+                )
+              else if (filtered.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 28),
                   child: Text(
@@ -747,95 +830,19 @@ class _ReadonlyGroupedModalState extends State<_ReadonlyGroupedModal> {
                     physics: const BouncingScrollPhysics(),
                     child: Column(
                       children: filtered.entries.map((MapEntry<String, List<String>> entry) {
-                      final bool opened = _expanded.contains(entry.key);
-                      final List<String> preview = opened
-                          ? entry.value
-                          : entry.value.take(3).toList(growable: false);
-
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Column(
-                          children: <Widget>[
-                            Material(
-                              color: opened ? const Color(0xFFFFF6DD) : Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(16),
-                                onTap: () {
-                                  setState(() {
-                                    if (opened) {
-                                      _expanded.remove(entry.key);
-                                    } else {
-                                      _expanded.add(entry.key);
-                                    }
-                                  });
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                  child: Row(
-                                    children: <Widget>[
-                                      Expanded(
-                                        child: Text(
-                                          entry.key,
-                                          style: const TextStyle(
-                                            color: AppTokens.textMain,
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-                                      ),
-                                      Icon(
-                                        opened
-                                            ? Icons.keyboard_arrow_up_rounded
-                                            : Icons.keyboard_arrow_down_rounded,
-                                        color: AppTokens.textMuted,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            if (opened)
-                              Container(
-                                width: double.infinity,
-                                margin: const EdgeInsets.only(top: 6),
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: Column(
-                                  children: preview
-                                      .map(
-                                        (String item) => Padding(
-                                          padding: const EdgeInsets.only(bottom: 8),
-                                          child: Row(
-                                            children: <Widget>[
-                                              const Icon(
-                                                Icons.circle,
-                                                size: 6,
-                                                color: AppTokens.textMuted,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Expanded(
-                                                child: Text(
-                                                  item,
-                                                  style: const TextStyle(
-                                                    fontSize: 13,
-                                                    color: AppTokens.textMain,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      )
-                                      .toList(growable: false),
-                                ),
-                              ),
-                          ],
-                        ),
-                      );
+                        return _GroupExpandableTile(
+                          key: ValueKey<String>(entry.key),
+                          title: entry.key,
+                          items: entry.value,
+                          initiallyExpanded: _keyword.isNotEmpty || _expanded.contains(entry.key),
+                          onToggle: (bool isExpanded) {
+                            if (isExpanded) {
+                              _expanded.add(entry.key);
+                            } else {
+                              _expanded.remove(entry.key);
+                            }
+                          },
+                        );
                       }).toList(growable: false),
                     ),
                   ),
@@ -843,6 +850,159 @@ class _ReadonlyGroupedModalState extends State<_ReadonlyGroupedModal> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _GroupExpandableTile extends StatefulWidget {
+  const _GroupExpandableTile({
+    super.key,
+    required this.title,
+    required this.items,
+    required this.initiallyExpanded,
+    this.onToggle,
+  });
+
+  final String title;
+  final List<String> items;
+  final bool initiallyExpanded;
+  final ValueChanged<bool>? onToggle;
+
+  @override
+  State<_GroupExpandableTile> createState() => _GroupExpandableTileState();
+}
+
+class _GroupExpandableTileState extends State<_GroupExpandableTile> {
+  late bool _expanded;
+
+  @override
+  void initState() {
+    super.initState();
+    _expanded = widget.initiallyExpanded;
+  }
+
+  @override
+  void didUpdateWidget(covariant _GroupExpandableTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initiallyExpanded != widget.initiallyExpanded) {
+      _expanded = widget.initiallyExpanded;
+    }
+  }
+
+  void _toggle() {
+    setState(() {
+      _expanded = !_expanded;
+    });
+    widget.onToggle?.call(_expanded);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            decoration: BoxDecoration(
+              color: _expanded ? const Color(0xFFFFF6DD) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: _toggle,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  child: Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: Text(
+                          widget.title,
+                          style: const TextStyle(
+                            color: AppTokens.textMain,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      AnimatedRotation(
+                        turns: _expanded ? 0.5 : 0.0,
+                        duration: const Duration(milliseconds: 220),
+                        curve: Curves.easeOutCubic,
+                        child: const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: AppTokens.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          ClipRect(
+            child: AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.topCenter,
+              child: _expanded
+                  ? Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(top: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: widget.items.isEmpty
+                          ? const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 4),
+                              child: Text(
+                                '暂无内容',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppTokens.textMuted,
+                                ),
+                              ),
+                            )
+                          : Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: widget.items.map((String item) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    children: <Widget>[
+                                      const Icon(
+                                        Icons.circle,
+                                        size: 6,
+                                        color: AppTokens.textMuted,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          item,
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            color: AppTokens.textMain,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(growable: false),
+                            ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ),
+        ],
       ),
     );
   }

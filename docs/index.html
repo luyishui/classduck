@@ -233,18 +233,18 @@
         <a href="#features">功能</a>
         <a href="#download">下载</a>
         <a href="https://github.com/luyishui/classduck" target="_blank" rel="noopener">GitHub</a>
-        <span class="stamp"><i data-lucide="tag"></i>v{{ version }}</span>
+        <span class="stamp"><i data-lucide="tag"></i><span id="app-version">v1.0.2</span></span>
       </div>
     </nav>
 
     <header class="hero">
-      <img class="logo" src="img/logo-512.png" alt="上课鸭" />
+      <img class="logo" src="img/logo-512.png" alt="上课鸭" decoding="async" />
       <h1>上课鸭</h1>
       <p class="sub">CLASSDUCK · 校园课表</p>
       <p class="lead">朴素克制的课表工具。教务网页导入、AI 截图识别、上课提醒、多课表管理——功能恰好够用，不多打扰。</p>
       <div class="cta">
-        <a class="btn primary" :href="androidUrl"><i data-lucide="download"></i>下载 Android 通用版</a>
-        <a class="btn ghost" :href="androidMirrorUrl"><i data-lucide="zap"></i>镜像下载</a>
+        <a class="btn primary" href="https://github.com/luyishui/classduck/releases/latest/download/classduck-android-universal.apk"><i data-lucide="download"></i>下载 Android 通用版</a>
+        <a class="btn ghost" href="https://gh-proxy.com/https://github.com/luyishui/classduck/releases/latest/download/classduck-android-universal.apk"><i data-lucide="zap"></i>镜像下载</a>
       </div>
       <p class="hint">Android 7.0 及以上 · 免费无广告 · 数据本地存储</p>
     </header>
@@ -295,9 +295,9 @@
           <h3>Android</h3>
           <p class="desc">支持 Android 7.0 及以上设备。通用版包含全部 CPU 架构；arm64 版体积更小。</p>
           <div class="acts">
-            <a class="btn solid" :href="androidUrl"><i data-lucide="download"></i>下载通用版 APK</a>
-            <a class="btn line" :href="androidArm64MirrorUrl"><i data-lucide="cpu"></i>arm64 版 APK（国内加速）</a>
-            <a class="btn line" :href="androidMirrorUrl"><i data-lucide="globe"></i>通用版镜像下载（国内加速）</a>
+            <a class="btn solid" href="https://github.com/luyishui/classduck/releases/latest/download/classduck-android-universal.apk"><i data-lucide="download"></i>下载通用版 APK</a>
+            <a class="btn line" href="https://gh-proxy.com/https://github.com/luyishui/classduck/releases/latest/download/classduck-android-arm64.apk"><i data-lucide="cpu"></i>arm64 版 APK（国内加速）</a>
+            <a class="btn line" href="https://gh-proxy.com/https://github.com/luyishui/classduck/releases/latest/download/classduck-android-universal.apk"><i data-lucide="globe"></i>通用版镜像下载（国内加速）</a>
           </div>
           <p class="hint"><i data-lucide="info"></i>安装时请允许"安装未知来源应用"</p>
         </div>
@@ -329,12 +329,6 @@
     </footer>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
-  <script>
-    if (!window.Vue) {
-      document.write('<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"><\/script>');
-    }
-  </script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
   <script>
     if (!window.lucide) {
@@ -342,39 +336,34 @@
     }
   </script>
   <script>
-    const { createApp } = Vue;
-    const base = 'https://github.com/luyishui/classduck/releases/latest/download/';
-    createApp({
-      data() {
-        return {
-          version: '1.0.2',
-          androidUrl: base + 'classduck-android-universal.apk',
-          androidArm64Url: base + 'classduck-android-arm64.apk',
-          androidMirrorUrl: 'https://gh-proxy.com/' + base + 'classduck-android-universal.apk',
-          androidArm64MirrorUrl: 'https://gh-proxy.com/' + base + 'classduck-android-arm64.apk',
-        };
-      },
-      mounted() {
-        // 版本号与 release.json 自动同步（发版流水线会主动清理 jsDelivr 缓存）。
-        fetch('./release.json')
-          .then((res) => (res.ok ? res.json() : null))
-          .then((data) => {
-            if (data && data.latestVersion) this.version = data.latestVersion;
-          })
-          .catch(() => {});
+    (function () {
+      fetch('./release.json')
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (data) {
+          if (data && data.latestVersion) {
+            var el = document.getElementById('app-version');
+            if (el) el.textContent = 'v' + data.latestVersion;
+          }
+        })
+        .catch(function () {});
+
+      if (window.lucide) {
         lucide.createIcons();
-        // 滚动淡入：克制节奏与纸张一致
-        const io = new IntersectionObserver((entries) => {
-          entries.forEach((en) => {
-            if (en.isIntersecting) {
-              en.target.classList.add('revealed');
-              io.unobserve(en.target);
-            }
-          });
-        }, { threshold: 0.15 });
-        document.querySelectorAll('.feature, .card').forEach((el) => io.observe(el));
-      },
-    }).mount('#app');
+      }
+
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          if (en.isIntersecting) {
+            en.target.classList.add('revealed');
+            io.unobserve(en.target);
+          }
+        });
+      }, { threshold: 0.15 });
+
+      document.querySelectorAll('.feature, .card').forEach(function (el) {
+        io.observe(el);
+      });
+    })();
   </script>
 </body>
 </html>
