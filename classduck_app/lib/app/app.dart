@@ -9,7 +9,7 @@ class ClassDuckApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ClassDuck',
+      title: '上课鸭',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       home: const AppShell(),

@@ -131,32 +131,37 @@ class _NavItem extends StatelessWidget {
       ],
     );
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(22),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOut,
-          decoration: BoxDecoration(
-            color: active ? const Color(0xFFFFF2CC) : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Center(
-            child: DefaultTextStyle(
-              style: TextStyle(
-                color: active
-                    ? const Color(0xFFD19B00)
-                    : const Color(0xFF8A7C6C),
-              ),
-              child: IconTheme(
-                data: IconThemeData(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          splashColor: const Color(0x1AD19B00),
+          highlightColor: const Color(0x10D19B00),
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            decoration: BoxDecoration(
+              color: active ? const Color(0xFFFFF2CC) : Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Center(
+              child: DefaultTextStyle(
+                style: TextStyle(
                   color: active
                       ? const Color(0xFFD19B00)
                       : const Color(0xFF8A7C6C),
                 ),
-                child: content,
+                child: IconTheme(
+                  data: IconThemeData(
+                    color: active
+                        ? const Color(0xFFD19B00)
+                        : const Color(0xFF8A7C6C),
+                  ),
+                  child: content,
+                ),
               ),
             ),
           ),

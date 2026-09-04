@@ -10,7 +10,7 @@ class SurveyLinks {
   // 可通过 --dart-define=CLASSDUCK_SHARE_URL 覆盖为项目分享地址。
   static const String projectShareUrl = String.fromEnvironment(
     'CLASSDUCK_SHARE_URL',
-    defaultValue: 'https://github.com/luyishui/classduck',
+    defaultValue: 'https://luyishui.github.io/classduck/',
   );
 
   static String get surveyHomeUrl => _baseSurveyUrl;

@@ -296,8 +296,8 @@
           <p class="desc">支持 Android 7.0 及以上设备。通用版包含全部 CPU 架构；arm64 版体积更小。</p>
           <div class="acts">
             <a class="btn solid" :href="androidUrl"><i data-lucide="download"></i>下载通用版 APK</a>
-            <a class="btn line" :href="androidArm64Url"><i data-lucide="cpu"></i>arm64 高性能版</a>
-            <a class="btn line" :href="androidMirrorUrl"><i data-lucide="globe"></i>镜像下载（国内加速）</a>
+            <a class="btn line" :href="androidArm64MirrorUrl"><i data-lucide="cpu"></i>arm64 版 APK（国内加速）</a>
+            <a class="btn line" :href="androidMirrorUrl"><i data-lucide="globe"></i>通用版镜像下载（国内加速）</a>
           </div>
           <p class="hint"><i data-lucide="info"></i>安装时请允许"安装未知来源应用"</p>
         </div>
@@ -347,10 +347,11 @@
     createApp({
       data() {
         return {
-          version: '1.0.0',
+          version: '1.0.2',
           androidUrl: base + 'classduck-android-universal.apk',
           androidArm64Url: base + 'classduck-android-arm64.apk',
           androidMirrorUrl: 'https://gh-proxy.com/' + base + 'classduck-android-universal.apk',
+          androidArm64MirrorUrl: 'https://gh-proxy.com/' + base + 'classduck-android-arm64.apk',
         };
       },
       mounted() {

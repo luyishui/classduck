@@ -15,7 +15,7 @@ class AboutPage extends StatefulWidget {
 }
 
 class _AboutPageState extends State<AboutPage> {
-  static const String _currentVersion = 'v1.0.1';
+  static const String _currentVersion = 'v1.0.2';
   final ReleaseRepository _releaseRepository = ReleaseRepository();
 
   @override
@@ -219,10 +219,10 @@ class _AboutPageState extends State<AboutPage> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                '🎉 当前已是最新版本 v1.0.0 🎊',
+              Text(
+                '🎉 当前已是最新版本 $_currentVersion 🎊',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Color(0xFF8F8A84),
                   fontSize: 14,
                   fontWeight: FontWeight.w600,

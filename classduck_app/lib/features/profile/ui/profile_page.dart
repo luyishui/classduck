@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../shared/constants/survey_links.dart';
 import '../../../shared/theme/app_tokens.dart';
 import '../../../shared/widgets/app_share_dialog.dart';
 import '../../../shared/widgets/duck_modal.dart';
@@ -10,7 +9,6 @@ import '../../schedule/data/schedule_repository.dart';
 import '../../settings/ui/about_page.dart';
 import '../../settings/ui/appearance_page.dart';
 import '../../settings/ui/notifications_page.dart';
-import '../../settings/ui/survey_webview_page.dart';
 import '../../todo/data/todo_repository.dart';
 import '../../todo/domain/todo_item.dart';
 
@@ -160,18 +158,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   title: '提醒与通知',
                   onTap: () => _openPage(const NotificationsPage()),
                 ),
-                const SizedBox(height: 8),
-                _SettingCard(
-                  title: '鸭鸭问卷',
-                  onTap: () =>
-                      _openPage(
-                        SurveyWebviewPage(
-                          title: '鸭鸭问卷',
-                          url: SurveyLinks.generalSurveyUrl,
-                          shareUrl: SurveyLinks.projectShareUrl,
-                        ),
-                      ),
-                ),
+
                 const SizedBox(height: 8),
                 _SettingCard(
                   title: '关于上课鸭',
@@ -261,17 +248,20 @@ class _ProfilePageState extends State<ProfilePage> {
           final List<String> filteredMoods = _moodOptions
               .where((String mood) => mood.contains(keyword))
               .toList(growable: false);
-          final double moodListHeight = (filteredMoods.length * 64.0).clamp(64.0, 198.0).toDouble();
+          final double screenWidth = MediaQuery.of(context).size.width;
+          final double modalWidth = (screenWidth - 48).clamp(320.0, 356.0).toDouble();
+          // 单项高 54 + 间距 10 = 64。默认 3 项 192px，预留充足展示高度确保平静完整显示，超过时优雅滚动
+          final double moodListHeight = (filteredMoods.length * 64.0 + 6.0).clamp(70.0, 238.0).toDouble();
 
           return Material(
             color: Colors.transparent,
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: 336,
+                maxWidth: modalWidth,
                 maxHeight: MediaQuery.of(context).size.height * 0.78,
               ),
               child: Container(
-                width: 336,
+                width: modalWidth,
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
                 decoration: BoxDecoration(
                   color: AppTokens.pageBackground,
@@ -343,14 +333,12 @@ class _ProfilePageState extends State<ProfilePage> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       SizedBox(
                         height: moodListHeight,
                         child: ListView(
+                          padding: EdgeInsets.zero,
                           shrinkWrap: true,
-                          physics: filteredMoods.length > 3
-                              ? const BouncingScrollPhysics()
-                              : const NeverScrollableScrollPhysics(),
                           children: filteredMoods
                               .map(
                                 (String mood) => Padding(

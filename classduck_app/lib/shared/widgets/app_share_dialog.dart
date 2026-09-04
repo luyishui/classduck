@@ -43,40 +43,31 @@ class AppShareDialog {
             ],
           ),
           actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              style: TextButton.styleFrom(foregroundColor: Colors.black),
-              child: const Text('取消'),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.of(dialogContext).pop();
-                await _copyLink(context);
-              },
-              style: TextButton.styleFrom(foregroundColor: Colors.black),
-              child: const Text('复制链接'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                Navigator.of(dialogContext).pop();
-                await _copyAndShare(context);
-              },
-              style: FilledButton.styleFrom(
-                backgroundColor: AppTokens.duckYellow,
-                foregroundColor: Colors.white,
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: FilledButton(
+                onPressed: () async {
+                  Navigator.of(dialogContext).pop();
+                  await _copyAndShare(context);
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppTokens.duckYellow,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                ),
+                child: const Text(
+                  '复制并分享',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                ),
               ),
-              child: const Text('复制并分享'),
             ),
           ],
         );
       },
     );
-  }
-
-  static Future<void> _copyLink(BuildContext context) async {
-    final ScaffoldMessengerState? messenger = ScaffoldMessenger.maybeOf(context);
-    await Clipboard.setData(const ClipboardData(text: SurveyLinks.projectShareUrl));
-    messenger?.showSnackBar(const SnackBar(content: Text('链接已复制')));
   }
 
   static Future<void> _copyAndShare(BuildContext context) async {
