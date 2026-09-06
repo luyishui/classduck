@@ -11,6 +11,10 @@ class DbHelper {
   static const String tableTodo = 'todo_item';
   static const String tableSetting = 'app_setting';
 
+  /// app_setting 中记录用户当前选中课表的 key，
+  /// 桌面小组件与 App 内课表页都以此为准。
+  static const String keyActiveTableId = 'active_table_id';
+
   static const String createCourseTableSql = '''
 CREATE TABLE course_table (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

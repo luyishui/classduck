@@ -83,6 +83,39 @@ class ScheduleRepository {
 
   void setActiveTableId(int? tableId) {
     activeTableIdNotifier.value = tableId;
+    // 持久化到 app_setting：冷启动后恢复用户手动选择的课表，
+    // 保证桌面小组件下发的数据与 App 内选中的课表绝对同步。
+    // 置空（如清空全部课表）时写入空串以清除残留值，
+    // 避免后续新建课表复用 id 后被误"恢复"。
+    _dbHelper
+        .setSetting(
+          DbHelper.keyActiveTableId,
+          tableId == null ? '' : tableId.toString(),
+        )
+        .catchError((Object error) {
+      debugPrint('[schedule_repository] persist active_table_id failed: $error');
+    });
+  }
+
+  /// 冷启动还原活跃课表：优先读取 app_setting 中持久化的 id，
+  /// 仅当该课表仍然存在时才还原，否则回退到列表第一张。
+  Future<void> _restoreActiveTableId(List<CourseTableEntity> tables) async {
+    if (activeTableIdNotifier.value != null || tables.isEmpty) {
+      return;
+    }
+    try {
+      final String? saved = await _dbHelper.getSetting(
+        DbHelper.keyActiveTableId,
+      );
+      final int? savedId = int.tryParse(saved ?? '');
+      if (savedId != null && tables.any((CourseTableEntity t) => t.id == savedId)) {
+        activeTableIdNotifier.value = savedId;
+        return;
+      }
+    } catch (error) {
+      debugPrint('[schedule_repository] restore active_table_id failed: $error');
+    }
+    activeTableIdNotifier.value = tables.first.id;
   }
 
   /// 创建课表。Web 端写入内存，原生端写入 SQLite。
@@ -162,9 +195,7 @@ class ScheduleRepository {
       final List<CourseTableEntity> tables = _webTables.reversed.toList(
         growable: false,
       );
-      if (activeTableIdNotifier.value == null && tables.isNotEmpty) {
-        activeTableIdNotifier.value = tables.first.id;
-      }
+      await _restoreActiveTableId(tables);
       return tables;
     }
 
@@ -178,9 +209,7 @@ class ScheduleRepository {
     final List<CourseTableEntity> tables = rows
         .map(CourseTableEntity.fromMap)
         .toList(growable: false);
-    if (activeTableIdNotifier.value == null && tables.isNotEmpty) {
-      activeTableIdNotifier.value = tables.first.id;
-    }
+    await _restoreActiveTableId(tables);
     return tables;
   }
 
@@ -383,15 +412,19 @@ class ScheduleRepository {
     if (kIsWeb) {
       _webTables.removeWhere((CourseTableEntity item) => item.id == tableId);
       _webCourses.removeWhere((CourseEntity item) => item.tableId == tableId);
-      return;
+    } else {
+      final Database db = await _dbHelper.open();
+      await db.delete(
+        DbHelper.tableCourseTable,
+        where: 'id = ?',
+        whereArgs: <Object>[tableId],
+      );
     }
-
-    final Database db = await _dbHelper.open();
-    await db.delete(
-      DbHelper.tableCourseTable,
-      where: 'id = ?',
-      whereArgs: <Object>[tableId],
-    );
+    // 删除的是当前活跃课表时，重置活跃状态并清除持久化残留，
+    // 避免小组件/待办等消费方拿到失效 id（页面随后会切换到剩余课表）。
+    if (activeTableIdNotifier.value == tableId) {
+      setActiveTableId(null);
+    }
   }
 
   /// 清空全部课表及其课程。
@@ -399,11 +432,11 @@ class ScheduleRepository {
     if (kIsWeb) {
       _webTables.clear();
       _webCourses.clear();
-      return;
+    } else {
+      final Database db = await _dbHelper.open();
+      await db.delete(DbHelper.tableCourseTable);
     }
-
-    final Database db = await _dbHelper.open();
-    await db.delete(DbHelper.tableCourseTable);
+    setActiveTableId(null);
   }
 
   /// 重命名课表。

@@ -1,0 +1,8 @@
+<resources>
+    <string name="widget_small_label">上课鸭·今日课程</string>
+    <string name="widget_medium_label">上课鸭·今日日程</string>
+    <string name="widget_large_label">上课鸭·本周日程</string>
+    <string name="widget_small_description">大字日期与下一节课，一瞥即知</string>
+    <string name="widget_medium_description">今日课程日程流与当前状态</string>
+    <string name="widget_large_description">本周多日课程全览网格</string>
+</resources>
