@@ -14,6 +14,7 @@ import '../../import/ui/ai_import_page.dart';
 import '../../settings/data/appearance_state.dart';
 import '../../todo/data/todo_repository.dart';
 import '../../todo/domain/todo_item.dart';
+import '../application/schedule_widget_service.dart';
 import '../data/schedule_repository.dart';
 import '../domain/course.dart';
 import '../domain/course_table.dart';
@@ -161,10 +162,19 @@ class _SchedulePageState extends State<SchedulePage> {
           _adjacentColorByCourseName = const <String, Color>{};
         });
         _scheduleRepository.setActiveTableId(null);
+        _syncScheduleWidget();
         return;
       }
 
-      final CourseTableEntity active = tables.first;
+      // 优先使用仓库层恢复/持久化的活跃课表，保证与桌面小组件一致。
+      final int? preferredTableId = ScheduleRepository.activeTableId;
+      CourseTableEntity active = tables.first;
+      for (final CourseTableEntity table in tables) {
+        if (table.id != null && table.id == preferredTableId) {
+          active = table;
+          break;
+        }
+      }
       final List<CourseEntity> courses = await _scheduleRepository
           .getCoursesByTableId(active.id!)
           .timeout(const Duration(seconds: 6));
@@ -185,6 +195,7 @@ class _SchedulePageState extends State<SchedulePage> {
         _adjacentColorByCourseName = _buildAdjacentAwareColorMap(courses);
       });
       _scheduleRepository.setActiveTableId(active.id);
+      _syncScheduleWidget();
     } catch (error) {
       setState(() {
         _scheduleError = '课表加载失败：$error';
@@ -2014,6 +2025,13 @@ class _SchedulePageState extends State<SchedulePage> {
       _adjacentColorByCourseName = _buildAdjacentAwareColorMap(courses);
     });
     _scheduleRepository.setActiveTableId(tableId);
+    _syncScheduleWidget();
+  }
+
+  /// 课表数据发生增删改/切换后，把最新全量结构推给桌面小组件。
+  /// （服务内部带 500ms 去抖合并，连续操作只触发一次下发。）
+  void _syncScheduleWidget() {
+    ScheduleWidgetService.syncCurrentScheduleToWidget();
   }
 
   _ScheduleConfig _decodeConfig(String? rawJson) {
@@ -2037,13 +2055,23 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 
   int _computeCurrentWeek(_ScheduleConfig config) {
-    final DateTime today = DateTime.now();
+    // 剥离时分秒：若保留当前时刻，开学前夕（如周日 15:30 对比周一 00:00）
+    // 的负数时长会被 Dart ~/ 向零截断成 0 天，绕过未开学判定，
+    // 导致 App 误显示第 1 周而原生端（LocalDate 整日差）判定未开学。
+    final DateTime now = DateTime.now();
+    final DateTime today = DateTime(now.year, now.month, now.day);
     final DateTime start = DateTime(
       config.semesterStartDate.year,
       config.semesterStartDate.month,
       config.semesterStartDate.day,
     );
-    final int deltaDays = today.difference(start).inDays;
+    // 教学周以周一为周期锚点：开学日若非周一（如周三开学），
+    // 归一化到其所在周的周一，保证周次在周一翻转、开学前几天
+    // 仍归属第一周（与桌面小组件原生端 ScheduleEvaluator 同步修改）。
+    final DateTime startMonday = start.subtract(
+      Duration(days: start.weekday - 1),
+    );
+    final int deltaDays = today.difference(startMonday).inDays;
     if (deltaDays < 0) {
       return 0;
     }
@@ -2066,6 +2094,8 @@ class _SchedulePageState extends State<SchedulePage> {
       semesterStartMonday:
           '${config.semesterStartDate.year.toString().padLeft(4, '0')}-${config.semesterStartDate.month.toString().padLeft(2, '0')}-${config.semesterStartDate.day.toString().padLeft(2, '0')}',
     );
+    // 作息时间/开学日期变更需要即时反映到桌面小组件。
+    _syncScheduleWidget();
   }
 
   Future<void> _openCourseDetail(int period, List<CourseEntity> courses) async {
@@ -3331,13 +3361,18 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 
   bool _isSemesterEnded(_ScheduleConfig config) {
-    final DateTime today = DateTime.now();
+    // 与 _computeCurrentWeek 保持同锚点：剥离时分秒 + 归一化到所在周的周一。
+    final DateTime now = DateTime.now();
+    final DateTime today = DateTime(now.year, now.month, now.day);
     final DateTime start = DateTime(
       config.semesterStartDate.year,
       config.semesterStartDate.month,
       config.semesterStartDate.day,
     );
-    final int deltaDays = today.difference(start).inDays;
+    final DateTime startMonday = start.subtract(
+      Duration(days: start.weekday - 1),
+    );
+    final int deltaDays = today.difference(startMonday).inDays;
     if (deltaDays < 0) {
       return false;
     }

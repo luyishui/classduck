@@ -29,7 +29,64 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- 桌面小组件深链：classduck://schedule?tab=1（可被浏览器等外部入口复用） -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:host="schedule"
+                    android:scheme="classduck"/>
+            </intent-filter>
         </activity>
+        <!-- 桌面小组件：三种规格的 Glance 接收器 -->
+        <receiver
+            android:name=".widget.ClassDuckSmallWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_small_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/classduck_widget_small_info"/>
+        </receiver>
+        <receiver
+            android:name=".widget.ClassDuckMediumWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_medium_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/classduck_widget_medium_info"/>
+        </receiver>
+        <receiver
+            android:name=".widget.ClassDuckLargeWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_large_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/classduck_widget_large_info"/>
+        </receiver>
+        <!-- 跨天/校时/时区广播：驱动小组件跨天重绘（系统受保护广播，仅系统可发） -->
+        <receiver
+            android:name=".widget.WidgetTimeChangeReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.DATE_CHANGED"/>
+                <action android:name="android.intent.action.TIME_SET"/>
+                <action android:name="android.intent.action.TIMEZONE_CHANGED"/>
+            </intent-filter>
+        </receiver>
+        <!-- 课节节点闹钟：上下课状态即时切换（一次性非唤醒闹钟，渲染时自动重排） -->
+        <receiver
+            android:name=".widget.WidgetRefreshAlarmReceiver"
+            android:exported="false"/>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

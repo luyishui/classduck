@@ -3,6 +3,8 @@ import java.util.Properties
 plugins {
     id("com.android.application")
     id("kotlin-android")
+    // Compose 编译支持：Jetpack Glance 桌面小组件依赖。
+    id("org.jetbrains.kotlin.plugin.compose")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -54,6 +56,11 @@ android {
         versionName = flutter.versionName
     }
 
+    buildFeatures {
+        // Jetpack Glance 桌面小组件基于 Compose 运行时。
+        compose = true
+    }
+
     buildTypes {
         release {
             signingConfig = if (keystorePropertiesFile.exists()) {
@@ -76,4 +83,9 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+    // Jetpack Glance：基于 Compose 的现代 AppWidget 框架。
+    implementation("androidx.glance:glance-appwidget:1.1.0")
+    implementation("androidx.glance:glance-material3:1.1.0")
+    // 原生判定引擎单元测试。
+    testImplementation("junit:junit:4.13.2")
 }

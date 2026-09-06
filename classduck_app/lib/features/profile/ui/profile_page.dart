@@ -9,6 +9,7 @@ import '../../schedule/data/schedule_repository.dart';
 import '../../settings/ui/about_page.dart';
 import '../../settings/ui/appearance_page.dart';
 import '../../settings/ui/notifications_page.dart';
+import '../../settings/ui/desktop_widget_page.dart';
 import '../../todo/data/todo_repository.dart';
 import '../../todo/domain/todo_item.dart';
 
@@ -157,6 +158,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 _SettingCard(
                   title: '提醒与通知',
                   onTap: () => _openPage(const NotificationsPage()),
+                ),
+                const SizedBox(height: 8),
+                _SettingCard(
+                  title: '桌面小组件',
+                  onTap: () => _openPage(const DesktopWidgetPage()),
                 ),
 
                 const SizedBox(height: 8),
