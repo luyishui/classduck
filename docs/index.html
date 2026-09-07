@@ -220,6 +220,120 @@
       nav .links { gap: 16px; }
       .brand small { display: none; }
     }
+    /* 求 Star 弹窗：侘寂纸感 · 墨韵浮层 */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(51, 48, 42, 0.46);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .modal-backdrop.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .star-modal {
+      position: relative;
+      background-color: var(--paper);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+      border: 1px solid rgba(201, 164, 76, 0.45);
+      border-radius: 6px;
+      padding: 34px 28px 26px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 16px 40px rgba(58, 47, 21, 0.18);
+      transform: translateY(14px) scale(0.98);
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .modal-backdrop.active .star-modal {
+      transform: translateY(0) scale(1);
+    }
+    .modal-close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: transparent;
+      border: none;
+      color: var(--faint);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 4px;
+      display: grid;
+      place-items: center;
+      transition: color 0.2s ease, background 0.2s ease;
+    }
+    .modal-close:hover {
+      color: var(--ink);
+      background: rgba(70, 62, 50, 0.08);
+    }
+    .modal-close svg { width: 16px; height: 16px; }
+    .star-badge {
+      width: 46px;
+      height: 46px;
+      margin: 0 auto 16px;
+      border-radius: 50%;
+      border: 1.5px solid var(--gold-soft);
+      background: rgba(231, 175, 26, 0.12);
+      display: grid;
+      place-items: center;
+      color: var(--gold-soft);
+    }
+    .star-badge svg { width: 22px; height: 22px; }
+    .star-modal h3 {
+      font-family: var(--serif);
+      font-size: 19px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      color: var(--ink);
+    }
+    .star-modal p {
+      margin-top: 12px;
+      font-size: 13px;
+      line-height: 1.75;
+      color: var(--ink-soft);
+    }
+    .star-modal .modal-acts {
+      margin-top: 24px;
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    .star-modal .modal-acts .btn {
+      flex: 1;
+      justify-content: center;
+      padding: 11px 0;
+      border-radius: 3px;
+      font-size: 13px;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+    }
+    .star-modal .modal-acts .btn.solid {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: #3a2f15;
+    }
+    .star-modal .modal-acts .btn.solid:hover {
+      background: var(--gold-soft);
+      border-color: var(--gold-soft);
+    }
+    .star-modal .modal-acts .btn.line {
+      background: transparent;
+      border-color: var(--line);
+      color: var(--faint);
+    }
+    .star-modal .modal-acts .btn.line:hover {
+      border-color: var(--gold-soft);
+      color: var(--gold-soft);
+    }
   </style>
 </head>
 <body>
@@ -329,6 +443,22 @@
     </footer>
   </div>
 
+  <!-- 求 Star 弹窗（无 emoji，侘寂纸感规范） -->
+  <div id="star-modal-backdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="star-modal-title">
+    <div class="star-modal">
+      <button id="star-modal-close" class="modal-close" aria-label="关闭"><i data-lucide="x"></i></button>
+      <div class="star-badge">
+        <i data-lucide="star"></i>
+      </div>
+      <h3 id="star-modal-title">下载已开始，求个 Star 鸭</h3>
+      <p>上课鸭是一款完全免费、无广告、纯本地离线的开源小工具。<br>开发者用爱发电不易，如果它帮到了你，求顺手去 GitHub 给我们点亮一颗小星星鼓励一下吧！</p>
+      <div class="modal-acts">
+        <button id="star-modal-cancel" class="btn line">默默收下</button>
+        <button id="star-modal-confirm" class="btn solid"><i data-lucide="star"></i>去点 Star</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
   <script>
     if (!window.lucide) {
@@ -362,6 +492,59 @@
 
       document.querySelectorAll('.feature, .card').forEach(function (el) {
         io.observe(el);
+      });
+
+      // 求 Star 弹窗控制逻辑
+      var modalBackdrop = document.getElementById('star-modal-backdrop');
+      var modalClose = document.getElementById('star-modal-close');
+      var modalCancel = document.getElementById('star-modal-cancel');
+      var modalConfirm = document.getElementById('star-modal-confirm');
+
+      function openStarModal() {
+        if (modalBackdrop) {
+          modalBackdrop.classList.add('active');
+          document.body.style.overflow = 'hidden';
+        }
+      }
+
+      function closeStarModal() {
+        if (modalBackdrop) {
+          modalBackdrop.classList.remove('active');
+          document.body.style.overflow = '';
+        }
+      }
+
+      if (modalClose) modalClose.addEventListener('click', closeStarModal);
+      if (modalCancel) modalCancel.addEventListener('click', closeStarModal);
+      if (modalBackdrop) {
+        modalBackdrop.addEventListener('click', function (e) {
+          if (e.target === modalBackdrop) {
+            closeStarModal();
+          }
+        });
+      }
+
+      if (modalConfirm) {
+        modalConfirm.addEventListener('click', function () {
+          window.open('https://github.com/luyishui/classduck', '_blank', 'noopener');
+          closeStarModal();
+        });
+      }
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && modalBackdrop && modalBackdrop.classList.contains('active')) {
+          closeStarModal();
+        }
+      });
+
+      // 监听所有下载链接触发弹窗
+      var downloadLinks = document.querySelectorAll('a[href*=".apk"], a[href*="releases/latest/download"]');
+      downloadLinks.forEach(function (link) {
+        link.addEventListener('click', function () {
+          setTimeout(function () {
+            openStarModal();
+          }, 260);
+        });
       });
     })();
   </script>
