@@ -16,9 +16,9 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
   int _selectedSpec = 0; // 0: 2x2, 1: 4x2, 2: 4x4
 
   final List<String> _specDescriptions = [
-    '2×2 紧凑单日卡片 · 醒目大字日期 + 聚焦下一堂课与教室',
-    '4×2 双栏日程流 · 左侧日期看板 + 右侧今日日程推进',
-    '4×4 多日迷你网格 · 5~7 天课程总览 + 星期高亮与课表网格',
+    '2×2 紧凑单日卡片 · 响应式智能充实，紧凑精致无缝隙',
+    '4×2 双栏日程流 · 紧凑聚焦双课，清晰呈现今日作息',
+    '4×4 多日时段网格 · 5~7 天网格总览，早中晚作息一览无余',
   ];
 
   @override
@@ -185,13 +185,13 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
     }
   }
 
-  /// 1. 小尺寸 (2×2) 单日聚焦卡片：纯净复原原图1，纯白高级留白 + 品牌金黄斜杠
+  /// 1. 小尺寸 (2×2) 单日聚焦卡片：响应式紧凑双课充实流，品牌金黄斜杠
   Widget _buildSmallWidget() {
     return Container(
       key: const ValueKey('small_2x2'),
       width: 164,
       height: 164,
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -205,7 +205,6 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // 顶部日期与课数（黄色斜杠）
           Row(
@@ -215,7 +214,7 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
               RichText(
                 text: const TextSpan(
                   style: TextStyle(
-                    fontSize: 32,
+                    fontSize: 30,
                     fontWeight: FontWeight.w900,
                     color: Color(0xFF1F1A14),
                     letterSpacing: -1,
@@ -227,7 +226,7 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
                       text: '/',
                       style: TextStyle(
                         color: Color(0xFFFFC93C), // 上课鸭品牌金黄色斜杠
-                        fontSize: 26,
+                        fontSize: 24,
                       ),
                     ),
                     TextSpan(text: '7'),
@@ -247,104 +246,175 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
                   ),
                   SizedBox(height: 2),
                   Text(
-                    '1节课',
+                    '今日 2 节',
                     style: TextStyle(
-                      fontSize: 10.5,
-                      color: Color(0xFFA3978A),
-                      fontWeight: FontWeight.w500,
+                      fontSize: 10,
+                      color: Color(0xFF8C7E72),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
               ),
             ],
           ),
+          const SizedBox(height: 8),
 
-          // 纯粹课程项：无多余内框与色条，自然呼吸
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 6,
-                height: 6,
-                margin: const EdgeInsets.only(top: 5, right: 8),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF5A623),
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '大学英语',
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF1F1A14),
-                        height: 1.2,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+          // 双课充实日程流
+          Expanded(
+            child: Column(
+              children: [
+                // 1. 进行中课程
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFDF4),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFFFF1B8), width: 1),
                     ),
-                    SizedBox(height: 3),
-                    Text(
-                      '10:10-12:00',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFFA3978A),
-                        fontWeight: FontWeight.w500,
-                      ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 5,
+                          height: 5,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE86B79),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Row(
+                                children: [
+                                  const Expanded(
+                                    child: Text(
+                                      '技术创新管理',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF1F1A14),
+                                        height: 1.1,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFFC93C),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text(
+                                      '进行中',
+                                      style: TextStyle(
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.w800,
+                                        color: Color(0xFF40352A),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              const Text(
+                                '10:10-12:00 · 教2楼',
+                                style: TextStyle(
+                                  fontSize: 9.5,
+                                  color: Color(0xFF8C7E72),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      '外语楼-201',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFFA3978A),
-                        fontWeight: FontWeight.w500,
-                      ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                // 2. 后续课程
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFAF7F2),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                  ],
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 5,
+                          height: 5,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF4A88D2),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '创新创业与战略',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF1F1A14),
+                                  height: 1.1,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                '16:40-18:15 · 理科楼',
+                                style: TextStyle(
+                                  fontSize: 9.5,
+                                  color: Color(0xFF8C7E72),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ],
-          ),
-
-          // 底部极简小圆点翻页器
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(5, (i) {
-              return Container(
-                width: 4,
-                height: 4,
-                margin: const EdgeInsets.symmetric(horizontal: 2),
-                decoration: BoxDecoration(
-                  color: i == 0 ? const Color(0xFFA3978A) : const Color(0xFFE5DDD0),
-                  shape: BoxShape.circle,
-                ),
-              );
-            }),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  /// 2. 中尺寸 (4×2) 双栏日程流卡片：品牌金黄斜杠，居中平衡，无黄色侧边条
+  /// 2. 中尺寸 (4×2) 双栏日程流卡片：品牌金黄斜杠，居中平衡，虚线分割，双课流
   Widget _buildMediumWidget() {
     return Container(
       key: const ValueKey('medium_4x2'),
-      width: 326,
-      height: 156,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      width: 334,
+      height: 160,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.28),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Colors.black.withValues(alpha: 0.22),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -353,7 +423,7 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
         children: [
           // 左栏看板：垂直居中聚合，绝不下沉
           SizedBox(
-            width: 82,
+            width: 84,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -361,7 +431,7 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
                 RichText(
                   text: const TextSpan(
                     style: TextStyle(
-                      fontSize: 27,
+                      fontSize: 30,
                       fontWeight: FontWeight.w900,
                       color: Color(0xFF1F1A14),
                       letterSpacing: -0.5,
@@ -373,43 +443,43 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
                         text: '/',
                         style: TextStyle(
                           color: Color(0xFFFFC93C), // 上课鸭品牌金黄色斜杠
-                          fontSize: 22,
+                          fontSize: 24,
                         ),
                       ),
                       TextSpan(text: '7'),
                     ],
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 const Text(
                   '周一',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 14,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF1F1A14),
                   ),
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF4CC),
+                    color: const Color(0xFFFFF3CC),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Text(
                     '第 3 周',
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: 10.5,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFFB28200),
+                      color: Color(0xFFA37900),
                     ),
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 const Text(
                   '今日 2 节课',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 10.5,
                     color: Color(0xFF8C7E72),
                     fontWeight: FontWeight.w600,
                   ),
@@ -419,23 +489,26 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
           ),
 
           // 虚线分割
-          Container(
-            width: 1,
-            margin: const EdgeInsets.only(right: 12),
-            color: const Color(0xFFEBE3D5),
+          const _DashedDivider(
+            color: Color(0xFFE6DEC8),
+            dashHeight: 3.0,
+            dashGap: 2.5,
+            strokeWidth: 1.2,
           ),
+          const SizedBox(width: 14),
 
-          // 右栏：今日日程流（无突兀黄色侧边条）
+          // 右栏：今日日程流（双课紧凑排布）
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // 进行中课程：温润圆角微黄底，无突兀黄色侧边条
+                // 1. 进行中课程
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF9EA),
+                    color: const Color(0xFFFFFDF4),
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFFF1B8), width: 1),
                   ),
                   child: Row(
                     children: [
@@ -457,9 +530,9 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
                               children: [
                                 const Expanded(
                                   child: Text(
-                                    '大学英语',
+                                    '技术创新管理',
                                     style: TextStyle(
-                                      fontSize: 12.5,
+                                      fontSize: 13.5,
                                       fontWeight: FontWeight.w800,
                                       color: Color(0xFF1F1A14),
                                     ),
@@ -468,7 +541,7 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
                                   ),
                                 ),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFFFC93C),
                                     borderRadius: BorderRadius.circular(4),
@@ -486,9 +559,9 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
                             ),
                             const SizedBox(height: 2),
                             const Text(
-                              '10:10 - 12:00 · 外语楼-201',
+                              '10:10 - 12:00 · 教2楼-西207',
                               style: TextStyle(
-                                fontSize: 10.5,
+                                fontSize: 11,
                                 color: Color(0xFF8C7E72),
                                 fontWeight: FontWeight.w500,
                               ),
@@ -503,9 +576,9 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
                 ),
                 const SizedBox(height: 8),
 
-                // 后续课程
+                // 2. 后续课程
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFAF7F2),
                     borderRadius: BorderRadius.circular(12),
@@ -526,9 +599,9 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '大学数学',
+                              '创新创业与战略学术',
                               style: TextStyle(
-                                fontSize: 12.5,
+                                fontSize: 13.5,
                                 fontWeight: FontWeight.w800,
                                 color: Color(0xFF1F1A14),
                               ),
@@ -537,9 +610,9 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
                             ),
                             SizedBox(height: 2),
                             Text(
-                              '16:40 - 18:15 · 理教楼-305',
+                              '16:40 - 18:15 · 理科楼 A302',
                               style: TextStyle(
-                                fontSize: 10.5,
+                                fontSize: 11,
                                 color: Color(0xFF8C7E72),
                                 fontWeight: FontWeight.w500,
                               ),
@@ -560,7 +633,7 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
     );
   }
 
-  /// 3. 大尺寸 (4×4) 无界流动多日网格：打破封闭硬框，丝滑隐性分块
+  /// 3. 大尺寸 (4×4) 无界流动多日网格：严格五等分绝对等宽，课程名称与图片完全一致
   Widget _buildLargeWidget() {
     return Container(
       key: const ValueKey('large_4x4'),
@@ -590,26 +663,26 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
               _buildLargeColHeader('周一', '14', false),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
 
-          // 主体：开放式通透网格，无封闭外框，滑动丝滑无阻
+          // 主体：开放式通透网格，每一列均分等宽（Expanded），右侧细边框，最后一列无边框
           Expanded(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _buildLargeDayColumn([
-                  _buildMiniCard('大学英语', '10:10', const Color(0xFFFFF7EA), const Color(0xFFE86B79)),
-                  _buildMiniCard('大学数学', '16:40', const Color(0xFFF0F5FF), const Color(0xFF4A88D2)),
-                ]),
+                  _buildMiniCard('技术创新管理', '10:10', const Color(0xFFFFFDF4), const Color(0xFFE86B79), borderColor: const Color(0xFFFFF1B8)),
+                  _buildMiniCard('创新创业与战略', '16:40', const Color(0xFFFAF7F2), const Color(0xFF4A88D2)),
+                ], hasRightBorder: true),
                 _buildLargeDayColumn([
-                  _buildMiniCard('大学物理', '09:00', const Color(0xFFFFF0F3), const Color(0xFFE86B79)),
-                  _buildMiniCard('大学物理', '10:10', const Color(0xFFFFF0F3), const Color(0xFFE86B79)),
-                ]),
-                _buildLargeDayColumn([]), // 周六：纯净留白，无虚线框
-                _buildLargeDayColumn([]), // 周日：纯净留白
+                  _buildMiniCard('高等数学', '09:00', const Color(0xFFFFF0F3), const Color(0xFFE86B79)),
+                  _buildMiniCard('大学物理实验', '10:10', const Color(0xFFFFF0F3), const Color(0xFFE86B79)),
+                ], hasRightBorder: true),
+                _buildLargeDayColumn([], hasRightBorder: true), // 周六：纯净留白
+                _buildLargeDayColumn([], hasRightBorder: true), // 周日：纯净留白
                 _buildLargeDayColumn([
-                  _buildMiniCard('大学英语', '10:10', const Color(0xFFFFF7EA), const Color(0xFFE86B79)),
-                ]),
+                  _buildMiniCard('技术创新管理', '10:10', const Color(0xFFFFFDF4), const Color(0xFFE86B79), borderColor: const Color(0xFFFFF1B8)),
+                ], hasRightBorder: false),
               ],
             ),
           ),
@@ -625,24 +698,24 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
           Text(
             weekday,
             style: TextStyle(
-              fontSize: 10.5,
+              fontSize: 11,
               fontWeight: isToday ? FontWeight.w800 : FontWeight.w600,
               color: isToday ? const Color(0xFF1F1A14) : const Color(0xFF8C7E72),
             ),
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: 2),
           Container(
-            width: 26,
-            height: 26,
+            width: 28,
+            height: 28,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: isToday ? const Color(0xFFFFC93C) : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(9),
             ),
             child: Text(
               day,
               style: TextStyle(
-                fontSize: 13.5,
+                fontSize: 14,
                 fontWeight: isToday ? FontWeight.w900 : FontWeight.w800,
                 color: const Color(0xFF1F1A14),
               ),
@@ -653,20 +726,23 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
     );
   }
 
-  Widget _buildLargeDayColumn(List<Widget> cards) {
+  Widget _buildLargeDayColumn(List<Widget> cards, {bool hasRightBorder = true}) {
     return Expanded(
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 2),
-        decoration: const BoxDecoration(
-          border: Border(
-            right: BorderSide(color: Color(0x0A000000), width: 0.5),
-          ),
+        margin: const EdgeInsets.symmetric(horizontal: 1.5),
+        decoration: BoxDecoration(
+          border: hasRightBorder
+              ? const Border(
+                  right: BorderSide(color: Color(0xFFF0ECE4), width: 1),
+                )
+              : null,
         ),
+        padding: EdgeInsets.only(right: hasRightBorder ? 3 : 0),
         child: Column(
           children: [
             for (final card in cards) ...[
               card,
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
             ],
             const Spacer(),
           ],
@@ -675,13 +751,20 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
     );
   }
 
-  Widget _buildMiniCard(String title, String time, Color bgColor, Color dotColor) {
+  Widget _buildMiniCard(
+    String title,
+    String time,
+    Color bgColor,
+    Color dotColor, {
+    Color? borderColor,
+  }) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(7),
+        borderRadius: BorderRadius.circular(8),
+        border: borderColor != null ? Border.all(color: borderColor, width: 1) : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -700,9 +783,9 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
                   title,
                   style: const TextStyle(
                     fontSize: 9.5,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     color: Color(0xFF1F1A14),
-                    height: 1.2,
+                    height: 1.25,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -710,13 +793,17 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            time,
-            style: const TextStyle(
-              fontSize: 8.5,
-              color: Color(0xFF8C7E72),
-              fontWeight: FontWeight.w600,
+          const SizedBox(height: 3),
+          Padding(
+            padding: const EdgeInsets.only(left: 7.5),
+            child: Text(
+              time,
+              style: const TextStyle(
+                fontSize: 8,
+                color: Color(0xFF8C7E72),
+                fontWeight: FontWeight.w500,
+              ),
+              maxLines: 1,
             ),
           ),
         ],
@@ -812,6 +899,23 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
           _buildGuideStep('2', '在弹出菜单中点击【小组件】或【微件】'),
           _buildGuideStep('3', '在列表中找到【上课鸭】，挑选您喜欢的尺寸'),
           _buildGuideStep('4', '按住并拖拽到桌面合适位置，松手即可完成！', isLast: true),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFBF7EF),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Text(
+              '提示：小组件已为您精心优化核心日程排布，点击小组件任意区域即可秒级直达应用查看完整课表。',
+              style: TextStyle(
+                fontSize: 11.5,
+                color: Color(0xFF8C7E72),
+                height: 1.4,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -853,6 +957,48 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// 优雅的纵向虚线小组件
+class _DashedDivider extends StatelessWidget {
+  const _DashedDivider({
+    this.color = const Color(0xFFE6DEC8),
+    this.dashHeight = 3.0,
+    this.dashGap = 2.5,
+    this.strokeWidth = 1.2,
+  });
+
+  final Color color;
+  final double dashHeight;
+  final double dashGap;
+  final double strokeWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final totalHeight = constraints.maxHeight.isFinite ? constraints.maxHeight : 120.0;
+        final count = (totalHeight / (dashHeight + dashGap)).floor();
+        return SizedBox(
+          width: strokeWidth,
+          height: totalHeight,
+          child: Column(
+            verticalDirection: VerticalDirection.down,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(count, (_) {
+              return SizedBox(
+                width: strokeWidth,
+                height: dashHeight,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(color: color),
+                ),
+              );
+            }),
+          ),
+        );
+      },
     );
   }
 }

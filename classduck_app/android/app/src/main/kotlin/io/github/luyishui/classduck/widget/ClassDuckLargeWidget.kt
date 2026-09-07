@@ -217,10 +217,11 @@ class ClassDuckLargeWidget : GlanceAppWidget() {
                         Spacer(modifier = GlanceModifier.height(3.dp))
                     }
                     val range = ScheduleEvaluator.courseTimeRange(data, course)
+                    val isOngoing = course == evaluation.ongoing
                     Box(
                         modifier = GlanceModifier
                             .fillMaxWidth()
-                            .background(WidgetTheme.surface)
+                            .background(if (isOngoing) WidgetTheme.duckYellowSoft else WidgetTheme.surface)
                             .cornerRadius(8.dp),
                     ) {
                         Row(
@@ -229,7 +230,7 @@ class ClassDuckLargeWidget : GlanceAppWidget() {
                         ) {
                             CourseColorDot(hex = course.colorHex, size = 5.dp)
                             Spacer(modifier = GlanceModifier.width(3.dp))
-                            Column {
+                            Column(modifier = GlanceModifier.defaultWeight()) {
                                 Text(
                                     text = course.name,
                                     style = TextStyle(

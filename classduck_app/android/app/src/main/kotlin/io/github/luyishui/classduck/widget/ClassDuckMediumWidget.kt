@@ -39,7 +39,7 @@ class ClassDuckMediumWidget : GlanceAppWidget() {
     override val sizeMode: SizeMode = SizeMode.Single
 
     private companion object {
-        const val MAX_VISIBLE_COURSES = 3
+        const val MAX_VISIBLE_COURSES = 2
     }
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -153,19 +153,26 @@ class ClassDuckMediumWidget : GlanceAppWidget() {
             return
         }
 
-        Column(modifier = modifier) {
+        Column(
+            modifier = modifier,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             courses.forEachIndexed { index, course ->
                 if (index > 0) {
-                    Spacer(modifier = GlanceModifier.height(4.dp))
+                    Spacer(modifier = GlanceModifier.height(8.dp))
                 }
                 val isOngoing = course == current.ongoing
                 Box(
                     modifier = GlanceModifier
                         .fillMaxWidth()
                         .background(if (isOngoing) WidgetTheme.duckYellowSoft else WidgetTheme.surface)
-                        .cornerRadius(8.dp),
+                        .cornerRadius(12.dp),
                 ) {
-                    Column(modifier = GlanceModifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 5.dp)) {
+                    Column(
+                        modifier = GlanceModifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                    ) {
                         CourseRow(
                             course = course,
                             subtitle = courseSubtitle(course, data),
@@ -173,11 +180,6 @@ class ClassDuckMediumWidget : GlanceAppWidget() {
                         )
                     }
                 }
-            }
-            val remaining = current.upcomingCourses.size - courses.size
-            if (remaining > 0) {
-                Spacer(modifier = GlanceModifier.height(3.dp))
-                CaptionText(text = "还有 $remaining 节课程")
             }
         }
     }

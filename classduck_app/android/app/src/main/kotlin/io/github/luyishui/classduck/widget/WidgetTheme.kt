@@ -22,6 +22,7 @@ import androidx.glance.layout.Column
 import androidx.glance.layout.Row
 import androidx.glance.layout.Spacer
 import androidx.glance.layout.fillMaxSize
+import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
@@ -147,12 +148,13 @@ fun CourseColorDot(hex: String?, size: Dp = 8.dp) {
 @Composable
 fun MainText(
     text: String,
+    modifier: GlanceModifier = GlanceModifier,
     fontSize: TextUnit = WidgetTheme.courseTitleFontSize,
     maxLines: Int = 1,
 ) {
     Text(
         text = text,
-        modifier = GlanceModifier,
+        modifier = modifier,
         style = TextStyle(
             color = ColorProvider(WidgetTheme.textMain),
             fontSize = fontSize,
@@ -166,13 +168,14 @@ fun MainText(
 @Composable
 fun CaptionText(
     text: String,
+    modifier: GlanceModifier = GlanceModifier,
     fontSize: TextUnit = WidgetTheme.captionFontSize,
     color: Color = WidgetTheme.textMuted,
     maxLines: Int = 1,
 ) {
     Text(
         text = text,
-        modifier = GlanceModifier,
+        modifier = modifier,
         style = TextStyle(
             color = ColorProvider(color),
             fontSize = fontSize,
@@ -182,7 +185,7 @@ fun CaptionText(
 }
 
 /**
- * 课程条目：彩点 + 课程名 +（可选）两行说明。
+ * 课程条目：彩点 + 课程名 +（可选“进行中”胶囊）+（可选）时间地点说明。
  * 供 2x2 聚焦卡片与 4x2 日程流复用。
  */
 @Composable
@@ -191,14 +194,46 @@ fun CourseRow(
     subtitle: String?,
     highlight: Boolean,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = GlanceModifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         CourseColorDot(course.colorHex)
         Spacer(modifier = GlanceModifier.width(8.dp))
-        Column {
-            MainText(text = course.name)
+        Column(modifier = GlanceModifier.defaultWeight()) {
+            Row(
+                modifier = GlanceModifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                MainText(
+                    text = course.name,
+                    modifier = GlanceModifier.defaultWeight(),
+                    maxLines = 1,
+                )
+                if (highlight) {
+                    Spacer(modifier = GlanceModifier.width(6.dp))
+                    Box(
+                        modifier = GlanceModifier
+                            .background(WidgetTheme.duckYellow)
+                            .cornerRadius(4.dp)
+                            .padding(horizontal = 4.dp, vertical = 1.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "进行中",
+                            style = TextStyle(
+                                color = ColorProvider(WidgetTheme.textMain),
+                                fontSize = 8.sp,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                            maxLines = 1,
+                        )
+                    }
+                }
+            }
             if (!subtitle.isNullOrBlank()) {
                 Spacer(modifier = GlanceModifier.height(1.dp))
-                CaptionText(text = subtitle)
+                CaptionText(text = subtitle, maxLines = 1)
             }
         }
     }
