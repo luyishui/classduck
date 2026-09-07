@@ -14,7 +14,7 @@ import 'api_exception.dart';
 class HttpJsonClient {
   HttpJsonClient({http.Client? client, Duration? requestTimeout})
     : _client = client ?? http.Client(),
-      _requestTimeout = requestTimeout ?? const Duration(seconds: 6);
+      _requestTimeout = requestTimeout ?? const Duration(seconds: 10);
 
   final http.Client _client;
   final Duration _requestTimeout;

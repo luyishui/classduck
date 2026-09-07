@@ -1,7 +1,10 @@
 {
-  "latestVersion": "1.0.6",
+  "latestVersion": "1.0.7",
   "updateUrl": "https://luyishui.github.io/classduck/",
   "releaseNotes": [
-    "请到下载页获取最新版本并进行更新"
+    "彻底修复应用内版本更新检测异常及服务连接失败时误报最新版本的缺陷",
+    "升级版本检测算法为严谨的语义化数字比对，杜绝版本号字符串误判",
+    "引入毫秒级防缓存时间戳与官方备用源双通道高可用容灾机制",
+    "优化 GitHub Actions 自动构建打包时序，确保安装包与版本完全同步"
   ]
 }

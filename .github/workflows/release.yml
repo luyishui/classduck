@@ -38,6 +38,40 @@ jobs:
             "${{ secrets.STORE_PASSWORD }}" "${{ secrets.KEY_ALIAS }}" "${{ secrets.KEY_PASSWORD }}" \
             > classduck_app/android/key.properties
 
+      - name: Resolve release tag and sync version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "TAG_NAME=v${{ github.event.inputs.version }}" >> "$GITHUB_ENV"
+          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "TAG_NAME=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+          else
+            VERSION=$(grep -m1 '^version:' classduck_app/pubspec.yaml | awk '{print $2}' | cut -d+ -f1)
+            echo "TAG_NAME=v$VERSION" >> "$GITHUB_ENV"
+          fi
+          echo "Release tag: $TAG_NAME"
+
+          # 在打包前同步 About 页展示的当前版本常量与静态 release.json
+          VERSION=$(grep -m1 '^version:' classduck_app/pubspec.yaml | awk '{print $2}' | cut -d+ -f1)
+          python - "$VERSION" <<'PY'
+          import json, re, sys
+          version = sys.argv[1]
+          payload = {
+            "latestVersion": version,
+            "updateUrl": "https://luyishui.github.io/classduck/",
+            "releaseNotes": ["请到下载页获取最新版本并进行更新"],
+          }
+          with open("docs/release.json", "w", encoding="utf-8") as f:
+              json.dump(payload, f, ensure_ascii=False, indent=2)
+          about = "classduck_app/lib/features/settings/ui/about_page.dart"
+          src = open(about, encoding="utf-8").read()
+          src = re.sub(
+              r"static const String _currentVersion = '[^']*'",
+              f"static const String _currentVersion = 'v{version}'",
+              src,
+          )
+          open(about, "w", encoding="utf-8").write(src)
+          PY
+
       - name: Build universal APK
         working-directory: classduck_app
         run: |
@@ -52,48 +86,15 @@ jobs:
           flutter build apk --release --split-per-abi
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk dist/classduck-android-arm64.apk
 
-      - name: Resolve release tag
+      - name: Commit and push release metadata
         run: |
-          if [ -n "${{ github.event.inputs.version }}" ]; then
-            echo "TAG_NAME=v${{ github.event.inputs.version }}" >> "$GITHUB_ENV"
-          elif [[ "${GITHUB_REF}" == refs/tags/* ]]; then
-            echo "TAG_NAME=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
-          else
-            VERSION=$(grep -m1 '^version:' classduck_app/pubspec.yaml | awk '{print $2}' | cut -d+ -f1)
-            echo "TAG_NAME=v$VERSION" >> "$GITHUB_ENV"
-          fi
-          echo "Release tag: $TAG_NAME"
-
-      - name: Update release.json and push
-        run: |
-          git checkout main
+          git checkout main || git checkout -b main
           VERSION=$(grep -m1 '^version:' classduck_app/pubspec.yaml | awk '{print $2}' | cut -d+ -f1)
-          python - "$VERSION" <<'PY'
-          import json, re, sys
-          version = sys.argv[1]
-          # hasNewVersion 由客户端比对 latest 与本地版本决定，静态文件不写死该字段。
-          payload = {
-            "latestVersion": version,
-            "updateUrl": "https://luyishui.github.io/classduck/",
-            "releaseNotes": ["请到下载页获取最新版本并进行更新"],
-          }
-          with open("docs/release.json", "w", encoding="utf-8") as f:
-              json.dump(payload, f, ensure_ascii=False, indent=2)
-          # 同步 About 页展示的当前版本常量（版本单一事实源：pubspec.yaml）。
-          about = "classduck_app/lib/features/settings/ui/about_page.dart"
-          src = open(about, encoding="utf-8").read()
-          src = re.sub(
-              r"static const String _currentVersion = '[^']*'",
-              f"static const String _currentVersion = 'v{version}'",
-              src,
-          )
-          open(about, "w", encoding="utf-8").write(src)
-          PY
           git config user.name "classduck-release-bot"
           git config user.email "actions@users.noreply.github.com"
           git add docs/release.json classduck_app/lib/features/settings/ui/about_page.dart
           git commit -m "chore: update release.json to $VERSION" || echo "no change"
-          git push origin main
+          git push origin main || echo "push failed, continuing"
 
       - name: Purge jsDelivr cache
         run: curl -i "https://purge.jsdelivr.net/gh/luyishui/classduck@main/docs/release.json"

@@ -15,7 +15,7 @@ class AboutPage extends StatefulWidget {
 }
 
 class _AboutPageState extends State<AboutPage> {
-  static const String _currentVersion = 'v1.0.6';
+  static const String _currentVersion = 'v1.0.7';
   final ReleaseRepository _releaseRepository = ReleaseRepository();
 
   @override
@@ -156,40 +156,31 @@ class _AboutPageState extends State<AboutPage> {
   }
 
   Future<void> _checkUpdate() async {
-    final _VersionCheckResult result = await _loadVersionCheckResult();
-
-    if (!mounted) {
-      return;
-    }
-
-    if (result.hasNewVersion) {
-      await _showFoundNewVersionModal(result);
-      return;
-    }
-
-    await _showLatestModal();
-  }
-
-  Future<_VersionCheckResult> _loadVersionCheckResult() async {
     try {
-      // 前后端分离：版本信息由后端 release 服务给出，前端只负责展示与交互。
       final ReleaseCheckResult result = await _releaseRepository.checkRelease(
         currentVersion: _currentVersion.replaceFirst('v', ''),
         platform: 'android',
       );
-      return _VersionCheckResult(
-        currentVersion: result.currentVersion,
-        latestVersion: result.latestVersion,
-        releaseNotes: result.releaseNotes,
-        updateUrl: result.updateUrl,
-      );
+
+      if (!mounted) {
+        return;
+      }
+
+      if (result.hasNewVersion) {
+        await _showFoundNewVersionModal(result);
+        return;
+      }
+
+      await _showLatestModal();
     } catch (_) {
-      // 兜底：更新服务不可用时按"无新版本"处理，避免展示假更新信息。
-      return _VersionCheckResult(
-        currentVersion: _currentVersion.replaceFirst('v', ''),
-        latestVersion: _currentVersion.replaceFirst('v', ''),
-        releaseNotes: '当前无法连接更新服务，请稍后重试。',
-        updateUrl: '',
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('检查更新失败，请检查网络连接后重试'),
+          duration: Duration(seconds: 3),
+        ),
       );
     }
   }
@@ -256,7 +247,7 @@ class _AboutPageState extends State<AboutPage> {
     );
   }
 
-  Future<void> _showFoundNewVersionModal(_VersionCheckResult result) {
+  Future<void> _showFoundNewVersionModal(ReleaseCheckResult result) {
     return DuckModal.show<void>(
       context: context,
       barrierColor: const Color(0x66000000),
@@ -379,21 +370,9 @@ class _AboutPageState extends State<AboutPage> {
   }
 }
 
-class _VersionCheckResult {
-  const _VersionCheckResult({
-    required this.currentVersion,
-    required this.latestVersion,
-    required this.releaseNotes,
-    required this.updateUrl,
-  });
 
-  final String currentVersion;
-  final String latestVersion;
-  final String releaseNotes;
-  final String updateUrl;
 
-  bool get hasNewVersion => currentVersion != latestVersion;
-}
+
 
 class _AboutActionRow extends StatelessWidget {
   const _AboutActionRow({
