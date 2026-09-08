@@ -60,6 +60,21 @@ object WidgetTheme {
     /** 浅色网格线（borderLight）。 */
     val borderLight: Color = Color(0xFFE8DFD2)
 
+    /** 竖向分割线色（columnDivider）：轻浅柔和米灰。 */
+    val columnDivider: Color = Color(0xFFF0ECE4)
+
+    /** 极深文字色（textDark）：表头与卡片极深字色。 */
+    val textDark: Color = Color(0xFF1F1A14)
+
+    /** 次柔文字色（textSubtle）：表头非今日次级字色。 */
+    val textSubtle: Color = Color(0xFF8C7E72)
+
+    /** 微卡片普通背景（cardBgSubtle）。 */
+    val cardBgSubtle: Color = Color(0xFFFAF7F2)
+
+    /** 微卡片高亮背景（cardBgHighlight）。 */
+    val cardBgHighlight: Color = Color(0xFFFFFDF4)
+
     /** 多日网格空白列的轻底色。 */
     val gridEmptyBackground: Color = Color(0xFFFBF7EF)
 
