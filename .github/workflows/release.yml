@@ -50,7 +50,7 @@ jobs:
           fi
           echo "Release tag: $TAG_NAME"
 
-          # 在打包前同步 About 页展示的当前版本常量与静态 release.json
+          # 在打包前同步全局版本常量 kCurrentAppVersion 与静态 release.json
           VERSION=$(grep -m1 '^version:' classduck_app/pubspec.yaml | awk '{print $2}' | cut -d+ -f1)
           python - "$VERSION" <<'PY'
           import json, re, sys
@@ -62,14 +62,14 @@ jobs:
           }
           with open("docs/release.json", "w", encoding="utf-8") as f:
               json.dump(payload, f, ensure_ascii=False, indent=2)
-          about = "classduck_app/lib/features/settings/ui/about_page.dart"
-          src = open(about, encoding="utf-8").read()
+          repo = "classduck_app/lib/features/settings/data/release_repository.dart"
+          src = open(repo, encoding="utf-8").read()
           src = re.sub(
-              r"static const String _currentVersion = '[^']*'",
-              f"static const String _currentVersion = 'v{version}'",
+              r"const String kCurrentAppVersion = 'v[^']*'",
+              f"const String kCurrentAppVersion = 'v{version}'",
               src,
           )
-          open(about, "w", encoding="utf-8").write(src)
+          open(repo, "w", encoding="utf-8").write(src)
           PY
 
       - name: Build universal APK
@@ -92,7 +92,7 @@ jobs:
           VERSION=$(grep -m1 '^version:' classduck_app/pubspec.yaml | awk '{print $2}' | cut -d+ -f1)
           git config user.name "classduck-release-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add docs/release.json classduck_app/lib/features/settings/ui/about_page.dart
+          git add docs/release.json classduck_app/lib/features/settings/data/release_repository.dart
           git commit -m "chore: update release.json to $VERSION" || echo "no change"
           git push origin main || echo "push failed, continuing"
 

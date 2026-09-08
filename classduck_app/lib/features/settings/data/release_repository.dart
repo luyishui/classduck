@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../../../data/remote/http_json_client.dart';
 
 /// 全局当前应用版本号单一事实源（格式：vX.Y.Z）。
+const String kCurrentAppVersion = 'v1.0.10';
 
 /// 发布到 GitHub 的静态 release.json 多节点 CDN 与备用源池。
 /// 按照在国内的解析与握手可靠性排序，平滑容灾。
