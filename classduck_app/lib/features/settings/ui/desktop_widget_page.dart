@@ -292,7 +292,7 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
                                 children: [
                                   const Expanded(
                                     child: Text(
-                                      '技术创新管理',
+                                      '大学物理',
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w800,
@@ -322,7 +322,7 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
                               ),
                               const SizedBox(height: 2),
                               const Text(
-                                '10:10-12:00 · 教2楼',
+                                '10:10-12:00 · 公共教学楼',
                                 style: TextStyle(
                                   fontSize: 9.5,
                                   color: Color(0xFF8C7E72),
@@ -364,7 +364,7 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                '创新创业与战略',
+                                '大学英语',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w800,
@@ -376,7 +376,7 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
                               ),
                               SizedBox(height: 2),
                               Text(
-                                '16:40-18:15 · 理科楼',
+                                '16:40-18:15 · 实验楼',
                                 style: TextStyle(
                                   fontSize: 9.5,
                                   color: Color(0xFF8C7E72),
@@ -530,7 +530,7 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
                               children: [
                                 const Expanded(
                                   child: Text(
-                                    '技术创新管理',
+                                    '大学物理',
                                     style: TextStyle(
                                       fontSize: 13.5,
                                       fontWeight: FontWeight.w800,
@@ -559,7 +559,7 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
                             ),
                             const SizedBox(height: 2),
                             const Text(
-                              '10:10 - 12:00 · 教2楼-西207',
+                              '10:10 - 12:00 · 公共教学楼 201',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: Color(0xFF8C7E72),
@@ -599,7 +599,7 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '创新创业与战略学术',
+                              '大学英语',
                               style: TextStyle(
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.w800,
@@ -610,7 +610,7 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
                             ),
                             SizedBox(height: 2),
                             Text(
-                              '16:40 - 18:15 · 理科楼 A302',
+                              '16:40 - 18:15 · 实验楼 A302',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: Color(0xFF8C7E72),
@@ -671,8 +671,8 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _buildLargeDayColumn([
-                  _buildMiniCard('技术创新管理', '10:10', const Color(0xFFFFFDF4), const Color(0xFFE86B79), borderColor: const Color(0xFFFFF1B8)),
-                  _buildMiniCard('创新创业与战略', '16:40', const Color(0xFFFAF7F2), const Color(0xFF4A88D2)),
+                  _buildMiniCard('大学物理', '10:10', const Color(0xFFFFFDF4), const Color(0xFFE86B79), borderColor: const Color(0xFFFFF1B8)),
+                  _buildMiniCard('大学英语', '16:40', const Color(0xFFFAF7F2), const Color(0xFF4A88D2)),
                 ], hasRightBorder: true),
                 _buildLargeDayColumn([
                   _buildMiniCard('高等数学', '09:00', const Color(0xFFFFF0F3), const Color(0xFFE86B79)),
@@ -681,7 +681,7 @@ class _DesktopWidgetPageState extends State<DesktopWidgetPage> {
                 _buildLargeDayColumn([], hasRightBorder: true), // 周六：纯净留白
                 _buildLargeDayColumn([], hasRightBorder: true), // 周日：纯净留白
                 _buildLargeDayColumn([
-                  _buildMiniCard('技术创新管理', '10:10', const Color(0xFFFFFDF4), const Color(0xFFE86B79), borderColor: const Color(0xFFFFF1B8)),
+                  _buildMiniCard('大学物理', '10:10', const Color(0xFFFFFDF4), const Color(0xFFE86B79), borderColor: const Color(0xFFFFF1B8)),
                 ], hasRightBorder: false),
               ],
             ),

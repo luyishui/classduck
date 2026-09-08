@@ -5,6 +5,7 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:vibration/vibration.dart';
 
@@ -4033,6 +4034,13 @@ class _RoundAddButton extends StatelessWidget {
   }
 }
 
+class _CourseValidationError {
+  const _CourseValidationError(this.courseIndex, this.message);
+
+  final int courseIndex;
+  final String message;
+}
+
 class _CourseActivatedModal extends StatefulWidget {
   const _CourseActivatedModal({
     required this.courses,
@@ -4055,6 +4063,7 @@ class _CourseActivatedModal extends StatefulWidget {
 class _CourseActivatedModalState extends State<_CourseActivatedModal> {
   int _index = 0;
   bool _saving = false;
+  String? _errorMessage;
   late final List<_CourseEditDraft> _drafts;
 
   @override
@@ -4091,17 +4100,22 @@ class _CourseActivatedModalState extends State<_CourseActivatedModal> {
     });
   }
 
-  Future<void> _closeWithSave() async {
+  Future<void> _closeWithSave({bool forcePopOnError = false}) async {
     if (_saving) {
       return;
     }
     FocusScope.of(context).unfocus();
 
-    final String? validationError = _validateAllDrafts();
+    final _CourseValidationError? validationError = _validateAllDrafts();
     if (validationError != null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(validationError)));
+      if (forcePopOnError) {
+        Navigator.of(context).pop();
+        return;
+      }
+      setState(() {
+        _index = validationError.courseIndex;
+        _errorMessage = validationError.message;
+      });
       return;
     }
 
@@ -4113,6 +4127,7 @@ class _CourseActivatedModalState extends State<_CourseActivatedModal> {
 
     setState(() {
       _saving = true;
+      _errorMessage = null;
     });
     try {
       await widget.onSave(updates);
@@ -4127,9 +4142,9 @@ class _CourseActivatedModalState extends State<_CourseActivatedModal> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('保存失败：$error')));
+      setState(() {
+        _errorMessage = '保存失败：$error';
+      });
     } finally {
       if (mounted) {
         setState(() {
@@ -4139,39 +4154,71 @@ class _CourseActivatedModalState extends State<_CourseActivatedModal> {
     }
   }
 
-  String? _validateAllDrafts() {
+  _CourseValidationError? _validateAllDrafts() {
     for (int i = 0; i < _drafts.length; i++) {
       final _CourseEditDraft draft = _drafts[i];
+      final CourseEntity originalCourse = widget.courses[i];
       final String name = draft.nameController.text.trim();
-      final int? weekStart = int.tryParse(
-        draft.weekStartController.text.trim(),
-      );
-      final int? weekEnd = int.tryParse(draft.weekEndController.text.trim());
-      final int? sectionStart = int.tryParse(
-        draft.sectionStartController.text.trim(),
-      );
-      final int? sectionEnd = int.tryParse(
-        draft.sectionEndController.text.trim(),
-      );
+      final String rawWeekStart = draft.weekStartController.text.trim();
+      final String rawWeekEnd = draft.weekEndController.text.trim();
+      final String rawSectionStart = draft.sectionStartController.text.trim();
+      final String rawSectionEnd = draft.sectionEndController.text.trim();
+
+      final String tag =
+          widget.courses.length > 1 ? '第${i + 1}门课程 ' : '';
+
       if (name.isEmpty) {
-        return '第${i + 1}门课程名称不能为空。';
+        return _CourseValidationError(i, '$tag课程名称不能为空。');
       }
       if (draft.weekday < 1 || draft.weekday > 7) {
-        return '第${i + 1}门课程的星期不合法。';
+        return _CourseValidationError(i, '$tag星期选择不合法。');
       }
+
+      final int? weekStart = int.tryParse(rawWeekStart);
+      final int? weekEnd =
+          rawWeekEnd.isEmpty ? weekStart : int.tryParse(rawWeekEnd);
+
       if (weekStart == null || weekEnd == null) {
-        return '第${i + 1}门课程周次必须是数字。';
+        return _CourseValidationError(i, '$tag周次必须是纯数字。');
       }
-      if (weekStart < 1 || weekEnd < weekStart || weekEnd > 30) {
-        return '第${i + 1}门课程周次范围应在1-30且起止合法。';
+      if (weekStart < 1 || weekEnd > 30) {
+        return _CourseValidationError(i, '$tag周次范围应在1-30周之间。');
       }
+      if (weekStart > weekEnd) {
+        return _CourseValidationError(
+          i,
+          '$tag起始周($weekStart)不能大于结束周($weekEnd)。',
+        );
+      }
+
+      final int? sectionStart = int.tryParse(rawSectionStart);
+      final int? sectionEnd =
+          rawSectionEnd.isEmpty ? sectionStart : int.tryParse(rawSectionEnd);
+
       if (sectionStart == null || sectionEnd == null) {
-        return '第${i + 1}门课程节次必须是数字。';
+        return _CourseValidationError(i, '$tag节次必须是纯数字。');
       }
-      if (sectionStart < 1 ||
-          sectionEnd < sectionStart ||
-          sectionEnd > widget.maxPeriod) {
-        return '第${i + 1}门课程节次范围应在1-${widget.maxPeriod}且起止合法。';
+      if (sectionStart < 1) {
+        return _CourseValidationError(i, '$tag节次不能小于第1节。');
+      }
+      if (sectionStart > sectionEnd) {
+        return _CourseValidationError(
+          i,
+          '$tag起始节($sectionStart)不能大于结束节($sectionEnd)。',
+        );
+      }
+
+      final int originalEnd =
+          originalCourse.startTime + originalCourse.timeCount - 1;
+      final int effectiveMaxPeriod = math.max(
+        widget.maxPeriod,
+        math.max(14, originalEnd),
+      );
+      if (sectionEnd > effectiveMaxPeriod) {
+        return _CourseValidationError(
+          i,
+          '$tag节次范围应在1-$effectiveMaxPeriod节且起止合法。',
+        );
       }
     }
     return null;
@@ -4226,7 +4273,6 @@ class _CourseActivatedModalState extends State<_CourseActivatedModal> {
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onDoubleTap: _closeWithSave,
               child: const SizedBox.expand(),
             ),
           ),
@@ -4265,7 +4311,11 @@ class _CourseActivatedModalState extends State<_CourseActivatedModal> {
                       children: <Widget>[
                         InkWell(
                           borderRadius: BorderRadius.circular(16),
-                          onTap: _closeWithSave,
+                          onTap: () {
+                            _closeWithSave(
+                              forcePopOnError: _errorMessage != null,
+                            );
+                          },
                           child: const SizedBox(
                             width: 28,
                             height: 28,
@@ -4280,6 +4330,13 @@ class _CourseActivatedModalState extends State<_CourseActivatedModal> {
                           child: TextFormField(
                             controller: draft.nameController,
                             textAlign: TextAlign.center,
+                            onChanged: (_) {
+                              if (_errorMessage != null) {
+                                setState(() {
+                                  _errorMessage = null;
+                                });
+                              }
+                            },
                             style: const TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w700,
@@ -4307,6 +4364,42 @@ class _CourseActivatedModalState extends State<_CourseActivatedModal> {
                         ),
                       ],
                     ),
+                    if (_errorMessage != null) ...<Widget>[
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF1F0),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFFFA39E)),
+                        ),
+                        child: Row(
+                          children: <Widget>[
+                            const Icon(
+                              Icons.error_outline,
+                              size: 14,
+                              color: Color(0xFFE16C7B),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                _errorMessage!,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFFE16C7B),
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.2,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     _CourseEditableLine(
                       label: '星期',
@@ -4353,6 +4446,7 @@ class _CourseActivatedModalState extends State<_CourseActivatedModal> {
                                   }
                                   setState(() {
                                     draft.weekday = value;
+                                    _errorMessage = null;
                                   });
                                 },
                         ),
@@ -4366,7 +4460,17 @@ class _CourseActivatedModalState extends State<_CourseActivatedModal> {
                             child: TextFormField(
                               controller: draft.weekStartController,
                               keyboardType: TextInputType.number,
+                              inputFormatters: <TextInputFormatter>[
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
                               textAlign: TextAlign.center,
+                              onChanged: (_) {
+                                if (_errorMessage != null) {
+                                  setState(() {
+                                    _errorMessage = null;
+                                  });
+                                }
+                              },
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
                               ),
@@ -4383,7 +4487,17 @@ class _CourseActivatedModalState extends State<_CourseActivatedModal> {
                             child: TextFormField(
                               controller: draft.weekEndController,
                               keyboardType: TextInputType.number,
+                              inputFormatters: <TextInputFormatter>[
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
                               textAlign: TextAlign.center,
+                              onChanged: (_) {
+                                if (_errorMessage != null) {
+                                  setState(() {
+                                    _errorMessage = null;
+                                  });
+                                }
+                              },
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
                               ),
@@ -4408,7 +4522,17 @@ class _CourseActivatedModalState extends State<_CourseActivatedModal> {
                             child: TextFormField(
                               controller: draft.sectionStartController,
                               keyboardType: TextInputType.number,
+                              inputFormatters: <TextInputFormatter>[
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
                               textAlign: TextAlign.center,
+                              onChanged: (_) {
+                                if (_errorMessage != null) {
+                                  setState(() {
+                                    _errorMessage = null;
+                                  });
+                                }
+                              },
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
                               ),
@@ -4425,7 +4549,17 @@ class _CourseActivatedModalState extends State<_CourseActivatedModal> {
                             child: TextFormField(
                               controller: draft.sectionEndController,
                               keyboardType: TextInputType.number,
+                              inputFormatters: <TextInputFormatter>[
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
                               textAlign: TextAlign.center,
+                              onChanged: (_) {
+                                if (_errorMessage != null) {
+                                  setState(() {
+                                    _errorMessage = null;
+                                  });
+                                }
+                              },
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
                               ),
