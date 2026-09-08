@@ -92,6 +92,64 @@ void main() {
         throwsA(anything),
       );
     });
+
+    // 第 1 个请求是 kDebugMode 下的本地联调请求，让其失败以走线上节点池；
+    // 之后按节点顺序：第 2 个返回陈旧的 1.0.9，第 3 个及以后返回 1.0.10。
+    MockClient staleThenFreshMock() {
+      int requestCount = 0;
+      return MockClient((http.Request request) async {
+        requestCount++;
+        if (requestCount == 1) {
+          return http.Response('Internal Error', 500);
+        }
+        final String version = requestCount == 2 ? '1.0.9' : '1.0.10';
+        return http.Response.bytes(
+          utf8.encode(jsonEncode(<String, dynamic>{
+            'latestVersion': version,
+            'updateUrl': 'https://luyishui.github.io/classduck/',
+            'releaseNotes': <String>['更新到 $version'],
+          })),
+          200,
+          headers: <String, String>{
+            'content-type': 'application/json; charset=utf-8',
+          },
+        );
+      });
+    }
+
+    test('stale first CDN node does not mask a newer node', () async {
+      final MockClient mockHttp = staleThenFreshMock();
+
+      final HttpJsonClient client = HttpJsonClient(client: mockHttp);
+      final ReleaseRepository repo = ReleaseRepository(client: client);
+
+      // 手机上是 1.0.9：即使第一个节点仍返回陈旧的 1.0.9，
+      // 后续节点返回 1.0.10 时也必须判定有新版本。
+      final ReleaseCheckResult result = await repo.checkRelease(
+        currentVersion: '1.0.9',
+        platform: 'android',
+      );
+
+      expect(result.hasNewVersion, isTrue);
+      expect(result.latestVersion, '1.0.10');
+    });
+
+    test('picks highest version when no node is newer than local', () async {
+      final MockClient mockHttp = staleThenFreshMock();
+
+      final HttpJsonClient client = HttpJsonClient(client: mockHttp);
+      final ReleaseRepository repo = ReleaseRepository(client: client);
+
+      // 本地已是 1.0.10：第一个陈旧节点（1.0.9）不应带偏结果，
+      // 裁决应取到节点池中的最高版本 1.0.10，判定无更新。
+      final ReleaseCheckResult result = await repo.checkRelease(
+        currentVersion: '1.0.10',
+        platform: 'android',
+      );
+
+      expect(result.hasNewVersion, isFalse);
+      expect(result.latestVersion, '1.0.10');
+    });
   });
 }
 

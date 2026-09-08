@@ -41,17 +41,35 @@ class ReleaseRepository {
     }
 
     if (payload == null) {
-      // 遍历高可用多节点池，每个源独立设定 3.5 秒短超时，快速平滑故障转移。
+      // 遍历高可用多节点池：收集所有成功节点的返回，取版本号最高者裁决。
+      // 各 CDN 节点缓存刷新不同步（如 jsDelivr 中国区节点无法被 purge），
+      // 若以第一个有响应的节点为准，陈旧缓存会让用户误判为"已是最新"。
       final int ts = DateTime.now().millisecondsSinceEpoch;
+      final List<Map<String, dynamic>> candidates = <Map<String, dynamic>>[];
       Object? lastError;
 
       for (final String baseUrl in kReleaseCheckUrls) {
         try {
           final String urlWithTs = '$baseUrl?_t=$ts';
-          payload = await _client.getJsonMap(urlWithTs).timeout(
-            const Duration(milliseconds: 3500),
-          );
-          if (payload.isNotEmpty) {
+          final Map<String, dynamic> raw = await _client
+              .getJsonMap(urlWithTs)
+              .timeout(
+                const Duration(milliseconds: 3500),
+              );
+          if (raw.isEmpty) {
+            continue;
+          }
+          // 兼容两种返回形状：后端包一层 data，静态 release.json 直接是字段。
+          final dynamic data = raw['data'];
+          final Map<String, dynamic> candidate =
+              data is Map<String, dynamic> ? data : raw;
+          candidates.add(candidate);
+
+          // 任一节点返回的版本高于本地即可判定需要更新，无需再等其余节点。
+          final String? candidateVersion = candidate['latestVersion'] as String?;
+          if (candidateVersion != null &&
+              ReleaseCheckResult.isNewerVersion(candidateVersion, currentVersion)) {
+            payload = candidate;
             break;
           }
         } catch (e) {
@@ -61,7 +79,11 @@ class ReleaseRepository {
       }
 
       if (payload == null) {
-        throw lastError ?? Exception('无法连接到更新服务，所有备用节点均不可用');
+        if (candidates.isEmpty) {
+          throw lastError ?? Exception('无法连接到更新服务，所有备用节点均不可用');
+        }
+        // 没有任何节点比本地新：取返回版本号最高的节点作为裁决结果。
+        payload = _highestVersionPayload(candidates);
       }
     }
 
@@ -72,6 +94,24 @@ class ReleaseRepository {
 
     // 静态 release.json 没有计算能力，是否更新由客户端比对 latest 与本地版本。
     return ReleaseCheckResult.fromMap(result, localVersion: currentVersion);
+  }
+
+  /// 从多个候选节点数据中选出返回版本号最高的那份，让陈旧缓存节点被更新的节点压过。
+  static Map<String, dynamic> _highestVersionPayload(
+    List<Map<String, dynamic>> candidates,
+  ) {
+    Map<String, dynamic> best = candidates.first;
+    for (final Map<String, dynamic> candidate in candidates.skip(1)) {
+      final String? bestVersion = best['latestVersion'] as String?;
+      final String? candidateVersion = candidate['latestVersion'] as String?;
+      final bool candidateIsBetter = candidateVersion != null &&
+          (bestVersion == null ||
+              ReleaseCheckResult.isNewerVersion(candidateVersion, bestVersion));
+      if (candidateIsBetter) {
+        best = candidate;
+      }
+    }
+    return best;
   }
 }
 
