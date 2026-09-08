@@ -1,14 +1,20 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../../../data/remote/http_json_client.dart';
 
-/// 发布到 GitHub Pages 的静态 release 信息，经 jsDelivr CDN 加速。
-const String kReleaseCheckUrl =
-    'https://cdn.jsdelivr.net/gh/luyishui/classduck@main/docs/release.json';
+/// 全局当前应用版本号单一事实源（格式：vX.Y.Z）。
+const String kCurrentAppVersion = 'v1.0.9';
 
-/// 官方备用源（GitHub Pages 静态直连），在 CDN 节点波动或缓存延迟时代偿。
-const String kReleaseCheckFallbackUrl =
-    'https://luyishui.github.io/classduck/release.json';
+/// 发布到 GitHub 的静态 release.json 多节点 CDN 与备用源池。
+/// 按照在国内的解析与握手可靠性排序，平滑容灾。
+const List<String> kReleaseCheckUrls = <String>[
+  'https://testingcf.jsdelivr.net/gh/luyishui/classduck@main/docs/release.json',
+  'https://fastly.jsdelivr.net/gh/luyishui/classduck@main/docs/release.json',
+  'https://gcore.jsdelivr.net/gh/luyishui/classduck@main/docs/release.json',
+  'https://cdn.jsdelivr.net/gh/luyishui/classduck@main/docs/release.json',
+  'https://luyishui.github.io/classduck/release.json',
+];
 
 class ReleaseRepository {
   ReleaseRepository({HttpJsonClient? client}) : _client = client ?? HttpJsonClient();
@@ -22,25 +28,40 @@ class ReleaseRepository {
     Map<String, dynamic>? payload;
 
     if (kDebugMode) {
-      // 本地联调：先尝试请求本地后端。若本地服务未启动，平滑回退到线上配置，避免开发时更新功能假死。
+      // 本地联调：尝试请求本地后端。若本地服务未启动，1.5 秒内快速失败并回退到线上源。
       try {
         final String localUrl =
             '/v1/release/check?currentVersion=$currentVersion&platform=$platform';
-        payload = await _client.getJsonMap(localUrl);
+        payload = await _client.getJsonMap(localUrl).timeout(
+          const Duration(milliseconds: 1500),
+        );
       } catch (_) {
         payload = null;
       }
     }
 
     if (payload == null) {
-      // 发布版或本地服务不可用：请求静态 release.json。
-      // 追加防缓存时间戳，杜绝 jsDelivr CDN 与本地 HTTP 强缓存。
+      // 遍历高可用多节点池，每个源独立设定 3.5 秒短超时，快速平滑故障转移。
       final int ts = DateTime.now().millisecondsSinceEpoch;
-      try {
-        payload = await _client.getJsonMap('$kReleaseCheckUrl?_t=$ts');
-      } catch (_) {
-        // 主 CDN 访问失败，自动平滑切换至官方静态备用源。
-        payload = await _client.getJsonMap('$kReleaseCheckFallbackUrl?_t=$ts');
+      Object? lastError;
+
+      for (final String baseUrl in kReleaseCheckUrls) {
+        try {
+          final String urlWithTs = '$baseUrl?_t=$ts';
+          payload = await _client.getJsonMap(urlWithTs).timeout(
+            const Duration(milliseconds: 3500),
+          );
+          if (payload.isNotEmpty) {
+            break;
+          }
+        } catch (e) {
+          lastError = e;
+          // 继续尝试下一个高可用源
+        }
+      }
+
+      if (payload == null) {
+        throw lastError ?? Exception('无法连接到更新服务，所有备用节点均不可用');
       }
     }
 

@@ -5,9 +5,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:home_widget/home_widget.dart';
 
+import '../../data/local/db_helper.dart';
 import '../../features/profile/ui/profile_page.dart';
 import '../../features/schedule/application/schedule_widget_service.dart';
 import '../../features/schedule/ui/schedule_page.dart';
+import '../../features/settings/data/release_repository.dart';
+import '../../features/settings/ui/about_page.dart';
 import '../../features/todo/ui/todo_page.dart';
 import '../../shared/theme/app_tokens.dart';
 
@@ -23,6 +26,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   final Set<int> _loadedTabs = <int>{1};
   StreamSubscription<Uri?>? _widgetClickSubscription;
 
+  /// 应用单次冷启动期间自动检查更新只执行一次
+  static bool _hasAutoChecked = false;
+
   /// 小组件点击拉起 App 时携带的深链协议头（与原生端约定一致）。
   static const String _widgetUriScheme = 'classduck';
 
@@ -31,6 +37,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _registerWidgetLaunchHandlers();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _performAutoCheckUpdate();
+    });
   }
 
   @override
@@ -88,6 +97,45 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       _tabIndex = safeTab;
       _loadedTabs.add(safeTab);
     });
+  }
+
+  /// 启动时静默自动检查更新：若开启则发起检测，有新版本弹窗提示，网络失败在底部仅弹出一次失败提示。
+  Future<void> _performAutoCheckUpdate() async {
+    if (_hasAutoChecked) {
+      return;
+    }
+    _hasAutoChecked = true;
+
+    try {
+      final bool enabled = await DbHelper().getAutoCheckUpdateEnabled();
+      if (!enabled || !mounted) {
+        return;
+      }
+
+      final ReleaseRepository repo = ReleaseRepository();
+      final ReleaseCheckResult result = await repo.checkRelease(
+        currentVersion: kCurrentAppVersion.replaceFirst('v', ''),
+        platform: 'android',
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      if (result.hasNewVersion) {
+        await VersionUpdateModal.show(context, result);
+      }
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('检查更新失败，请检查网络连接后重试'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   @override

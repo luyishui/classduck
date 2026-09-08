@@ -36,7 +36,7 @@ class HttpJsonClient {
       throw ApiException('GET $path failed: ${response.statusCode}');
     }
 
-    final dynamic data = jsonDecode(response.body);
+    final dynamic data = jsonDecode(utf8.decode(response.bodyBytes));
     if (data is! Map<String, dynamic>) {
       throw ApiException('GET $path returned non-object JSON payload');
     }
@@ -71,7 +71,7 @@ class HttpJsonClient {
       throw ApiException('POST $path failed: ${response.statusCode}');
     }
 
-    final dynamic data = jsonDecode(response.body);
+    final dynamic data = jsonDecode(utf8.decode(response.bodyBytes));
     if (data is! Map<String, dynamic>) {
       throw ApiException('POST $path returned non-object JSON payload');
     }

@@ -15,6 +15,9 @@ class DbHelper {
   /// 桌面小组件与 App 内课表页都以此为准。
   static const String keyActiveTableId = 'active_table_id';
 
+  /// app_setting 中记录是否开启自动检查更新的 key（默认为开启）。
+  static const String keyAutoCheckUpdateEnabled = 'auto_check_update_enabled';
+
   static const String createCourseTableSql = '''
 CREATE TABLE course_table (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -147,5 +150,19 @@ CREATE TABLE IF NOT EXISTS app_setting (
       <String, Object?>{'key': key, 'value': value},
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
+  }
+
+  /// 获取是否开启自动检查更新（默认开启）。
+  Future<bool> getAutoCheckUpdateEnabled() async {
+    final String? val = await getSetting(keyAutoCheckUpdateEnabled);
+    if (val == null) {
+      return true;
+    }
+    return val == '1' || val.toLowerCase() == 'true';
+  }
+
+  /// 设置是否开启自动检查更新。
+  Future<void> setAutoCheckUpdateEnabled(bool enabled) async {
+    await setSetting(keyAutoCheckUpdateEnabled, enabled ? '1' : '0');
   }
 }

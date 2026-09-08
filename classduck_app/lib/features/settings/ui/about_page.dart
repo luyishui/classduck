@@ -1,7 +1,9 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../data/local/db_helper.dart';
 import '../../../shared/theme/app_tokens.dart';
 import '../../../shared/widgets/duck_modal.dart';
 import '../data/release_repository.dart';
@@ -15,8 +17,34 @@ class AboutPage extends StatefulWidget {
 }
 
 class _AboutPageState extends State<AboutPage> {
-  static const String _currentVersion = 'v1.0.8';
+  static const String _currentVersion = kCurrentAppVersion;
   final ReleaseRepository _releaseRepository = ReleaseRepository();
+  final DbHelper _dbHelper = DbHelper();
+
+  bool _autoUpdateEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAutoUpdateSetting();
+  }
+
+  Future<void> _loadAutoUpdateSetting() async {
+    final bool enabled = await _dbHelper.getAutoCheckUpdateEnabled();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _autoUpdateEnabled = enabled;
+    });
+  }
+
+  Future<void> _toggleAutoUpdate(bool value) async {
+    setState(() {
+      _autoUpdateEnabled = value;
+    });
+    await _dbHelper.setAutoCheckUpdateEnabled(value);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -117,6 +145,19 @@ class _AboutPageState extends State<AboutPage> {
                     value: _currentVersion,
                     onTap: _checkUpdate,
                   ),
+                  const Divider(height: 1, color: Color(0xFFF0ECE4)),
+                  _AboutActionRow(
+                    icon: const Icon(
+                      Icons.update_rounded,
+                      color: AppTokens.textMuted,
+                    ),
+                    label: '自动检查更新',
+                    trailing: CupertinoSwitch(
+                      value: _autoUpdateEnabled,
+                      activeTrackColor: AppTokens.duckYellow,
+                      onChanged: _toggleAutoUpdate,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -167,7 +208,7 @@ class _AboutPageState extends State<AboutPage> {
       }
 
       if (result.hasNewVersion) {
-        await _showFoundNewVersionModal(result);
+        await VersionUpdateModal.show(context, result);
         return;
       }
 
@@ -246,8 +287,11 @@ class _AboutPageState extends State<AboutPage> {
       ),
     );
   }
+}
 
-  Future<void> _showFoundNewVersionModal(ReleaseCheckResult result) {
+/// 发现新版本时的通用弹窗。
+class VersionUpdateModal {
+  static Future<void> show(BuildContext context, ReleaseCheckResult result) {
     return DuckModal.show<void>(
       context: context,
       barrierColor: const Color(0x66000000),
@@ -337,7 +381,7 @@ class _AboutPageState extends State<AboutPage> {
                           Uri.parse(result.updateUrl),
                           mode: LaunchMode.externalApplication,
                         );
-                        if (!opened && mounted) {
+                        if (!opened && context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('无法打开更新页面：${result.updateUrl}'),
@@ -369,10 +413,6 @@ class _AboutPageState extends State<AboutPage> {
     );
   }
 }
-
-
-
-
 
 class _AboutActionRow extends StatelessWidget {
   const _AboutActionRow({
